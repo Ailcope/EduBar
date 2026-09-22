@@ -3,24 +3,33 @@ import EduBarCore
 import Foundation
 import Observation
 
-/// Regarde sur GitHub si une version plus récente est publiée (au lancement, puis une fois par jour).
-/// N'installe rien : propose de télécharger le .dmg.
+/// Regarde sur GitHub si une version plus récente est publiée (au lancement, puis une fois par jour)
+/// et l'installe toute seule : téléchargement vérifié, remplacement de l'app, relance.
+/// Si l'app ne peut pas se remplacer (lancée depuis le .dmg, par exemple), propose le .dmg.
 @MainActor @Observable
 final class UpdateChecker {
     /// Version plus récente disponible, s'il y en a une.
     private(set) var available: Release?
-    /// Résultat de la dernière vérification manuelle, pour les réglages.
+    /// Résultat de la dernière vérification ou installation, pour les réglages.
     private(set) var message: String?
     private(set) var checking = false
+    private(set) var installing = false
 
     @ObservationIgnored private var lastCheck: Date?
 
     let current = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
 
-    /// Vérification automatique : silencieuse, au plus une fois par jour.
+    /// Vrai si le bouton installe directement (sinon il ouvre le .dmg).
+    var canInstallInPlace: Bool { available?.zipSHA256 != nil && UpdateInstaller.canReplaceSelf }
+
+    /// Clé posée juste avant la relance, pour annoncer la mise à jour au démarrage suivant.
+    static let updatedFromKey = "updatedFrom"
+
+    /// Vérification automatique : au plus une fois par jour, et installe ce qu'elle trouve.
     func checkIfDue() async {
         if let lastCheck, Date().timeIntervalSince(lastCheck) < 24 * 60 * 60 { return }
         _ = await check()
+        if canInstallInPlace { await installInPlace() }
     }
 
     /// Vérification demandée depuis les réglages.
@@ -28,9 +37,30 @@ final class UpdateChecker {
         Task { message = await check() }
     }
 
+    /// Bouton des réglages.
     func install() {
         guard let r = available else { return }
-        NSWorkspace.shared.open(r.dmg ?? r.page)
+        if canInstallInPlace {
+            Task { await installInPlace() }
+        } else {
+            NSWorkspace.shared.open(r.dmg ?? r.page)
+        }
+    }
+
+    private func installInPlace() async {
+        guard let r = available, !installing else { return }
+        installing = true
+        message = "Installation de la version \(r.version)…"
+        do {
+            try await UpdateInstaller.install(r)
+            NSLog("EduBar: version \(r.version) installée, relance")
+            UserDefaults.standard.set(current, forKey: Self.updatedFromKey)
+            UpdateInstaller.relaunch()
+        } catch {
+            NSLog("EduBar: mise à jour impossible : \(error.localizedDescription)")
+            message = "Mise à jour impossible : \(error.localizedDescription)"
+            installing = false
+        }
     }
 
     private func check() async -> String {

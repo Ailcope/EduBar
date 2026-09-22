@@ -34,7 +34,7 @@ Works with **Edusign** &bull; **SwiftUI** &bull; **macOS Notifications**
 - **Notifications.** Fin de cours, début de cours et changement de salle, chacune activable, avec son délai (0 à 60 min), son titre et son texte, et un bouton **Tester**.
 - **Textes personnalisables.** Chaque texte de la barre et ses émojis se réécrivent, avec les variables `{temps}`, `{salle}` et `{jour}`.
 - **Hors ligne.** Le calendrier est mis en cache dans `~/Library/Caches/EduBar/`, l'app marche sans réseau.
-- **Mises à jour.** EduBar regarde une fois par jour s'il existe une nouvelle release et propose le `.dmg`. Rien ne s'installe tout seul.
+- **Mises à jour.** EduBar regarde une fois par jour s'il existe une nouvelle release et l'installe toute seule : téléchargement vérifié (empreinte SHA-256 publiée par GitHub, identifiant, version et signature), remplacement de l'app, relance. Les réglages sont conservés. Lancée depuis le `.dmg` ou hors d'Applications, elle propose simplement le `.dmg`.
 
 ### Installation
 
@@ -103,7 +103,7 @@ Si `swift test` échoue avec `plugin for module 'TestingMacros' not found` (Comm
 swift test -Xswiftc -plugin-path -Xswiftc /Library/Developer/CommandLineTools/usr/lib/swift/host/plugins/testing
 ```
 
-- **Publier :** `scripts/bundle.sh x.y.z`, puis une release GitHub `vx.y.z` avec le `.dmg`. Les apps installées la verront dans la journée.
+- **Publier :** `scripts/bundle.sh x.y.z`, puis une release GitHub `vx.y.z` avec le `.dmg` et le `.zip` (le `.zip` sert à la mise à jour automatique). Les apps installées se mettent à jour dans la journée.
 - **Icône :** elle vient de `Resources/AppIcon.svg`. Après une modif, `scripts/make-icon.sh` régénère `Resources/AppIcon.icns`.
 - **Rendu :** `EduBar --snapshot <dossier> [--at "2026-09-22 13:10"]` rend le popover en PNG à partir du cache.
 
@@ -129,7 +129,7 @@ swift test -Xswiftc -plugin-path -Xswiftc /Library/Developer/CommandLineTools/us
 - **Notifications.** Class end, class start and room change, each with its own toggle, lead time (0 to 60 min), title and text, plus a **Test** button.
 - **Custom texts.** Every menu bar text and emoji can be rewritten, with `{temps}`, `{salle}` and `{jour}` placeholders.
 - **Offline.** The timetable is cached locally, so the app keeps working without network.
-- **Updates.** Checks GitHub once a day for a new release and offers the `.dmg`. Nothing installs itself.
+- **Updates.** Checks GitHub once a day and installs new releases by itself: verified download (GitHub's SHA-256 digest, bundle id, version and signature), in-place replacement, relaunch. Settings are kept. When run from the `.dmg` or outside Applications, it just offers the `.dmg`.
 
 ### Install
 

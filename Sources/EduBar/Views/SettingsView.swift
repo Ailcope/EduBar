@@ -60,9 +60,10 @@ struct SettingsView: View {
             HStack {
                 Text("Version \(model.updates.current ?? "dev")").font(.caption).foregroundStyle(.secondary)
                 Spacer()
-                if model.updates.checking { ProgressView().controlSize(.small) }
+                if model.updates.checking || model.updates.installing { ProgressView().controlSize(.small) }
                 if model.updates.available != nil {
-                    Button("Télécharger", action: model.updates.install)
+                    Button(model.updates.canInstallInPlace ? "Mettre à jour" : "Télécharger", action: model.updates.install)
+                        .disabled(model.updates.installing)
                 } else {
                     Button("Rechercher les mises à jour", action: model.updates.checkNow)
                         .disabled(model.updates.checking)

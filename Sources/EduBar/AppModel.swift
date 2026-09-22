@@ -82,6 +82,7 @@ final class AppModel {
         guard !started else { return }
         started = true
         notifier.requestAuthorization()
+        announceUpdateIfJustInstalled()
 
         // Hors du fil principal : une demande d'accès au Trousseau (migration) ne doit pas figer la barre.
         Task {
@@ -126,6 +127,17 @@ final class AppModel {
         now = frozenNow ?? Date()
         guard frozenNow == nil else { return }
         for n in notifications.due(schedule: schedule, at: now, calendar: calendar) { notifier.send(n) }
+    }
+
+    /// Après une mise à jour automatique, le premier lancement de la nouvelle version l'annonce.
+    private func announceUpdateIfJustInstalled() {
+        let defaults = UserDefaults.standard
+        guard defaults.string(forKey: UpdateChecker.updatedFromKey) != nil else { return }
+        defaults.removeObject(forKey: UpdateChecker.updatedFromKey)
+        let version = updates.current ?? "?"
+        notifier.send(PendingNotification(
+            id: "updated-\(version)", title: "EduBar est à jour", body: "Version \(version) installée, tes réglages sont conservés."
+        ))
     }
 
     /// Envoie tout de suite un exemple de la notification (réglages).
