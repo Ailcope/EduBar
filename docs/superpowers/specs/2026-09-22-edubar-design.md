@@ -29,12 +29,12 @@ Deux cibles SwiftPM :
   - `Course` : `id`, `title`, `start`, `end`, `room: String?`, `shortTitle` (sans préfixe `T1 - `).
   - `Schedule` : `status(at: Date, calendar: Calendar) -> Status`, fonction pure.
   - `Status` :
-    - `.inClass(current, next: Course?)` : en cours ; `next` = cours suivant du même jour.
+    - `.inClass(current, next: Course?, blockEnd, breakFollows)` : en cours ; `next` = cours suivant du même jour ; `blockEnd` = fin du bloc de cours contigus ; `breakFollows` = un cours suit plus tard dans la journée.
     - `.onBreak(previous, next)` : entre deux cours du même jour.
     - `.beforeFirst(next)` : aujourd'hui, avant le premier cours.
     - `.dayOver(next: Course?)` / `.noClassToday(next: Course?)` : `next` = prochain cours futur, quel que soit le jour.
   - `RoomChange` : `roomAlert(status, at:, lead: 15 min) -> RoomAlert?`. Alerte si en cours, fin dans ≤ 15 min, cours suivant le même jour, salle suivante connue et différente de la salle actuelle (ou salle actuelle inconnue).
-  - `Formatter` : texte de la barre et durées (`23 min`, `1 h 05`).
+  - `Display` : texte de la barre et durées (`23 min`, `1 h 05`).
   - `FeedURL` : normalise `webcal://` → `https://`, valide l'hôte, masque les paramètres pour les logs.
 - `EduBar` (exécutable SwiftUI)
   - `CalendarStore` (`@MainActor ObservableObject`) : télécharge le flux toutes les 15 min, cache disque (`~/Library/Caches/EduBar/calendar.ics`), garde les derniers cours valides si le réseau tombe, expose `lastError`.
@@ -79,7 +79,7 @@ Deux cibles SwiftPM :
 - `ICSParser` : fixture anonymisée (lignes pliées, accents, sans `LOCATION`, `TZID`, date seule).
 - `Schedule` : en cours, pause, avant premier, dernier cours, journée finie, week-end, cours qui se touchent (pas de pause de 0 min).
 - `RoomChange` : même salle, salle différente, salle suivante inconnue, salle actuelle inconnue, hors fenêtre de 15 min, cours suivant le lendemain.
-- `Formatter` : durées et textes de la barre.
+- `Display` : durées et textes de la barre.
 - `FeedURL` : webcal → https, rejets.
 
 ## Build et release
