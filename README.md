@@ -12,7 +12,7 @@
 
 Works with **Edusign** &bull; **SwiftUI** &bull; **macOS Notifications**
 
-[🇫🇷 Français](#-français) &bull; [🇬🇧 English](#-english)
+[🇫🇷 Français](#-français) &bull; [🇬🇧 English](#-english) &bull; [📸 Captures](#-captures)
 
 </div>
 
@@ -38,10 +38,15 @@ Works with **Edusign** &bull; **SwiftUI** &bull; **macOS Notifications**
 - **Alternance.** Dans ⚙️ > **Alternance** : jours fixes en entreprise, semaines alternées (2 semaines d'école, 2 en entreprise…) ou détection automatique des jours sans cours. Ces jours-là : `🏢 Entreprise · école Lun. 9h`.
 - **Raccourcis.** Dans ⚙️ > **Raccourcis**, un raccourci de l'app Raccourcis se lance quand les cours commencent et quand ils finissent (mode Concentration, son coupé…).
 - **Statistiques.** Heures de la semaine (faites et prévues), prochains examens, progression par matière.
+- **Couleur par matière.** Chaque matière a sa couleur, la même dans la journée et dans les statistiques (l'orange reste aux examens).
+- **Vacances et jours fériés.** Une coupure de 7 jours ou plus s'annonce sous la journée : `Vacances dans 12 jours`, puis `Vacances · reprise lun. 02/11`. Les jours fériés de la semaine sont listés pour expliquer les trous : `Férié mer. 11/11 · Armistice`.
+- **Pauses communes.** Dans ⚙️ > **Pauses communes**, colle l'URL Edusign d'un pote (il la récupère comme toi) : la journée affiche `Alex finit à 15h30` et vos pauses en commun.
+- **Raccourci clavier.** ⌥⌘E ouvre et referme le menu depuis n'importe quelle app, sans autorisation d'accessibilité. Modifiable ou désactivable dans ⚙️.
+- **Copier le diagnostic.** En bas des réglages, un bouton copie la version, l'emplacement de l'app, l'état de la quarantaine et du calendrier, pour un rapport de bug. Jamais l'URL.
 - **Ajouter à Calendrier.** Un bouton abonne l'app Calendrier au flux Edusign : les cours y apparaissent et restent à jour.
 - **Textes personnalisables.** Chaque texte de la barre et ses émojis se réécrivent, avec les variables `{temps}`, `{salle}` et `{jour}`.
 - **Hors ligne.** Le calendrier est mis en cache dans `~/Library/Caches/EduBar/`, l'app marche sans réseau.
-- **Mises à jour.** EduBar regarde une fois par jour s'il existe une nouvelle release et l'installe toute seule : téléchargement vérifié (empreinte SHA-256 publiée par GitHub, identifiant, version et signature), remplacement de l'app, relance. Les réglages sont conservés. Un clic sur la notification « EduBar mis à jour » ouvre les nouveautés. Lancée depuis le `.dmg`, elle propose **Installer** : copie, relance depuis Applications et éjection de l'image disque.
+- **Mises à jour.** EduBar regarde toutes les 6 h s'il existe une nouvelle release et l'installe toute seule : téléchargement vérifié (empreinte SHA-256 publiée par GitHub, identifiant, version et signature), remplacement de l'app, relance. Les réglages sont conservés. Un clic sur la notification « EduBar mis à jour » ouvre les nouveautés. Lancée depuis le `.dmg`, elle propose **Installer** : copie, relance depuis Applications et éjection de l'image disque. Si elle ne peut pas se remplacer, une notification annonce la nouvelle version et mène au téléchargement.
 
 ### Installation
 
@@ -95,6 +100,8 @@ Variables : `{cours}`, `{heure}`, `{temps}`, `{salle}`, `{pause}` (`pause de 15 
 
 L'URL suffit à lire ton emploi du temps : elle ne contient que ton identifiant d'école et d'élève, sans mot de passe. Ne la partage pas. EduBar la garde dans `~/Library/Application Support/EduBar/feed-url`, lisible par ta session seulement (0600), ne l'écrit jamais dans les logs et ne parle qu'à `api.edusign.fr` (ou à l'hôte que tu donnes) et à `api.github.com` pour les mises à jour, sans rien envoyer d'autre que sa version. Avec **Ajouter à Calendrier**, c'est l'app Calendrier qui lit ensuite l'URL elle-même.
 
+Pour les pauses communes, l'URL de ton pote suit les mêmes règles : il te la donne lui-même, elle reste dans `~/Library/Application Support/EduBar/friend-url` (0600) et son calendrier en cache ne quitte pas ton Mac. Vider le champ puis **Enregistrer** l'oublie.
+
 ### Compiler
 
 Pas besoin de Xcode, les Command Line Tools suffisent (`xcode-select --install`).
@@ -112,7 +119,7 @@ swift test -Xswiftc -plugin-path -Xswiftc /Library/Developer/CommandLineTools/us
 
 - **Publier :** `scripts/bundle.sh x.y.z`, puis une release GitHub `vx.y.z` avec le `.dmg` et le `.zip` (le `.zip` sert à la mise à jour automatique). Les apps installées se mettent à jour dans la journée.
 - **Icône :** elle vient de `Resources/AppIcon.svg`. Après une modif, `scripts/make-icon.sh` régénère `Resources/AppIcon.icns`.
-- **Rendu :** `EduBar --snapshot <dossier> [--at "2026-09-22 13:10"]` rend le popover en PNG à partir du cache.
+- **Rendu :** `EduBar --snapshot <dossier> [--at "2026-09-22 13:10"] [--demo]` rend le popover en PNG à partir du cache. `--demo` remplace matières et salles par des noms fictifs (captures du README).
 
 ### Licence
 
@@ -140,10 +147,15 @@ swift test -Xswiftc -plugin-path -Xswiftc /Library/Developer/CommandLineTools/us
 - **Work-study.** In ⚙️ > **Alternance**: fixed company weekdays, alternating weeks, or automatic detection of days without classes. On those days: `🏢 Entreprise · école Lun. 9h`.
 - **Shortcuts.** In ⚙️ > **Raccourcis**, run a Shortcuts shortcut when classes start and when they end.
 - **Stats.** Hours this week (done and planned), upcoming exams, progress per subject.
+- **Subject colors.** Each subject gets its own color, the same in the day view and in the stats (orange stays for exams).
+- **Holidays and breaks.** A gap of 7 days or more shows up under the day: `Vacances dans 12 jours`, then `Vacances · reprise lun. 02/11`. French public holidays of the week are listed to explain the gaps: `Férié mer. 11/11 · Armistice`.
+- **Shared breaks.** In ⚙️ > **Pauses communes**, paste a friend's Edusign URL (they get it the same way you do): the day view shows `Alex finit à 15h30` and the breaks you share.
+- **Keyboard shortcut.** ⌥⌘E opens and closes the menu from any app, no Accessibility permission needed. Change or disable it in ⚙️.
+- **Copy diagnostics.** A button at the bottom of the settings copies the version, app location, quarantine and calendar state for a bug report. Never the URL.
 - **Add to Calendar.** One button subscribes the Calendar app to the Edusign feed.
 - **Custom texts.** Every menu bar text and emoji can be rewritten, with `{temps}`, `{salle}` and `{jour}` placeholders.
 - **Offline.** The timetable is cached locally, so the app keeps working without network.
-- **Updates.** Checks GitHub once a day and installs new releases by itself: verified download (GitHub's SHA-256 digest, bundle id, version and signature), in-place replacement, relaunch. Settings are kept. Clicking the "updated" notification opens the release notes. When run from the `.dmg`, it offers **Installer**: copy, relaunch from Applications and eject the disk image.
+- **Updates.** Checks GitHub every 6 hours and installs new releases by itself: verified download (GitHub's SHA-256 digest, bundle id, version and signature), in-place replacement, relaunch. Settings are kept. Clicking the "updated" notification opens the release notes. When run from the `.dmg`, it offers **Installer**: copy, relaunch from Applications and eject the disk image. If it cannot replace itself, a notification announces the new version and links to the download.
 
 ### Install
 
@@ -188,6 +200,8 @@ Notification placeholders: `{cours}`, `{heure}`, `{temps}`, `{salle}`, `{pause}`
 
 The URL is enough to read your timetable: it only holds your school and student IDs, no password. Keep it private. EduBar stores it in `~/Library/Application Support/EduBar/feed-url`, readable by your user only (0600), never writes it to logs, and only talks to `api.edusign.fr` (or the host you give it) and to `api.github.com` for updates, sending nothing but its version. With **Add to Calendar**, the Calendar app then reads the URL itself.
 
+For shared breaks, your friend's URL follows the same rules: they give it to you themselves, it stays in `~/Library/Application Support/EduBar/friend-url` (0600) and their cached timetable never leaves your Mac. Clear the field and hit **Enregistrer** to forget it.
+
 ### Build
 
 Command Line Tools only (`xcode-select --install`), no Xcode.
@@ -200,3 +214,55 @@ scripts/bundle.sh 0.1.0    # dist/EduBar.app + .zip + .dmg (universal, ad-hoc si
 ### License
 
 [PolyForm Noncommercial 1.0.0](./LICENSE.md) · free to use, modify and share for **noncommercial** purposes. Commercial use or reselling the code requires the author's permission.
+
+---
+
+<a id="-captures"></a>
+
+## 📸 Captures · Screenshots
+
+Matières, salles et prénom fictifs (`EduBar --snapshot <dossier> --demo`). · Placeholder subjects, rooms and name.
+
+<table>
+<tr>
+<td align="center" width="50%">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/day-dark.png">
+  <img src="docs/screenshots/day.png" width="340" alt="Journée : cours colorés par matière, pauses, pauses communes">
+</picture>
+<br><sub>La journée · The day</sub>
+</td>
+<td align="center" width="50%">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/holiday-dark.png">
+  <img src="docs/screenshots/holiday.png" width="340" alt="Semaine avec un jour férié listé sous la journée">
+</picture>
+<br><sub>Jour férié de la semaine · Public holiday this week</sub>
+</td>
+</tr>
+<tr>
+<td align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/stats-dark.png">
+  <img src="docs/screenshots/stats.png" width="340" alt="Statistiques : heures de la semaine et progression par matière">
+</picture>
+<br><sub>Statistiques · Stats</sub>
+</td>
+<td align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/settings-dark.png">
+  <img src="docs/screenshots/settings.png" width="340" alt="Réglages : URL, raccourci clavier, diagnostic">
+</picture>
+<br><sub>Réglages · Settings</sub>
+</td>
+</tr>
+<tr>
+<td align="center" colspan="2">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/friend-dark.png">
+  <img src="docs/screenshots/friend.png" width="340" alt="Réglages des pauses communes avec le calendrier d'un pote">
+</picture>
+<br><sub>Pauses communes · Shared breaks</sub>
+</td>
+</tr>
+</table>
