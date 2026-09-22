@@ -3,8 +3,8 @@ import Foundation
 /// Où on en est dans la journée.
 public enum Status: Equatable, Sendable {
     /// En cours. `next` : cours suivant du même jour. `blockEnd` : fin des cours enchaînés sans pause.
-    /// `breakFollows` : un autre cours suit plus tard dans la journée (donc `blockEnd` est une pause).
-    case inClass(current: Course, next: Course?, blockEnd: Date, breakFollows: Bool)
+    /// `breakUntil` : début du cours qui suit la pause après `blockEnd` (nil : plus de cours aujourd'hui).
+    case inClass(current: Course, next: Course?, blockEnd: Date, breakUntil: Date?)
     /// Entre deux cours du même jour.
     case onBreak(previous: Course, next: Course)
     /// Aujourd'hui, avant le premier cours.
@@ -39,7 +39,7 @@ public struct Schedule: Sendable {
                 current: current,
                 next: later.first,
                 blockEnd: blockEnd,
-                breakFollows: later.contains { $0.start > blockEnd }
+                breakUntil: later.first { $0.start > blockEnd }?.start
             )
         }
 

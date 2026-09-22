@@ -48,6 +48,20 @@ struct DisplayTests {
         #expect(bar(day, "2026-09-26 10:00") == "")
     }
 
+    @Test func lunchIsAnHourLongBreakAroundNoon() {
+        #expect(Display.isLunch(from: at("2026-09-22 13:00"), to: at("2026-09-22 14:00"), calendar: cal))
+        #expect(Display.isLunch(from: at("2026-09-22 12:00"), to: at("2026-09-22 13:30"), calendar: cal))
+        #expect(!Display.isLunch(from: at("2026-09-22 11:15"), to: at("2026-09-22 11:30"), calendar: cal))
+        #expect(!Display.isLunch(from: at("2026-09-22 12:30"), to: at("2026-09-22 13:15"), calendar: cal))
+        #expect(!Display.isLunch(from: at("2026-09-22 16:00"), to: at("2026-09-22 17:00"), calendar: cal))
+    }
+
+    @Test func lunchBarTexts() {
+        // c1 finit à 13h, c2 commence à 14h : pause déjeuner.
+        #expect(bar(day, "2026-09-22 12:00") == "📚 Déjeuner dans 1 h")
+        #expect(bar(day, "2026-09-22 13:10") == "🍽️ Cours dans 50 min · 501")
+    }
+
     @Test func breakWithoutRoomOmitsIt() {
         let a = course("a", "2026-09-22 09:00", "2026-09-22 10:00")
         let b = course("b", "2026-09-22 10:15", "2026-09-22 11:00")

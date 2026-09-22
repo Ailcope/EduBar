@@ -49,15 +49,22 @@ public enum Display {
             return "⚠️ Salle \(shortRoom(alert.room)) · fin dans \(duration(alert.from.end.timeIntervalSince(now)))"
         }
         switch status {
-        case let .inClass(_, _, blockEnd, breakFollows):
-            return "📚 \(breakFollows ? "Pause" : "Fin") dans \(duration(blockEnd.timeIntervalSince(now)))"
-        case let .onBreak(_, next):
-            return "☕ Cours dans \(duration(next.start.timeIntervalSince(now)))" + roomSuffix(next)
+        case let .inClass(_, _, blockEnd, breakUntil):
+            let what = breakUntil.map { isLunch(from: blockEnd, to: $0, calendar: calendar) ? "Déjeuner" : "Pause" } ?? "Fin"
+            return "📚 \(what) dans \(duration(blockEnd.timeIntervalSince(now)))"
+        case let .onBreak(previous, next):
+            let icon = isLunch(from: previous.end, to: next.start, calendar: calendar) ? "🍽️" : "☕"
+            return "\(icon) Cours dans \(duration(next.start.timeIntervalSince(now)))" + roomSuffix(next)
         case let .beforeFirst(next):
             return "Cours dans \(duration(next.start.timeIntervalSince(now)))" + roomSuffix(next)
         case let .dayOver(next), let .noClassToday(next):
             return next.map { dayLabel($0.start, now: now, calendar: calendar) } ?? ""
         }
+    }
+
+    /// Pause déjeuner : au moins 1 h, commencée entre 11h et 14h.
+    public static func isLunch(from start: Date, to end: Date, calendar: Calendar) -> Bool {
+        end.timeIntervalSince(start) >= 60 * 60 && (11..<14).contains(calendar.component(.hour, from: start))
     }
 
     static func roomSuffix(_ c: Course) -> String {

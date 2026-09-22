@@ -7,17 +7,17 @@ let day = Schedule(courses: [c3, c1, c4, c0, c2])
 struct ScheduleTests {
     @Test func inClassWithBreakAfter() {
         #expect(day.status(at: at("2026-09-22 10:00"), calendar: cal)
-            == .inClass(current: c0, next: c1, blockEnd: c0.end, breakFollows: true))
+            == .inClass(current: c0, next: c1, blockEnd: c0.end, breakUntil: c1.start))
     }
 
     @Test func contiguousBlockSkipsZeroMinuteBreak() {
         #expect(day.status(at: at("2026-09-22 14:30"), calendar: cal)
-            == .inClass(current: c2, next: c3, blockEnd: c3.end, breakFollows: false))
+            == .inClass(current: c2, next: c3, blockEnd: c3.end, breakUntil: nil))
     }
 
     @Test func boundaryBelongsToNextCourse() {
         #expect(day.status(at: at("2026-09-22 15:30"), calendar: cal)
-            == .inClass(current: c3, next: nil, blockEnd: c3.end, breakFollows: false))
+            == .inClass(current: c3, next: nil, blockEnd: c3.end, breakUntil: nil))
     }
 
     @Test func onBreak() {
