@@ -41,8 +41,11 @@ final class UpdateChecker {
             let release = try await Self.fetchLatest(current: current)
             lastCheck = Date()
             available = Update.available(release, current: current)
-            return available.map { "Version \($0.version) disponible." } ?? "EduBar est à jour."
+            let result = available.map { "Version \($0.version) disponible." } ?? "EduBar est à jour."
+            NSLog("EduBar: mises à jour (\(current ?? "?") installée, \(release.version) publiée) : \(result)")
+            return result
         } catch {
+            NSLog("EduBar: vérification des mises à jour impossible : \(error.localizedDescription)")
             return "Vérification impossible : \(error.localizedDescription)"
         }
     }
