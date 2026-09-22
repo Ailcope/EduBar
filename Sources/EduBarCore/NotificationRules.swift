@@ -131,11 +131,13 @@ public struct NotificationRules: Codable, Equatable, Sendable {
         }
     }
 
-    /// Exemple rempli avec des valeurs fictives (bouton « Tester »).
-    public func sample(_ kind: NotificationKind) -> PendingNotification {
+    /// Exemple rempli avec des valeurs fictives, l'événement tombant dans `minutes` (bouton « Tester »).
+    public func sample(_ kind: NotificationKind, now: Date = Date(), calendar: Calendar = .current) -> PendingNotification {
         let rule = self[keyPath: kind.path]
+        let lead = Double(max(0, rule.minutes)) * 60
         return render(kind, [
-            "cours": "Langage C avancé", "heure": "14h", "temps": Display.duration(Double(rule.minutes) * 60),
+            "cours": "Langage C avancé", "heure": Display.time(now.addingTimeInterval(lead), calendar: calendar),
+            "temps": Display.duration(lead),
             "salle": "501", "pause": kind == .classEnd ? "déjeuner" : nil,
         ], id: "test-\(kind.rawValue)-\(Date().timeIntervalSince1970)")
     }

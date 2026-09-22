@@ -21,6 +21,7 @@ struct EduBarApp: App {
                     DayView(model: model, openSettings: model.openSettings)
                 }
             }
+            .fitsMenuWindow()
             .onAppear { model.tick() }
         } label: {
             MenuBarLabel(model: model)

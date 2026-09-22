@@ -71,5 +71,8 @@ import Testing
     @Test func sampleFillsVariables() {
         let s = rules.sample(.roomChange)
         #expect(!s.title.contains("{") && !s.body.contains("{"))
+        // L'heure suit maintenant + délai (5 min par défaut pour la fin de cours).
+        let end = rules.sample(.classEnd, now: at("2026-09-22 12:19"), calendar: cal)
+        #expect(end.body == "Langage C avancé se termine à 12h24. Ensuite : déjeuner.")
     }
 }
