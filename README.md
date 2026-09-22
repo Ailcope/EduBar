@@ -6,7 +6,7 @@ Ton emploi du temps Edusign dans la barre des menus macOS.
 
 - En cours : `📚 Pause dans 23 min` (ou `Fin dans…` pour le dernier cours).
 - En pause : `☕ Cours dans 8 min · 506`.
-- Pause déjeuner (1 h ou plus, entre 11h et 14h) : `📚 Déjeuner dans 20 min`, puis `🍽️ Cours dans 50 min · 501`.
+- Pause déjeuner (1 h ou plus, entre 11h et 14h) : `🍽️ Déjeuner dans 20 min`, puis `📚 Cours dans 50 min · 501` pendant le repas.
 - 15 min avant la fin d'un cours, si le suivant est dans une autre salle : `⚠️ Salle 501 · fin dans 14 min`, plus une notification.
 - Journée finie : `Demain 9h45`.
 - Un clic : la journée complète, avec les salles et les pauses.

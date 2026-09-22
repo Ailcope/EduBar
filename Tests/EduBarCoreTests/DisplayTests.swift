@@ -58,8 +58,8 @@ struct DisplayTests {
 
     @Test func lunchBarTexts() {
         // c1 finit à 13h, c2 commence à 14h : pause déjeuner.
-        #expect(bar(day, "2026-09-22 12:00") == "📚 Déjeuner dans 1 h")
-        #expect(bar(day, "2026-09-22 13:10") == "🍽️ Cours dans 50 min · 501")
+        #expect(bar(day, "2026-09-22 12:00") == "🍽️ Déjeuner dans 1 h")
+        #expect(bar(day, "2026-09-22 13:10") == "📚 Cours dans 50 min · 501")
     }
 
     @Test func breakWithoutRoomOmitsIt() {

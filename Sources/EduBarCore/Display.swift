@@ -50,10 +50,12 @@ public enum Display {
         }
         switch status {
         case let .inClass(_, _, blockEnd, breakUntil):
-            let what = breakUntil.map { isLunch(from: blockEnd, to: $0, calendar: calendar) ? "Déjeuner" : "Pause" } ?? "Fin"
-            return "📚 \(what) dans \(duration(blockEnd.timeIntervalSince(now)))"
+            let lunch = breakUntil.map { isLunch(from: blockEnd, to: $0, calendar: calendar) } ?? false
+            let what = lunch ? "🍽️ Déjeuner" : breakUntil == nil ? "📚 Fin" : "📚 Pause"
+            return "\(what) dans \(duration(blockEnd.timeIntervalSince(now)))"
         case let .onBreak(previous, next):
-            let icon = isLunch(from: previous.end, to: next.start, calendar: calendar) ? "🍽️" : "☕"
+            // Pendant le repas : le livre annonce la reprise.
+            let icon = isLunch(from: previous.end, to: next.start, calendar: calendar) ? "📚" : "☕"
             return "\(icon) Cours dans \(duration(next.start.timeIntervalSince(now)))" + roomSuffix(next)
         case let .beforeFirst(next):
             return "Cours dans \(duration(next.start.timeIntervalSince(now)))" + roomSuffix(next)
