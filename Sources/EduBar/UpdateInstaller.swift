@@ -81,6 +81,10 @@ enum UpdateInstaller {
         defer { try? fm.removeItem(at: work) }
         let staged = work.appending(path: "EduBar.app")
         try run("/usr/bin/ditto", [Bundle.main.bundleURL.path, staged.path])
+        // La copie hérite de la quarantaine du .dmg : macOS la lancerait isolée (App Translocation)
+        // et Gatekeeper la bloquerait. L'utilisateur a déjà autorisé l'app qui tourne.
+        try run("/usr/bin/xattr", ["-dr", "com.apple.quarantine", staged.path])
+        try run("/usr/bin/codesign", ["--verify", "--deep", "--strict", staged.path])
         if fm.fileExists(atPath: destination.path) {
             _ = try fm.replaceItemAt(destination, withItemAt: staged)
         } else {
@@ -98,7 +102,7 @@ enum UpdateInstaller {
         task.arguments = [
             "-c",
             "while /bin/kill -0 \"$1\" 2>/dev/null; do /bin/sleep 0.2; done; "
-                + "if [ -n \"$3\" ]; then /usr/bin/hdiutil detach \"$3\" -quiet || true; fi; /usr/bin/open -n \"$2\"",
+                + "if [ -n \"$3\" ]; then /usr/bin/hdiutil detach \"$3\" -quiet || /usr/bin/hdiutil detach \"$3\" -force -quiet || true; fi; /usr/bin/open -n \"$2\"",
             "sh", String(ProcessInfo.processInfo.processIdentifier), app.path, volume?.path ?? "",
         ]
         do {

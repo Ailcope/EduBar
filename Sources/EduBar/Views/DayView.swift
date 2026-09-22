@@ -13,7 +13,7 @@ struct DayView: View {
             header
             if UpdateInstaller.diskImageVolume != nil || UpdateInstaller.isTranslocated {
                 banner(
-                    UpdateInstaller.isTranslocated ? "EduBar n'est pas dans Applications" : "EduBar tourne depuis le .dmg",
+                    UpdateInstaller.isTranslocated ? "macOS isole EduBar (quarantaine)" : "EduBar tourne depuis le .dmg",
                     icon: "externaldrive", button: "Installer", action: model.installInApplications
                 )
                 .help("Copie EduBar dans Applications, la relance de là et éjecte le .dmg. Nécessaire pour les mises à jour.")
