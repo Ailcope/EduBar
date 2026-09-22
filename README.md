@@ -7,7 +7,8 @@ Ton emploi du temps Edusign dans la barre des menus macOS.
 - En cours : `📚 Pause dans 23 min` (ou `Fin dans…` pour le dernier cours).
 - En pause : `☕ Cours dans 8 min · 506`.
 - Pause déjeuner (1 h ou plus, entre 11h et 14h) : `🍽️ Déjeuner dans 20 min`, puis `📚 Cours dans 50 min · 501` pendant le repas.
-- 15 min avant la fin d'un cours, si le suivant est dans une autre salle : `⚠️ Salle 501 · fin dans 14 min`, plus une notification.
+- 15 min avant la fin d'un cours, si le suivant est dans une autre salle : `⚠️ Salle 501 · fin dans 14 min`.
+- Notifications : fin de cours, début de cours, changement de salle (voir plus bas).
 - Journée finie : `Demain 9h45`.
 - Un clic : la journée complète, avec les salles et les pauses.
 - Mises à jour : EduBar regarde une fois par jour s'il existe une nouvelle release et propose de télécharger le `.dmg` (rien ne s'installe tout seul).
@@ -23,6 +24,18 @@ Dans ⚙️ > **Personnaliser les textes**, chaque situation a son modèle, émo
 - `{jour}` : le prochain cours quand la journée est finie (`Demain 9h45`)
 
 Exemple : `🏃 Go {salle} dans {temps}`. Un champ vide reprend le texte par défaut, et un bouton rétablit tout.
+
+## Notifications
+
+Dans ⚙️ > **Notifications**, trois notifications, chacune activable, avec son délai (0 à 60 min avant) et son titre et texte :
+
+| Notification | Quand (par défaut) | Exemple |
+|---|---|---|
+| Fin de cours | 5 min avant la fin d'une suite de cours | `Fin du cours dans 5 min` · `Langage C avancé se termine à 13h. Ensuite : déjeuner.` |
+| Début de cours | 5 min avant le premier cours ou la reprise | `Cours dans 5 min · 501` |
+| Changement de salle | 15 min avant la fin, si le cours suivant est ailleurs | `⚠️ Changement de salle : 501` |
+
+Variables : `{cours}`, `{heure}`, `{temps}`, `{salle}`, `{pause}` (`pause de 15 min`, `déjeuner` ou `fin de journée`). Le délai du changement de salle règle aussi l'alerte dans la barre. Le bouton **Tester** envoie un exemple tout de suite. Si rien ne s'affiche, autorise EduBar dans Réglages Système > Notifications.
 
 ## Installation
 
@@ -79,7 +92,7 @@ Pour publier une version : `scripts/bundle.sh x.y.z`, puis une release GitHub `v
 
 ## English
 
-Your Edusign timetable in the macOS menu bar: time until the next break or class, the next room, and a heads-up 15 minutes before a class ends when the next one is in a different room. Lunch breaks are labeled as such. Every menu bar text and emoji can be customized in the settings with `{temps}`, `{salle}` and `{jour}` placeholders. Click for the full day. Ships without any calendar URL; EduBar checks GitHub once a day for a new release and offers the dmg.
+Your Edusign timetable in the macOS menu bar: time until the next break or class, the next room, and a heads-up 15 minutes before a class ends when the next one is in a different room. Lunch breaks are labeled as such. Notifications for class end, class start and room changes, each with its own toggle, lead time (0 to 60 min) and text, plus a Test button. Every menu bar text and emoji can be customized in the settings with `{temps}`, `{salle}` and `{jour}` placeholders. Click for the full day. Ships without any calendar URL; EduBar checks GitHub once a day for a new release and offers the dmg.
 
 **Install:** download the dmg (or zip) from Releases, drag `EduBar.app` to Applications, right-click and choose **Open** the first time (the app is not notarized), or run `xattr -dr com.apple.quarantine /Applications/EduBar.app`.
 

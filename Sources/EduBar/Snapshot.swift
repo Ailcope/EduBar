@@ -26,6 +26,9 @@ enum Snapshot {
         model.openSettings()
         model.showingTemplates = true
         write(SettingsView(model: model), to: dir.appendingPathComponent("settings.png"))
+        model.showingTemplates = false
+        model.showingNotifications = true
+        write(SettingsView(model: model), to: dir.appendingPathComponent("notifications.png"))
         print("bar: \(model.barText)")
         exit(0)
     }

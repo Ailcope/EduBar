@@ -2,9 +2,9 @@ import EduBarCore
 import Foundation
 import UserNotifications
 
-/// Notification macOS de changement de salle, une seule fois par cours.
+/// Notifications macOS, une seule fois par événement.
 @MainActor
-final class Notifier {
+final class Notifier: NSObject, UNUserNotificationCenterDelegate {
     private var notified: Set<String> = []
 
     /// `UNUserNotificationCenter` plante hors d'un bundle .app (ex. `swift run`).
@@ -12,16 +12,24 @@ final class Notifier {
 
     func requestAuthorization() {
         guard available else { return }
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
+        let center = UNUserNotificationCenter.current()
+        center.delegate = self
+        center.requestAuthorization(options: [.alert, .sound]) { _, _ in }
     }
 
-    func notify(_ alert: RoomAlert, calendar: Calendar) {
-        guard available, notified.insert(alert.from.id).inserted else { return }
+    func send(_ n: PendingNotification) {
+        guard available, notified.insert(n.id).inserted else { return }
         let content = UNMutableNotificationContent()
-        content.title = "Changement de salle : \(Display.shortRoom(alert.room))"
-        content.body = "Après ce cours, \(alert.to.shortTitle) à \(Display.time(alert.to.start, calendar: calendar)) en \(alert.room)."
+        content.title = n.title
+        content.body = n.body
         content.sound = .default
-        let request = UNNotificationRequest(identifier: "room-\(alert.from.id)", content: content, trigger: nil)
-        UNUserNotificationCenter.current().add(request)
+        UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: n.id, content: content, trigger: nil))
+    }
+
+    /// Affiche aussi la bannière quand l'app est au premier plan (popover ouvert, bouton « Tester »).
+    nonisolated func userNotificationCenter(
+        _ center: UNUserNotificationCenter, willPresent notification: UNNotification
+    ) async -> UNNotificationPresentationOptions {
+        [.banner, .list, .sound]
     }
 }

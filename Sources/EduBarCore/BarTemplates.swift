@@ -61,21 +61,11 @@ public struct BarTemplates: Codable, Equatable, Sendable {
 
     /// Le modèle, ou celui par défaut s'il est vide.
     func pick(_ path: KeyPath<BarTemplates, String>) -> String {
-        let t = self[keyPath: path]
-        return t.trimmingCharacters(in: .whitespaces).isEmpty ? Self.defaults[keyPath: path] : t
+        Template.pick(self[keyPath: path], or: Self.defaults[keyPath: path])
     }
 
     /// Remplit les variables. Salle inconnue : `{salle}` disparaît avec le séparateur qui l'entoure.
     public static func render(_ template: String, temps: String = "", salle: String?, jour: String = "") -> String {
-        var s = template
-            .replacingOccurrences(of: "{temps}", with: temps)
-            .replacingOccurrences(of: "{jour}", with: jour)
-        if let salle {
-            s = s.replacingOccurrences(of: "{salle}", with: salle)
-        } else {
-            s = s.replacingOccurrences(of: #"\s*[·\-–|,:]\s*\{salle\}"#, with: "", options: .regularExpression)
-            s = s.replacingOccurrences(of: #"\{salle\}\s*[·\-–|,:]?\s*"#, with: "", options: .regularExpression)
-        }
-        return s.trimmingCharacters(in: .whitespaces)
+        Template.render(template, ["temps": temps, "jour": jour, "salle": salle])
     }
 }

@@ -12,8 +12,13 @@ final class AppModel {
     let updates = UpdateChecker()
     let calendar = Calendar.autoupdatingCurrent
 
-    var notifyRoomChanges: Bool {
-        didSet { UserDefaults.standard.set(notifyRoomChanges, forKey: "notifyRoomChanges") }
+    /// Notifications personnalisées dans les réglages.
+    var notifications: NotificationRules {
+        didSet {
+            if let data = try? JSONEncoder().encode(notifications) {
+                UserDefaults.standard.set(data, forKey: "notificationRules")
+            }
+        }
     }
 
     /// Textes de la barre personnalisés dans les réglages.
@@ -31,6 +36,7 @@ final class AppModel {
     var saveResult: (ok: Bool, message: String)?
     var saving = false
     var showingTemplates = false
+    var showingNotifications = false
 
     @ObservationIgnored private let notifier = Notifier()
     @ObservationIgnored private var started = false
@@ -40,7 +46,16 @@ final class AppModel {
 
     /// `readKeychainNow` : lecture synchrone, pour le mode `--snapshot` seulement.
     init(readKeychainNow: Bool = false) {
-        notifyRoomChanges = UserDefaults.standard.object(forKey: "notifyRoomChanges") as? Bool ?? true
+        let defaults = UserDefaults.standard
+        if let data = defaults.data(forKey: "notificationRules"),
+           let rules = try? JSONDecoder().decode(NotificationRules.self, from: data) {
+            notifications = rules
+        } else {
+            // Réglage de la v0.2 : seulement l'alerte de changement de salle.
+            var rules = NotificationRules.defaults
+            rules.roomChange.enabled = defaults.object(forKey: "notifyRoomChanges") as? Bool ?? true
+            notifications = rules
+        }
         templates = UserDefaults.standard.data(forKey: "barTemplates")
             .flatMap { try? JSONDecoder().decode(BarTemplates.self, from: $0) } ?? .defaults
         if readKeychainNow {
@@ -53,7 +68,9 @@ final class AppModel {
 
     var schedule: Schedule { Schedule(courses: store.courses) }
     var status: Status { schedule.status(at: now, calendar: calendar) }
-    var alert: RoomAlert? { RoomChange.alert(for: status, at: now) }
+    var alert: RoomAlert? {
+        RoomChange.alert(for: status, at: now, lead: TimeInterval(max(0, notifications.roomChange.minutes) * 60))
+    }
     var barText: String {
         guard feedURL != nil else { return "" }
         return Display.barText(status: status, alert: alert, now: now, calendar: calendar, templates: templates)
@@ -107,7 +124,13 @@ final class AppModel {
 
     func tick() {
         now = frozenNow ?? Date()
-        if notifyRoomChanges, let alert { notifier.notify(alert, calendar: calendar) }
+        guard frozenNow == nil else { return }
+        for n in notifications.due(schedule: schedule, at: now, calendar: calendar) { notifier.send(n) }
+    }
+
+    /// Envoie tout de suite un exemple de la notification (réglages).
+    func testNotification(_ kind: NotificationKind) {
+        notifier.send(notifications.sample(kind))
     }
 
     func refresh() async {

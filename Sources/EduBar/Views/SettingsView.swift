@@ -37,11 +37,21 @@ struct SettingsView: View {
             }
 
             Divider()
-            Toggle("Prévenir 15 min avant un changement de salle", isOn: binding(\.notifyRoomChanges))
             Toggle("Lancer au démarrage", isOn: binding(\.launchAtLogin))
 
             Divider()
-            DisclosureGroup("Personnaliser les textes", isExpanded: binding(\.showingTemplates)) {
+            // Un seul volet ouvert à la fois : le popover n'a pas de défilement.
+            DisclosureGroup("Notifications", isExpanded: Binding(
+                get: { model.showingNotifications },
+                set: { model.showingNotifications = $0; if $0 { model.showingTemplates = false } }
+            )) {
+                notificationsEditor
+            }
+            .font(.callout.weight(.semibold))
+            DisclosureGroup("Personnaliser les textes", isExpanded: Binding(
+                get: { model.showingTemplates },
+                set: { model.showingTemplates = $0; if $0 { model.showingNotifications = false } }
+            )) {
                 templatesEditor
             }
             .font(.callout.weight(.semibold))
@@ -97,6 +107,53 @@ struct SettingsView: View {
             Button("Rétablir les textes par défaut") { model.templates = .defaults }
                 .font(.caption)
                 .disabled(model.templates == .defaults)
+        }
+        .font(.body.weight(.regular))
+        .padding(.top, 6)
+    }
+
+    private static let kinds: [(label: String, event: String, kind: NotificationKind)] = [
+        ("Fin de cours", "avant la fin", .classEnd),
+        ("Début de cours", "avant le début", .classStart),
+        ("Changement de salle", "avant la fin du cours", .roomChange),
+    ]
+
+    private var notificationsEditor: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Variables : {cours}, {heure}, {temps}, {salle}, {pause}. Un champ vide reprend le texte par défaut. Si rien n'arrive, autorise EduBar dans Réglages Système > Notifications.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            ForEach(Self.kinds, id: \.label) { item in
+                let path = (\AppModel.notifications).appending(path: item.kind.path)
+                let rule = model[keyPath: path]
+                let fallback = NotificationRules.defaults[keyPath: item.kind.path]
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Toggle(item.label, isOn: binding(path.appending(path: \.enabled)))
+                            .font(.callout.weight(.medium))
+                        Spacer()
+                        Button("Tester") { model.testNotification(item.kind) }
+                            .font(.caption)
+                    }
+                    if rule.enabled {
+                        Stepper(
+                            rule.minutes == 0 ? "Au moment même" : "\(rule.minutes) min \(item.event)",
+                            value: binding(path.appending(path: \.minutes)), in: 0...60
+                        )
+                        .font(.caption)
+                        TextField(fallback.title, text: binding(path.appending(path: \.title)))
+                            .textFieldStyle(.roundedBorder)
+                            .font(.callout)
+                        TextField(fallback.body, text: binding(path.appending(path: \.body)))
+                            .textFieldStyle(.roundedBorder)
+                            .font(.callout)
+                    }
+                }
+            }
+            Button("Rétablir les notifications par défaut") { model.notifications = .defaults }
+                .font(.caption)
+                .disabled(model.notifications == .defaults)
         }
         .font(.body.weight(.regular))
         .padding(.top, 6)
