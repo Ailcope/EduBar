@@ -1,3 +1,4 @@
+import EduBarCore
 import SwiftUI
 
 struct SettingsView: View {
@@ -40,6 +41,12 @@ struct SettingsView: View {
             Toggle("Lancer au démarrage", isOn: binding(\.launchAtLogin))
 
             Divider()
+            DisclosureGroup("Personnaliser les textes", isExpanded: binding(\.showingTemplates)) {
+                templatesEditor
+            }
+            .font(.callout.weight(.semibold))
+
+            Divider()
             HStack {
                 Text("Version \(model.updates.current ?? "dev")").font(.caption).foregroundStyle(.secondary)
                 Spacer()
@@ -57,6 +64,42 @@ struct SettingsView: View {
         }
         .padding(14)
         .frame(width: 340)
+    }
+
+    private static let fields: [(label: String, path: WritableKeyPath<BarTemplates, String>)] = [
+        ("En cours, pause ensuite", \.beforeBreak),
+        ("En cours, déjeuner ensuite", \.beforeLunch),
+        ("Dernier cours de la journée", \.lastClass),
+        ("En pause", \.onBreak),
+        ("Pendant le déjeuner", \.onLunch),
+        ("Avant le premier cours", \.beforeFirst),
+        ("Changement de salle (15 min avant)", \.roomChange),
+        ("Journée finie", \.dayOver),
+    ]
+
+    private var templatesEditor: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Émojis et textes libres. Variables : {temps}, {salle}, {jour}. Un champ vide reprend le texte par défaut.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            ForEach(Self.fields, id: \.label) { field in
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(field.label).font(.caption).foregroundStyle(.secondary)
+                    TextField(
+                        BarTemplates.defaults[keyPath: field.path],
+                        text: binding((\AppModel.templates).appending(path: field.path))
+                    )
+                    .textFieldStyle(.roundedBorder)
+                    .font(.callout)
+                }
+            }
+            Button("Rétablir les textes par défaut") { model.templates = .defaults }
+                .font(.caption)
+                .disabled(model.templates == .defaults)
+        }
+        .font(.body.weight(.regular))
+        .padding(.top, 6)
     }
 
     private func binding<T>(_ path: ReferenceWritableKeyPath<AppModel, T>) -> Binding<T> {

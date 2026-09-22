@@ -24,6 +24,7 @@ enum Snapshot {
         write(bar, to: dir.appendingPathComponent("bar.png"))
         write(DayView(model: model, openSettings: {}), to: dir.appendingPathComponent("day.png"))
         model.openSettings()
+        model.showingTemplates = true
         write(SettingsView(model: model), to: dir.appendingPathComponent("settings.png"))
         print("bar: \(model.barText)")
         exit(0)

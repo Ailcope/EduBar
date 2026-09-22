@@ -16,11 +16,21 @@ final class AppModel {
         didSet { UserDefaults.standard.set(notifyRoomChanges, forKey: "notifyRoomChanges") }
     }
 
+    /// Textes de la barre personnalisés dans les réglages.
+    var templates: BarTemplates {
+        didSet {
+            if let data = try? JSONEncoder().encode(templates) {
+                UserDefaults.standard.set(data, forKey: "barTemplates")
+            }
+        }
+    }
+
     // État de l'UI (pas de @State : c'est une macro que les Command Line Tools ne savent pas développer avec le SDK macOS 27).
     var showingSettings = false
     var feedDraft = ""
     var saveResult: (ok: Bool, message: String)?
     var saving = false
+    var showingTemplates = false
 
     @ObservationIgnored private let notifier = Notifier()
     @ObservationIgnored private var started = false
@@ -31,6 +41,8 @@ final class AppModel {
     /// `readKeychainNow` : lecture synchrone, pour le mode `--snapshot` seulement.
     init(readKeychainNow: Bool = false) {
         notifyRoomChanges = UserDefaults.standard.object(forKey: "notifyRoomChanges") as? Bool ?? true
+        templates = UserDefaults.standard.data(forKey: "barTemplates")
+            .flatMap { try? JSONDecoder().decode(BarTemplates.self, from: $0) } ?? .defaults
         if readKeychainNow {
             feedURL = Keychain.get("feedURL").flatMap(FeedURL.normalize)
             feedLoaded = true
@@ -44,7 +56,7 @@ final class AppModel {
     var alert: RoomAlert? { RoomChange.alert(for: status, at: now) }
     var barText: String {
         guard feedURL != nil else { return "" }
-        return Display.barText(status: status, alert: alert, now: now, calendar: calendar)
+        return Display.barText(status: status, alert: alert, now: now, calendar: calendar, templates: templates)
     }
 
     // MARK: - Boucles

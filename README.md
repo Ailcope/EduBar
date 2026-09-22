@@ -14,6 +14,16 @@ Ton emploi du temps Edusign dans la barre des menus macOS.
 
 L'app est livrée sans calendrier : c'est toi qui colles ton URL au premier lancement.
 
+## Personnaliser les textes
+
+Dans ⚙️ > **Personnaliser les textes**, chaque situation a son modèle, émojis compris : en cours avant une pause, avant le déjeuner, dernier cours, en pause, pendant le déjeuner, avant le premier cours, changement de salle, journée finie. Variables :
+
+- `{temps}` : le temps restant (`23 min`, `1 h 05`)
+- `{salle}` : la salle (`501`). Si elle est inconnue, elle disparaît avec son séparateur (`Cours dans 8 min · {salle}` devient `Cours dans 8 min`)
+- `{jour}` : le prochain cours quand la journée est finie (`Demain 9h45`)
+
+Exemple : `🏃 Go {salle} dans {temps}`. Un champ vide reprend le texte par défaut, et un bouton rétablit tout.
+
 ## Installation
 
 1. Télécharge `EduBar-x.y.z.dmg` depuis les [Releases](../../releases) (ou le `.zip`), ouvre-le.
@@ -69,7 +79,7 @@ Pour publier une version : `scripts/bundle.sh x.y.z`, puis une release GitHub `v
 
 ## English
 
-Your Edusign timetable in the macOS menu bar: time until the next break or class, the next room, and a heads-up 15 minutes before a class ends when the next one is in a different room. Lunch breaks are labeled as such. Click for the full day. Ships without any calendar URL; EduBar checks GitHub once a day for a new release and offers the dmg.
+Your Edusign timetable in the macOS menu bar: time until the next break or class, the next room, and a heads-up 15 minutes before a class ends when the next one is in a different room. Lunch breaks are labeled as such. Every menu bar text and emoji can be customized in the settings with `{temps}`, `{salle}` and `{jour}` placeholders. Click for the full day. Ships without any calendar URL; EduBar checks GitHub once a day for a new release and offers the dmg.
 
 **Install:** download the dmg (or zip) from Releases, drag `EduBar.app` to Applications, right-click and choose **Open** the first time (the app is not notarized), or run `xattr -dr com.apple.quarantine /Applications/EduBar.app`.
 

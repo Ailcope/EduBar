@@ -44,32 +44,40 @@ public enum Display {
     }
 
     /// Texte de la barre des menus. Chaîne vide : afficher seulement l'icône.
-    public static func barText(status: Status, alert: RoomAlert?, now: Date, calendar: Calendar) -> String {
+    public static func barText(
+        status: Status, alert: RoomAlert?, now: Date, calendar: Calendar, templates: BarTemplates = .defaults
+    ) -> String {
+        func until(_ date: Date) -> String { duration(date.timeIntervalSince(now)) }
         if let alert {
-            return "⚠️ Salle \(shortRoom(alert.room)) · fin dans \(duration(alert.from.end.timeIntervalSince(now)))"
+            return BarTemplates.render(
+                templates.pick(\.roomChange), temps: until(alert.from.end), salle: shortRoom(alert.room)
+            )
         }
         switch status {
         case let .inClass(_, _, blockEnd, breakUntil):
             let lunch = breakUntil.map { isLunch(from: blockEnd, to: $0, calendar: calendar) } ?? false
-            let what = lunch ? "🍽️ Déjeuner" : breakUntil == nil ? "📚 Fin" : "📚 Pause"
-            return "\(what) dans \(duration(blockEnd.timeIntervalSince(now)))"
+            let t = lunch ? templates.pick(\.beforeLunch)
+                : breakUntil == nil ? templates.pick(\.lastClass) : templates.pick(\.beforeBreak)
+            return BarTemplates.render(t, temps: until(blockEnd), salle: nil)
         case let .onBreak(previous, next):
-            // Pendant le repas : le livre annonce la reprise.
-            let icon = isLunch(from: previous.end, to: next.start, calendar: calendar) ? "📚" : "☕"
-            return "\(icon) Cours dans \(duration(next.start.timeIntervalSince(now)))" + roomSuffix(next)
+            let lunch = isLunch(from: previous.end, to: next.start, calendar: calendar)
+            let t = templates.pick(lunch ? \.onLunch : \.onBreak)
+            return BarTemplates.render(t, temps: until(next.start), salle: next.room.map(shortRoom))
         case let .beforeFirst(next):
-            return "Cours dans \(duration(next.start.timeIntervalSince(now)))" + roomSuffix(next)
+            return BarTemplates.render(
+                templates.pick(\.beforeFirst), temps: until(next.start), salle: next.room.map(shortRoom)
+            )
         case let .dayOver(next), let .noClassToday(next):
-            return next.map { dayLabel($0.start, now: now, calendar: calendar) } ?? ""
+            guard let next else { return "" }
+            return BarTemplates.render(
+                templates.pick(\.dayOver), salle: next.room.map(shortRoom),
+                jour: dayLabel(next.start, now: now, calendar: calendar)
+            )
         }
     }
 
     /// Pause déjeuner : au moins 1 h, commencée entre 11h et 14h.
     public static func isLunch(from start: Date, to end: Date, calendar: Calendar) -> Bool {
         end.timeIntervalSince(start) >= 60 * 60 && (11..<14).contains(calendar.component(.hour, from: start))
-    }
-
-    static func roomSuffix(_ c: Course) -> String {
-        c.room.map { " · \(shortRoom($0))" } ?? ""
     }
 }
