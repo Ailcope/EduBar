@@ -17,6 +17,10 @@ public struct BarTemplates: Codable, Equatable, Sendable {
     public var onLunch: String
     /// Avant le premier cours de la journée.
     public var beforeFirst: String
+    /// Veille ou jour d'un examen (`{jour}` : « demain 9h » ou « dans 25 min »).
+    public var examSoon: String
+    /// Jour en entreprise (alternance ; `{jour}` : retour à l'école, « Lun. 9h »).
+    public var company: String
     /// Journée finie ou sans cours (`{jour}` : « Demain 9h45 »).
     public var dayOver: String
 
@@ -28,12 +32,15 @@ public struct BarTemplates: Codable, Equatable, Sendable {
         onBreak: "☕ Cours dans {temps} · {salle}",
         onLunch: "📚 Cours dans {temps} · {salle}",
         beforeFirst: "Cours dans {temps} · {salle}",
-        dayOver: "{jour}"
+        dayOver: "{jour}",
+        examSoon: "📝 Examen {jour} · {salle}",
+        company: "🏢 Entreprise · école {jour}"
     )
 
     public init(
         roomChange: String, beforeBreak: String, beforeLunch: String, lastClass: String,
-        onBreak: String, onLunch: String, beforeFirst: String, dayOver: String
+        onBreak: String, onLunch: String, beforeFirst: String, dayOver: String,
+        examSoon: String, company: String
     ) {
         self.roomChange = roomChange
         self.beforeBreak = beforeBreak
@@ -43,6 +50,8 @@ public struct BarTemplates: Codable, Equatable, Sendable {
         self.onLunch = onLunch
         self.beforeFirst = beforeFirst
         self.dayOver = dayOver
+        self.examSoon = examSoon
+        self.company = company
     }
 
     /// Les clés absentes (réglages d'une ancienne version) prennent la valeur par défaut.
@@ -57,6 +66,8 @@ public struct BarTemplates: Codable, Equatable, Sendable {
         onLunch = try c.decodeIfPresent(String.self, forKey: .onLunch) ?? d.onLunch
         beforeFirst = try c.decodeIfPresent(String.self, forKey: .beforeFirst) ?? d.beforeFirst
         dayOver = try c.decodeIfPresent(String.self, forKey: .dayOver) ?? d.dayOver
+        examSoon = try c.decodeIfPresent(String.self, forKey: .examSoon) ?? d.examSoon
+        company = try c.decodeIfPresent(String.self, forKey: .company) ?? d.company
     }
 
     /// Le modèle, ou celui par défaut s'il est vide.

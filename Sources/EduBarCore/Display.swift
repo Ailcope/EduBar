@@ -44,14 +44,37 @@ public enum Display {
     }
 
     /// Texte de la barre des menus. Chaîne vide : afficher seulement l'icône.
+    /// `companyToday` : journée en entreprise (alternance).
     public static func barText(
-        status: Status, alert: RoomAlert?, now: Date, calendar: Calendar, templates: BarTemplates = .defaults
+        status: Status, alert: RoomAlert?, now: Date, calendar: Calendar, templates: BarTemplates = .defaults,
+        companyToday: Bool = false
     ) -> String {
         func until(_ date: Date) -> String { duration(date.timeIntervalSince(now)) }
         if let alert {
             return BarTemplates.render(
                 templates.pick(\.roomChange), temps: until(alert.from.end), salle: shortRoom(alert.room)
             )
+        }
+        func exam(_ next: Course, jour: String) -> String {
+            BarTemplates.render(
+                templates.pick(\.examSoon), temps: until(next.start), salle: next.room.map(shortRoom), jour: jour
+            )
+        }
+        switch status {
+        case let .beforeFirst(next), let .onBreak(_, next):
+            if next.isExam { return exam(next, jour: "dans \(until(next.start))") }
+        case let .dayOver(next?), let .noClassToday(next?):
+            if next.isExam, let tomorrow = calendar.date(byAdding: .day, value: 1, to: now),
+               calendar.isDate(next.start, inSameDayAs: tomorrow) {
+                return exam(next, jour: "demain \(time(next.start, calendar: calendar))")
+            }
+            if companyToday, case .noClassToday = status {
+                return BarTemplates.render(
+                    templates.pick(\.company), salle: next.room.map(shortRoom),
+                    jour: dayLabel(next.start, now: now, calendar: calendar)
+                )
+            }
+        default: break
         }
         switch status {
         case let .inClass(_, _, blockEnd, breakUntil):

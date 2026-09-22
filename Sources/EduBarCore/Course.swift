@@ -22,4 +22,18 @@ public struct Course: Identifiable, Hashable, Sendable {
         guard let range = title.range(of: #"^T\d+\s*-\s*"#, options: .regularExpression) else { return title }
         return String(title[range.upperBound...])
     }
+
+    /// Titre court avec une majuscule (Edusign écrit tout en minuscules).
+    public var displayTitle: String {
+        let t = shortTitle
+        return t.prefix(1).uppercased() + t.dropFirst()
+    }
+
+    /// Examen, partiel, DS, contrôle… d'après le titre.
+    public var isExam: Bool {
+        title.range(of: Self.examPattern, options: [.regularExpression, .caseInsensitive]) != nil
+    }
+
+    static let examPattern =
+        #"\b(examens?|exams?|partiels?|ds|contr[oô]les?|[ée]valuations?|soutenances?|qcm|rattrapages?|[ée]preuves?)\b"#
 }

@@ -38,11 +38,14 @@ public struct PendingNotification: Equatable, Sendable {
     public let id: String
     public let title: String
     public let body: String
+    /// Page ouverte quand on clique sur la notification.
+    public let url: URL?
 
-    public init(id: String, title: String, body: String) {
+    public init(id: String, title: String, body: String, url: URL? = nil) {
         self.id = id
         self.title = title
         self.body = body
+        self.url = url
     }
 }
 
@@ -87,16 +90,7 @@ public struct NotificationRules: Codable, Equatable, Sendable {
     /// Notifications à envoyer maintenant : entre `minutes` avant l'événement et une minute après.
     public func due(schedule: Schedule, at now: Date, calendar: Calendar) -> [PendingNotification] {
         let today = schedule.courses(on: now, calendar: calendar)
-
-        // Suites de cours enchaînés sans pause.
-        var blocks: [(first: Course, last: Course)] = []
-        for c in today {
-            if let b = blocks.last, c.start <= b.last.end {
-                if c.end >= b.last.end { blocks[blocks.count - 1].last = c }
-            } else {
-                blocks.append((c, c))
-            }
-        }
+        let blocks = schedule.blocks(on: now, calendar: calendar)
 
         var events: [(kind: NotificationKind, course: Course, at: Date, values: KeyValuePairs<String, String?>)] = []
         for (i, b) in blocks.enumerated() {
