@@ -7,90 +7,14 @@
 [![macOS 14+](https://img.shields.io/badge/macOS-14+-000000?logo=apple&logoColor=white)](https://www.apple.com/macos/)
 [![License: PolyForm NC](https://img.shields.io/badge/License-PolyForm%20NC-orange.svg?logo=opensourceinitiative&logoColor=white)](./LICENSE.md)
 
-**Your Edusign timetable in the macOS menu bar, native Swift, no Xcode.**
 **Ton emploi du temps Edusign dans la barre des menus macOS, en Swift natif, sans Xcode.**
+**Your Edusign timetable in the macOS menu bar, native Swift, no Xcode.**
 
 Works with **Edusign** &bull; **SwiftUI** &bull; **macOS Notifications**
 
-[🇬🇧 English](#-english) &bull; [🇫🇷 Français](#-français)
+[🇫🇷 Français](#-français) &bull; [🇬🇧 English](#-english)
 
 </div>
-
----
-
-<a id="-english"></a>
-
-## 🇬🇧 English
-
-### Overview
-
-**EduBar** is a small macOS menu bar app that reads your Edusign timetable and tells you, at a glance, how long until the next break or class and which room to go to. Click it for the full day, with rooms and breaks. It warns you 15 minutes before a class ends when the next one is in a different room, and sends notifications for class end, class start and room changes. It ships without any calendar URL: you paste yours on first launch, and it stays on your Mac.
-
-### Features
-
-- **Menu bar at a glance.** `📚 Pause dans 23 min` during class, `☕ Cours dans 8 min · 506` on a break, `Demain 9h45` once the day is over.
-- **Lunch aware.** A break of one hour or more between 11:00 and 14:00 is shown as lunch: `🍽️ Déjeuner dans 20 min`.
-- **Room changes.** 15 minutes before a class ends, if the next one is elsewhere: `⚠️ Salle 501 · fin dans 14 min`.
-- **Notifications.** Class end, class start and room change, each with its own toggle, lead time (0 to 60 min), title and text, plus a **Test** button.
-- **Custom texts.** Every menu bar text and emoji can be rewritten, with `{temps}`, `{salle}` and `{jour}` placeholders.
-- **Offline.** The timetable is cached locally, so the app keeps working without network.
-- **Updates.** Checks GitHub once a day for a new release and offers the `.dmg`. Nothing installs itself.
-
-### Install
-
-1. Download `EduBar-x.y.z.dmg` (or the `.zip`) from the [Releases](https://github.com/Ailcope/EduBar/releases) and open it.
-2. Drag `EduBar.app` onto the `Applications` shortcut.
-3. The app is not notarized. On first launch, right-click it and choose **Open**. If macOS says it is damaged:
-   ```sh
-   xattr -dr com.apple.quarantine /Applications/EduBar.app
-   ```
-4. Updating from 0.3.2 or older: macOS asks once whether EduBar may read its old Keychain item. Click **Always Allow**, the URL then moves to a file and survives every later update.
-
-Requires macOS 14 or later, Apple Silicon or Intel.
-
-### Calendar URL
-
-1. Log in to Edusign in your browser.
-2. Open the console (Cmd+Option+J on Chrome/Brave, Cmd+Option+C on Safari).
-3. Paste and run:
-   ```js
-   const schoolId = JSON.parse(localStorage.getItem('EdusignCampusStorage.school')).id;
-   const userId = JSON.parse(localStorage.getItem('EdusignCampusStorage.user')).id;
-   console.log(`webcal://api.edusign.fr/student/account/ical?sc=${schoolId}&st=${userId}`);
-   ```
-4. Copy the `webcal://…` URL, click EduBar, then ⚙️, paste it and hit **Enregistrer**.
-
-### Configuration
-
-Everything lives in ⚙️:
-
-- **Notifications:** three notifications, each with a toggle, a lead time and its own title and text.
-- **Personnaliser les textes:** one template per situation (before a break, before lunch, last class, on a break, at lunch, before the first class, room change, day over).
-
-| Notification | When (default) | Example |
-|---|---|---|
-| Class end | 5 min before a run of classes ends | `Fin du cours dans 5 min` · `Langage C avancé se termine à 13h. Ensuite : déjeuner.` |
-| Class start | 5 min before the first class or after a break | `Cours dans 5 min · 501` |
-| Room change | 15 min before the end, if the next class is elsewhere | `⚠️ Changement de salle : 501` |
-
-Notification placeholders: `{cours}`, `{heure}`, `{temps}`, `{salle}`, `{pause}`. An empty field falls back to the default text. If nothing shows up, allow EduBar in System Settings > Notifications.
-
-### Privacy
-
-The URL is enough to read your timetable: it only holds your school and student IDs, no password. Keep it private. EduBar stores it in `~/Library/Application Support/EduBar/feed-url`, readable by your user only (0600), never writes it to logs, and only talks to `api.edusign.fr` (or the host you give it) and to `api.github.com` for updates, sending nothing but its version.
-
-### Build
-
-Command Line Tools only (`xcode-select --install`), no Xcode.
-
-```sh
-swift test                 # tests
-scripts/bundle.sh 0.1.0    # dist/EduBar.app + .zip + .dmg (universal, ad-hoc signed)
-```
-
-### License
-
-[PolyForm Noncommercial 1.0.0](./LICENSE.md) · free to use, modify and share for **noncommercial** purposes. Commercial use or reselling the code requires the author's permission.
 
 ---
 
@@ -186,3 +110,79 @@ swift test -Xswiftc -plugin-path -Xswiftc /Library/Developer/CommandLineTools/us
 ### Licence
 
 [PolyForm Noncommercial 1.0.0](./LICENSE.md) · libre d'utilisation, modification et partage à des fins **non commerciales**. Tout usage commercial ou revente du code nécessite l'accord de l'auteur.
+
+---
+
+<a id="-english"></a>
+
+## 🇬🇧 English
+
+### Overview
+
+**EduBar** is a small macOS menu bar app that reads your Edusign timetable and tells you, at a glance, how long until the next break or class and which room to go to. Click it for the full day, with rooms and breaks. It warns you 15 minutes before a class ends when the next one is in a different room, and sends notifications for class end, class start and room changes. It ships without any calendar URL: you paste yours on first launch, and it stays on your Mac.
+
+### Features
+
+- **Menu bar at a glance.** `📚 Pause dans 23 min` during class, `☕ Cours dans 8 min · 506` on a break, `Demain 9h45` once the day is over.
+- **Lunch aware.** A break of one hour or more between 11:00 and 14:00 is shown as lunch: `🍽️ Déjeuner dans 20 min`.
+- **Room changes.** 15 minutes before a class ends, if the next one is elsewhere: `⚠️ Salle 501 · fin dans 14 min`.
+- **Notifications.** Class end, class start and room change, each with its own toggle, lead time (0 to 60 min), title and text, plus a **Test** button.
+- **Custom texts.** Every menu bar text and emoji can be rewritten, with `{temps}`, `{salle}` and `{jour}` placeholders.
+- **Offline.** The timetable is cached locally, so the app keeps working without network.
+- **Updates.** Checks GitHub once a day for a new release and offers the `.dmg`. Nothing installs itself.
+
+### Install
+
+1. Download `EduBar-x.y.z.dmg` (or the `.zip`) from the [Releases](https://github.com/Ailcope/EduBar/releases) and open it.
+2. Drag `EduBar.app` onto the `Applications` shortcut.
+3. The app is not notarized. On first launch, right-click it and choose **Open**. If macOS says it is damaged:
+   ```sh
+   xattr -dr com.apple.quarantine /Applications/EduBar.app
+   ```
+4. Updating from 0.3.2 or older: macOS asks once whether EduBar may read its old Keychain item. Click **Always Allow**, the URL then moves to a file and survives every later update.
+
+Requires macOS 14 or later, Apple Silicon or Intel.
+
+### Calendar URL
+
+1. Log in to Edusign in your browser.
+2. Open the console (Cmd+Option+J on Chrome/Brave, Cmd+Option+C on Safari).
+3. Paste and run:
+   ```js
+   const schoolId = JSON.parse(localStorage.getItem('EdusignCampusStorage.school')).id;
+   const userId = JSON.parse(localStorage.getItem('EdusignCampusStorage.user')).id;
+   console.log(`webcal://api.edusign.fr/student/account/ical?sc=${schoolId}&st=${userId}`);
+   ```
+4. Copy the `webcal://…` URL, click EduBar, then ⚙️, paste it and hit **Enregistrer**.
+
+### Configuration
+
+Everything lives in ⚙️:
+
+- **Notifications:** three notifications, each with a toggle, a lead time and its own title and text.
+- **Personnaliser les textes:** one template per situation (before a break, before lunch, last class, on a break, at lunch, before the first class, room change, day over).
+
+| Notification | When (default) | Example |
+|---|---|---|
+| Class end | 5 min before a run of classes ends | `Fin du cours dans 5 min` · `Langage C avancé se termine à 13h. Ensuite : déjeuner.` |
+| Class start | 5 min before the first class or after a break | `Cours dans 5 min · 501` |
+| Room change | 15 min before the end, if the next class is elsewhere | `⚠️ Changement de salle : 501` |
+
+Notification placeholders: `{cours}`, `{heure}`, `{temps}`, `{salle}`, `{pause}`. An empty field falls back to the default text. If nothing shows up, allow EduBar in System Settings > Notifications.
+
+### Privacy
+
+The URL is enough to read your timetable: it only holds your school and student IDs, no password. Keep it private. EduBar stores it in `~/Library/Application Support/EduBar/feed-url`, readable by your user only (0600), never writes it to logs, and only talks to `api.edusign.fr` (or the host you give it) and to `api.github.com` for updates, sending nothing but its version.
+
+### Build
+
+Command Line Tools only (`xcode-select --install`), no Xcode.
+
+```sh
+swift test                 # tests
+scripts/bundle.sh 0.1.0    # dist/EduBar.app + .zip + .dmg (universal, ad-hoc signed)
+```
+
+### License
+
+[PolyForm Noncommercial 1.0.0](./LICENSE.md) · free to use, modify and share for **noncommercial** purposes. Commercial use or reselling the code requires the author's permission.
