@@ -6,14 +6,19 @@ import Foundation
 public struct FeedFile: Sendable {
     public let url: URL
 
-    public init(directory: URL) {
-        url = directory.appending(path: "feed-url")
+    public init(directory: URL, name: String = "feed-url") {
+        url = directory.appending(path: name)
     }
 
     /// `~/Library/Application Support/EduBar/feed-url`
     public static var standard: FeedFile {
         let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         return FeedFile(directory: support.appending(path: "EduBar"))
+    }
+
+    /// Calendrier du pote (pauses communes), à côté du tien.
+    public static var friend: FeedFile {
+        FeedFile(directory: standard.url.deletingLastPathComponent(), name: "friend-url")
     }
 
     public func read() -> String? {

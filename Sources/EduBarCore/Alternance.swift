@@ -47,7 +47,8 @@ public struct Alternance: Codable, Equatable, Sendable {
     /// Jour en entreprise ? Jamais le week-end ni un jour avec des cours.
     public func isCompanyDay(_ day: Date, schedule: Schedule, calendar: Calendar) -> Bool {
         let weekday = calendar.component(.weekday, from: day)
-        guard mode != .off, (2...6).contains(weekday), schedule.courses(on: day, calendar: calendar).isEmpty
+        guard mode != .off, (2...6).contains(weekday), schedule.courses(on: day, calendar: calendar).isEmpty,
+              Holidays.name(of: day, calendar: calendar) == nil
         else { return false }
         switch mode {
         case .off: return false

@@ -7,6 +7,9 @@ public struct SubjectHours: Equatable, Sendable {
     public let done: TimeInterval
     public let total: TimeInterval
     public let exams: Int
+
+    /// Même clé que `Course.subjectKey`.
+    public var key: String { title.lowercased().trimmingCharacters(in: .whitespaces) }
 }
 
 public enum Stats {
@@ -33,7 +36,7 @@ public enum Stats {
         var order: [String] = []
         var groups: [String: [Course]] = [:]
         for c in courses {
-            let key = c.shortTitle.lowercased().trimmingCharacters(in: .whitespaces)
+            let key = c.subjectKey
             if groups[key] == nil { order.append(key) }
             groups[key, default: []].append(c)
         }
