@@ -82,6 +82,8 @@ swift test -Xswiftc -plugin-path -Xswiftc /Library/Developer/CommandLineTools/us
 
 Pour publier une version : `scripts/bundle.sh x.y.z`, puis une release GitHub `vx.y.z` avec le `.dmg`. Les apps installées la verront dans la journée.
 
+L'icône vient de `Resources/AppIcon.svg` : après une modif, `scripts/make-icon.sh` régénère `Resources/AppIcon.icns`.
+
 `EduBar --snapshot <dossier> [--at "2026-09-22 13:10"]` rend le popover en PNG à partir du cache, pratique pour vérifier le rendu.
 
 ## Licence
