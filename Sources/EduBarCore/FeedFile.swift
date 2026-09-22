@@ -16,9 +16,12 @@ public struct FeedFile: Sendable {
         return FeedFile(directory: support.appending(path: "EduBar"))
     }
 
-    /// Calendrier du pote (pauses communes), à côté du tien.
-    public static var friend: FeedFile {
-        FeedFile(directory: standard.url.deletingLastPathComponent(), name: "friend-url")
+    /// Nombre de potes pour les pauses communes.
+    public static let friendSlots = 3
+
+    /// Calendrier d'un pote (pauses communes), à côté du tien : `friend-url`, `friend-url-2`, `friend-url-3`.
+    public static func friend(_ slot: Int) -> FeedFile {
+        FeedFile(directory: standard.url.deletingLastPathComponent(), name: slot == 0 ? "friend-url" : "friend-url-\(slot + 1)")
     }
 
     public func read() -> String? {

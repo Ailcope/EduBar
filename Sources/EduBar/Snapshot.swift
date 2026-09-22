@@ -23,16 +23,22 @@ enum Snapshot {
         let demo = args.contains("--demo")
         if demo { model.snapshotCourses = anonymized(model.schedule.courses) }
         model.tick()
-        // Pote factice : tes cours, finis 30 min plus tôt, sans le dernier de la journée.
-        let savedName = UserDefaults.standard.string(forKey: "friendName")
-        model.friendName = demo ? "Alex" : "Marvin"
-        model.snapshotFriend = Schedule(courses: Dictionary(grouping: model.schedule.courses) {
-            model.calendar.startOfDay(for: $0.start)
-        }.values.flatMap { day in
-            day.dropLast(day.count > 1 ? 1 : 0).map {
-                Course(id: "f-\($0.id)", title: $0.title, start: $0.start, end: $0.end.addingTimeInterval(-1800), room: nil)
-            }
-        })
+        // Potes factices : tes cours, finis 30 min plus tôt, sans le dernier (ou le premier) de la journée.
+        let savedNames = model.friendNames
+        let names = demo ? ["Alex", "Sam"] : ["Marvin", "Léa"]
+        model.friendNames = names + Array(savedNames.dropFirst(names.count))
+        let days = Dictionary(grouping: model.schedule.courses) { model.calendar.startOfDay(for: $0.start) }.values
+        let fake = { (keep: (ArraySlice<Course>) -> ArraySlice<Course>) in
+            Schedule(courses: days.flatMap { day in
+                keep(ArraySlice(day)).map {
+                    Course(id: "f-\($0.id)", title: $0.title, start: $0.start, end: $0.end.addingTimeInterval(-1800), room: nil)
+                }
+            }.sorted { $0.start < $1.start })
+        }
+        model.snapshotFriends = [
+            (names[0], fake { $0.dropLast($0.count > 1 ? 1 : 0) }),
+            (names[1], fake { $0.dropFirst($0.count > 1 ? 1 : 0) }),
+        ]
 
         let bar = Text(model.barText.isEmpty ? "(icône seule)" : model.barText).padding(6)
         write(bar, to: dir.appendingPathComponent("bar.png"))
@@ -63,10 +69,13 @@ enum Snapshot {
         print(model.diagnosticText())
         write(SettingsView(model: model), to: dir.appendingPathComponent("settings-closed.png"))
         write(StatsView(model: model), to: dir.appendingPathComponent("stats.png"))
+        model.openWeek()
+        write(WeekView(model: model), to: dir.appendingPathComponent("week.png"))
+        model.showingWeek = false
         model.step(1)
         write(DayView(model: model, openSettings: {}), to: dir.appendingPathComponent("day-next.png"))
         print("bar: \(model.barText)")
-        UserDefaults.standard.set(savedName, forKey: "friendName")
+        model.friendNames = savedNames
         exit(0)
     }
 

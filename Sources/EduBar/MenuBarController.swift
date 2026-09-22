@@ -72,6 +72,9 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
         // Menu refermé : retour à la journée à la réouverture.
         model.dayOffset = 0
         model.showingStats = false
+        model.showingWeek = false
+        model.weekOffset = 0
+        model.reportCopied = false
         model.collapsePanels()
         popover.contentViewController = nil
         anchorWindow?.orderOut(nil)
@@ -111,6 +114,8 @@ struct MenuContent: View {
                 SettingsView(model: model)
             } else if model.showingStats {
                 StatsView(model: model)
+            } else if model.showingWeek {
+                WeekView(model: model)
             } else {
                 DayView(model: model, openSettings: model.openSettings)
             }

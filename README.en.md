@@ -41,18 +41,21 @@ Works with **Edusign** &bull; **SwiftUI** &bull; **macOS Notifications**
 - **Notifications.** Class end, class start and room change, each with its own toggle, lead time (0 to 60 min), title and text, plus a **Test** button.
 - **Timetable changes.** A class cancelled, moved, added or moved to another room within the next two weeks triggers a notification.
 - **Next days.** The ‹ › arrows browse the following days (empty weekends are skipped), **Revenir** goes back to today.
+- **Week view.** The calendar button at the bottom of the day opens the week as a grid, one column per day and one coloured block per course. Arrows browse nearby weeks, clicking a day opens it.
 - **Exams.** Classes whose title mentions an exam, partiel, DS, contrôle, soutenance, QCM or rattrapage get an orange badge, and the menu bar warns the day before: `📝 Examen demain 9h · 501`.
 - **Work-study.** In ⚙️ > **Alternance**: fixed company weekdays, alternating weeks, or automatic detection of days without classes. On those days: `🏢 Entreprise · école Lun. 9h`.
 - **Shortcuts.** In ⚙️ > **Raccourcis**, run a Shortcuts shortcut when classes start and when they end.
-- **Stats.** Hours this week (done and planned), upcoming exams, progress per subject.
+- **Stats.** Hours this week (done and planned), hours done this month, upcoming exams, progress per subject.
+- **Hours report.** In the stats, **Copier le relevé d'heures** copies the hours done per month and per subject, ready to paste into a spreadsheet (Numbers, Excel, Sheets).
 - **Subject colors.** Each subject gets its own color, the same in the day view and in the stats (orange stays for exams).
 - **Holidays and breaks.** A gap of 7 days or more shows up under the day: `Vacances dans 12 jours`, then `Vacances · reprise lun. 02/11`. French public holidays of the week are listed to explain the gaps: `Férié mer. 11/11 · Armistice`.
-- **Shared breaks.** In ⚙️ > **Pauses communes**, paste a friend's Edusign URL (they get it the same way you do): the day view shows `Alex finit à 15h30` and the breaks you share.
+- **Shared breaks.** In ⚙️ > **Pauses communes**, paste the Edusign URL of up to 3 friends (they get it the same way you do), with their first name: the day view shows `Alex finit à 15h30` and the breaks you share, for each of them.
 - **Keyboard shortcut.** ⌥⌘E opens and closes the menu from any app, no Accessibility permission needed. Change or disable it in ⚙️.
 - **Copy diagnostics.** A button at the bottom of the settings copies the version, app location, quarantine and calendar state for a bug report. Never the URL.
 - **Add to Calendar.** One button subscribes the Calendar app to the Edusign feed.
 - **Custom texts.** Every menu bar text and emoji can be rewritten, with `{temps}`, `{salle}` and `{jour}` placeholders.
 - **Offline.** The timetable is cached locally, so the app keeps working without network.
+- **Stale feed.** If the timetable could not be refreshed for more than 24 h, the menu bar shows `⚠︎` and the day view says since when. An empty Edusign feed while courses are still planned is ignored: known courses stay.
 - **Past days kept.** Edusign drops yesterday from the feed: EduBar archives every past day locally (400 days, 0600), so browsing back and stats stay complete.
 - **Updates.** Checks GitHub every 6 hours and installs new releases by itself: verified download (GitHub's SHA-256 digest, bundle id, version and signature), in-place replacement, relaunch. Settings are kept. Clicking the "updated" notification opens the release notes. When run from the `.dmg`, it offers **Installer**: copy, relaunch from Applications and eject the disk image. If it cannot replace itself, a notification announces the new version and links to the download.
 
@@ -152,7 +155,14 @@ Placeholder subjects, rooms and name (`EduBar --snapshot <folder> --demo`). The 
 </td>
 </tr>
 <tr>
-<td align="center" colspan="2">
+<td align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/week-dark.png">
+  <img src="docs/screenshots/week.png" width="340" alt="Week">
+</picture>
+<br><sub>Week</sub>
+</td>
+<td align="center">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/friend-dark.png">
   <img src="docs/screenshots/friend.png" width="340" alt="Shared breaks">

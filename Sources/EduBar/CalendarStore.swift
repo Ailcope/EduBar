@@ -5,11 +5,13 @@ import Observation
 enum FetchError: LocalizedError {
     case http(Int)
     case notACalendar
+    case emptyFeed
 
     var errorDescription: String? {
         switch self {
         case let .http(code): "Le serveur a répondu \(code)."
         case .notACalendar: "La réponse n'est pas un calendrier iCal."
+        case .emptyFeed: "Edusign a renvoyé un calendrier vide, les cours déjà connus sont gardés."
         }
     }
 }
@@ -57,6 +59,7 @@ final class CalendarStore {
         do {
             let (text, parsed) = try await Self.fetch(url)
             let now = Date()
+            if Freshness.suspiciousEmpty(fresh: parsed, previous: courses, now: now) { throw FetchError.emptyFeed }
             courses = History.merge(archived: archived, fresh: parsed, now: now, calendar: .current)
             archive(History.archivable(courses, now: now, calendar: .current))
             lastUpdated = now

@@ -298,8 +298,18 @@ struct SettingsView: View {
 
     private var friendEditor: some View {
         VStack(alignment: .leading, spacing: 8) {
-            caption("Colle l'URL Edusign d'un pote (il la récupère comme toi) : EduBar affiche vos pauses communes et l'heure à laquelle il finit. Elle reste sur ce Mac, rien n'est envoyé.")
-            TextField("Prénom", text: binding(\.friendName))
+            caption("Colle l'URL Edusign d'un pote (il la récupère comme toi) : EduBar affiche vos pauses communes et l'heure à laquelle il finit. Jusqu'à 3 potes. Les URL restent sur ce Mac, rien n'est envoyé.")
+            Picker("Pote", selection: Binding(get: { model.friendSlot }, set: model.selectFriend)) {
+                ForEach(0..<FeedFile.friendSlots, id: \.self) { i in
+                    Text(model.friendURLs[i] == nil ? "Pote \(i + 1)" : model.friendLabel(i)).tag(i)
+                }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            TextField("Prénom", text: Binding(
+                get: { model.friendNames[model.friendSlot] },
+                set: { model.friendNames[model.friendSlot] = $0 }
+            ))
                 .textFieldStyle(.roundedBorder)
                 .font(.callout)
             TextField("webcal://…", text: binding(\.friendDraft))

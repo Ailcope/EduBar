@@ -42,18 +42,21 @@ Marche avec **Edusign** &bull; **SwiftUI** &bull; **Notifications macOS**
 - **Notifications.** Fin de cours, début de cours et changement de salle, chacune activable, avec son délai (0 à 60 min), son titre et son texte, et un bouton **Tester**.
 - **Changements d'emploi du temps.** Un cours annulé, déplacé, ajouté ou changé de salle dans les deux semaines à venir envoie une notification : `❌ Cours annulé · demain 14h`, `🔁 Cours déplacé · …`, `📍 Salle changée · 501`.
 - **Jours suivants.** Les flèches ‹ › du menu passent d'un jour à l'autre (les week-ends vides sont sautés), **Revenir** ramène à aujourd'hui.
+- **Vue semaine.** Le bouton calendrier en bas de la journée ouvre la semaine en grille, une colonne par jour et un bloc coloré par cours. Flèches pour les semaines voisines, un clic sur un jour ouvre la journée.
 - **Examens.** Un cours dont le titre parle d'examen, partiel, DS, contrôle, soutenance, QCM ou rattrapage a un badge orange, et la barre prévient la veille : `📝 Examen demain 9h · 501`.
 - **Alternance.** Dans ⚙️ > **Alternance** : jours fixes en entreprise, semaines alternées (2 semaines d'école, 2 en entreprise…) ou détection automatique des jours sans cours. Ces jours-là : `🏢 Entreprise · école Lun. 9h`.
 - **Raccourcis.** Dans ⚙️ > **Raccourcis**, un raccourci de l'app Raccourcis se lance quand les cours commencent et quand ils finissent (mode Concentration, son coupé…).
-- **Statistiques.** Heures de la semaine (faites et prévues), prochains examens, progression par matière.
+- **Statistiques.** Heures de la semaine (faites et prévues), heures faites du mois, prochains examens, progression par matière.
+- **Relevé d'heures.** Dans les statistiques, **Copier le relevé d'heures** copie les heures faites par mois et par matière, prêtes à coller dans un tableur (Numbers, Excel, Sheets).
 - **Couleur par matière.** Chaque matière a sa couleur, la même dans la journée et dans les statistiques (l'orange reste aux examens).
 - **Vacances et jours fériés.** Une coupure de 7 jours ou plus s'annonce sous la journée : `Vacances dans 12 jours`, puis `Vacances · reprise lun. 02/11`. Les jours fériés de la semaine sont listés pour expliquer les trous : `Férié mer. 11/11 · Armistice`.
-- **Pauses communes.** Dans ⚙️ > **Pauses communes**, colle l'URL Edusign d'un pote (il la récupère comme toi) : la journée affiche `Alex finit à 15h30` et vos pauses en commun.
+- **Pauses communes.** Dans ⚙️ > **Pauses communes**, colle l'URL Edusign de 3 potes maximum (ils la récupèrent comme toi), avec leur prénom : la journée affiche `Alex finit à 15h30` et vos pauses en commun, pour chacun.
 - **Raccourci clavier.** ⌥⌘E ouvre et referme le menu depuis n'importe quelle app, sans autorisation d'accessibilité. Modifiable ou désactivable dans ⚙️.
 - **Copier le diagnostic.** En bas des réglages, un bouton copie la version, l'emplacement de l'app, l'état de la quarantaine et du calendrier, pour un rapport de bug. Jamais l'URL.
 - **Ajouter à Calendrier.** Un bouton abonne l'app Calendrier au flux Edusign : les cours y apparaissent et restent à jour.
 - **Textes personnalisables.** Chaque texte de la barre et ses émojis se réécrivent, avec les variables `{temps}`, `{salle}` et `{jour}`.
 - **Hors ligne.** Le calendrier est mis en cache dans `~/Library/Caches/EduBar/`, l'app marche sans réseau.
+- **Flux figé.** Si le calendrier n'a pas pu être mis à jour depuis plus de 24 h, la barre affiche `⚠︎` et la journée dit depuis quand. Un flux Edusign vide alors que des cours sont prévus est ignoré : les cours connus restent.
 - **Journées passées gardées.** Edusign retire la veille du flux : EduBar archive chaque journée passée (400 jours, `~/Library/Application Support/EduBar/`, 0600), la navigation et les stats restent complètes.
 - **Mises à jour.** EduBar regarde toutes les 6 h s'il existe une nouvelle release et l'installe toute seule : téléchargement vérifié (empreinte SHA-256 publiée par GitHub, identifiant, version et signature), remplacement de l'app, relance. Les réglages sont conservés. Un clic sur la notification « EduBar mis à jour » ouvre les nouveautés. Lancée depuis le `.dmg`, elle propose **Installer** : copie, relance depuis Applications et éjection de l'image disque. Si elle ne peut pas se remplacer, une notification annonce la nouvelle version et mène au téléchargement.
 
@@ -172,7 +175,14 @@ Matières, salles et prénom fictifs (`EduBar --snapshot <dossier> --demo`).
 </td>
 </tr>
 <tr>
-<td align="center" colspan="2">
+<td align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/week-dark.png">
+  <img src="docs/screenshots/week.png" width="340" alt="La semaine">
+</picture>
+<br><sub>La semaine</sub>
+</td>
+<td align="center">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/friend-dark.png">
   <img src="docs/screenshots/friend.png" width="340" alt="Pauses communes">

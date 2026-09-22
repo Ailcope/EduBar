@@ -51,8 +51,8 @@ struct DayView: View {
                 } else {
                     timeline(courses)
                 }
-                if let friend = model.friendSchedule, !courses.isEmpty {
-                    friendSummary(day, friend: friend)
+                if !model.friends.isEmpty, !courses.isEmpty {
+                    friendSummary(day)
                 }
                 notes(day)
                 weekSummary(day)
@@ -139,27 +139,27 @@ struct DayView: View {
             .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.04)))
     }
 
-    /// Pauses communes avec le pote et l'heure à laquelle il finit.
-    private func friendSummary(_ day: Date, friend: Schedule) -> some View {
-        let shared = Together.day(day, mine: model.schedule, friend: friend, calendar: model.calendar)
-        let name = model.friendLabel
+    /// Pauses communes avec chaque pote et l'heure à laquelle il finit.
+    private func friendSummary(_ day: Date) -> some View {
         let t = { (d: Date) in Display.time(d, calendar: model.calendar) }
-        let headline: String
-        if let end = shared.friendEnd {
-            headline = end <= model.now ? "\(name) a fini à \(t(end))" : "\(name) finit à \(t(end))"
-        } else {
-            headline = "\(name) n'a pas cours"
-        }
-        return VStack(alignment: .leading, spacing: 2) {
-            Label(headline, systemImage: "person.2")
-                .font(.caption.weight(.semibold))
-            if shared.friendEnd != nil {
-                Text(shared.breaks.isEmpty
-                    ? "Pas de pause commune"
-                    : "Pauses communes : " + shared.breaks.map { "\(t($0.start))-\(t($0.end))" }.joined(separator: " · "))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+        return VStack(alignment: .leading, spacing: 6) {
+            ForEach(Array(model.friends.enumerated()), id: \.offset) { _, friend in
+                let shared = Together.day(day, mine: model.schedule, friend: friend.schedule, calendar: model.calendar)
+                let headline = shared.friendEnd.map {
+                    $0 <= model.now ? "\(friend.name) a fini à \(t($0))" : "\(friend.name) finit à \(t($0))"
+                } ?? "\(friend.name) n'a pas cours"
+                VStack(alignment: .leading, spacing: 2) {
+                    Label(headline, systemImage: "person.2")
+                        .font(.caption.weight(.semibold))
+                    if shared.friendEnd != nil {
+                        Text(shared.breaks.isEmpty
+                            ? "Pas de pause commune"
+                            : "Pauses communes : " + shared.breaks.map { "\(t($0.start))-\(t($0.end))" }.joined(separator: " · "))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
             }
         }
         .padding(8)
@@ -302,7 +302,12 @@ struct DayView: View {
     private var footer: some View {
         HStack {
             Group {
-                if let error = model.store.lastError {
+                if let stale = model.staleSince {
+                    Label("Pas mis à jour depuis \(stale)" + (model.store.lastError.map { " · \($0)" } ?? ""),
+                          systemImage: "exclamationmark.triangle")
+                        .foregroundStyle(.orange)
+                        .help("Le planning affiché peut être périmé : Edusign ne répond plus ou renvoie une erreur.")
+                } else if let error = model.store.lastError {
                     Label(error, systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
                 } else if let updated = model.store.lastUpdated {
                     Text("Mis à jour à \(Display.time(updated, calendar: model.calendar))")
@@ -319,6 +324,9 @@ struct DayView: View {
             }
             .disabled(model.store.isLoading || model.feedURL == nil)
             .help("Rafraîchir")
+            Button(action: model.openWeek) { Image(systemName: "calendar") }
+                .disabled(model.schedule.courses.isEmpty)
+                .help("Semaine")
             Button { model.showingStats = true } label: { Image(systemName: "chart.bar") }
                 .disabled(model.schedule.courses.isEmpty)
                 .help("Statistiques")

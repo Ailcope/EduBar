@@ -36,17 +36,29 @@ final class AppModel {
         }
     }
 
-    /// Calendrier d'un pote, pour les pauses communes. Lu comme le tien, rien n'est envoyé.
-    private(set) var friendURL: URL?
-    let friendStore = CalendarStore(cacheName: "friend.ics")
-    var friendName: String { didSet { UserDefaults.standard.set(friendName, forKey: "friendName") } }
+    /// Calendriers de potes (3 au plus), pour les pauses communes. Lus comme le tien, rien n'est envoyé.
+    private(set) var friendURLs: [URL?]
+    let friendStores = (0..<FeedFile.friendSlots).map {
+        CalendarStore(cacheName: $0 == 0 ? "friend.ics" : "friend-\($0 + 1).ics")
+    }
+    var friendNames: [String] {
+        didSet {
+            for (i, name) in friendNames.enumerated() { UserDefaults.standard.set(name, forKey: Self.friendNameKey(i)) }
+        }
+    }
+    /// Pote affiché dans les réglages.
+    private(set) var friendSlot = 0
     var friendDraft = ""
+    var reportCopied = false
     var friendResult: (ok: Bool, message: String)?
     var diagnosticCopied = false
 
     // État de l'UI (pas de @State : c'est une macro que les Command Line Tools ne savent pas développer avec le SDK macOS 27).
     var showingSettings = false
     var showingStats = false
+    var showingWeek = false
+    /// Décalage en semaines de la vue semaine par rapport à celle du jour affiché.
+    var weekOffset = 0
     var feedDraft = ""
     var saveResult: (ok: Bool, message: String)?
     var saving = false
@@ -80,13 +92,16 @@ final class AppModel {
         shortcuts = Self.load("shortcuts") ?? .defaults
         notifyScheduleChanges = defaults.object(forKey: "notifyScheduleChanges") as? Bool ?? true
         hotKey = defaults.string(forKey: "hotKey").flatMap(HotKeyChoice.init) ?? .optionCommandE
-        friendName = defaults.string(forKey: "friendName") ?? ""
-        friendURL = FeedFile.friend.read().flatMap(FeedURL.normalize)
+        friendNames = (0..<FeedFile.friendSlots).map { defaults.string(forKey: Self.friendNameKey($0)) ?? "" }
+        friendURLs = (0..<FeedFile.friendSlots).map { FeedFile.friend($0).read().flatMap(FeedURL.normalize) }
         if readKeychainNow {
             feedURL = Self.loadFeed().flatMap(FeedURL.normalize)
             feedLoaded = true
         }
     }
+
+    /// `friendName` (celui de la v0.5), puis `friendName2`, `friendName3`.
+    private static func friendNameKey(_ slot: Int) -> String { slot == 0 ? "friendName" : "friendName\(slot + 1)" }
 
     private static func persist(_ value: some Encodable, _ key: String) {
         if let data = try? JSONEncoder().encode(value) { UserDefaults.standard.set(data, forKey: key) }
@@ -105,10 +120,19 @@ final class AppModel {
     }
     var barText: String {
         guard feedURL != nil else { return "" }
-        return Display.barText(
+        let text = Display.barText(
             status: status, alert: alert, now: now, calendar: calendar, templates: templates,
             companyToday: isCompanyDay(now)
         )
+        // Planning peut-être périmé : visible sans ouvrir le menu.
+        guard staleSince != nil else { return text }
+        return text.isEmpty ? "⚠︎" : text + " ⚠︎"
+    }
+
+    /// « 26 h » : durée depuis le dernier chargement réussi du flux, s'il date de plus d'un jour.
+    var staleSince: String? {
+        guard feedURL != nil, frozenNow == nil else { return nil }
+        return Freshness.staleSince(store.lastUpdated, now: now)
     }
 
     func isCompanyDay(_ day: Date) -> Bool {
@@ -127,18 +151,24 @@ final class AppModel {
         SubjectColors.assign(schedule.courses.map(\.subjectKey), count: SubjectPalette.colors.count)
     }
 
-    var friendSchedule: Schedule? {
-        if let snapshotFriend { return snapshotFriend }
-        return friendURL == nil ? nil : Schedule(courses: friendStore.courses)
+    /// Potes configurés, dans l'ordre des réglages.
+    var friends: [(name: String, schedule: Schedule)] {
+        if let snapshotFriends { return snapshotFriends }
+        return friendURLs.indices.compactMap { i in
+            friendURLs[i] == nil ? nil : (friendLabel(i), Schedule(courses: friendStores[i].courses))
+        }
     }
 
-    /// Pote factice du mode `--snapshot` (jamais un vrai calendrier dans une capture).
-    @ObservationIgnored var snapshotFriend: Schedule?
+    /// Potes factices du mode `--snapshot` (jamais un vrai calendrier dans une capture).
+    @ObservationIgnored var snapshotFriends: [(name: String, schedule: Schedule)]?
 
     /// Cours anonymisés du mode `--snapshot --demo` (captures du README).
     @ObservationIgnored var snapshotCourses: [Course]?
 
-    var friendLabel: String { friendName.trimmingCharacters(in: .whitespaces).isEmpty ? "Ton pote" : friendName }
+    func friendLabel(_ slot: Int) -> String {
+        let name = friendNames[slot].trimmingCharacters(in: .whitespaces)
+        return name.isEmpty ? "Pote \(slot + 1)" : name
+    }
 
     /// Jour affiché par défaut : aujourd'hui s'il reste des cours, sinon le prochain jour de cours.
     var baseDay: Date {
@@ -261,7 +291,9 @@ final class AppModel {
         let before = store.courses
         let stamp = store.lastUpdated
         await store.refresh(from: feedURL)
-        if frozenNow == nil { await friendStore.refresh(from: friendURL) }
+        if frozenNow == nil {
+            for (i, friend) in friendStores.enumerated() { await friend.refresh(from: friendURLs[i]) }
+        }
         if announceChanges, notifyScheduleChanges, frozenNow == nil, store.lastUpdated != stamp {
             let changes = ScheduleDiff.changes(from: before, to: store.courses, now: Date())
             for n in ScheduleDiff.notifications(changes, now: Date(), calendar: calendar) { notifier.send(n) }
@@ -308,15 +340,23 @@ final class AppModel {
         }
     }
 
-    /// Calendrier du pote : même vérification que le tien, fichier à part (0600). Champ vide : supprimé.
+    /// Pote affiché dans les réglages : son URL remplace le champ.
+    func selectFriend(_ slot: Int) {
+        friendSlot = slot
+        friendDraft = friendURLs[slot]?.absoluteString ?? ""
+        friendResult = nil
+    }
+
+    /// Calendrier du pote affiché : même vérification que le tien, fichier à part (0600). Champ vide : supprimé.
     func saveFriend() {
-        let raw = friendDraft
+        let raw = friendDraft, slot = friendSlot
+        let file = FeedFile.friend(slot), store = friendStores[slot]
         friendResult = nil
         Task {
             if raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                FeedFile.friend.remove()
-                friendURL = nil
-                friendStore.clear()
+                file.remove()
+                friendURLs[slot] = nil
+                store.clear()
                 friendResult = (true, "Calendrier retiré.")
                 return
             }
@@ -326,10 +366,10 @@ final class AppModel {
             }
             do {
                 let (_, courses) = try await CalendarStore.fetch(url)
-                try FeedFile.friend.write(url.absoluteString)
-                if url != friendURL { friendStore.clear() }
-                friendURL = url
-                await friendStore.refresh(from: url)
+                try file.write(url.absoluteString)
+                if url != friendURLs[slot] { store.clear() }
+                friendURLs[slot] = url
+                await store.refresh(from: url)
                 friendResult = (true, "\(courses.count) cours trouvés.")
             } catch {
                 friendResult = (false, error.localizedDescription)
@@ -345,6 +385,8 @@ final class AppModel {
     }
 
     func diagnosticText() -> String {
+        let friendCounts = friendURLs.indices.filter { friendURLs[$0] != nil }
+            .map { "\(friendStores[$0].courses.count) cours" }.joined(separator: ", ")
         let app = Bundle.main.bundleURL
         let quarantine = getxattr(app.path, "com.apple.quarantine", nil, 0, 0, 0) >= 0
         let os = ProcessInfo.processInfo.operatingSystemVersion
@@ -360,7 +402,7 @@ final class AppModel {
             ("Cours", "\(store.courses.count)"),
             ("Dernière mise à jour", store.lastUpdated.map { $0.formatted(.iso8601) } ?? "jamais"),
             ("Erreur", store.lastError ?? "aucune"),
-            ("Pote", friendURL == nil ? "non" : "oui, \(friendStore.courses.count) cours"),
+            ("Potes", friendCounts.isEmpty ? "aucun" : friendCounts),
             ("Alternance", alternance.mode.rawValue),
             ("Raccourci", hotKey.label),
             ("Mise à jour dispo", updates.available?.version.description ?? "non"),
@@ -393,9 +435,32 @@ final class AppModel {
         }
     }
 
+    /// Relevé d'heures faites par mois et par matière, collable dans un tableur.
+    func copyReport() {
+        let months = Report.monthly(schedule.courses, now: now, calendar: calendar)
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(Report.table(months, calendar: calendar), forType: .string)
+        reportCopied = true
+    }
+
+    /// Semaine du jour affiché.
+    func openWeek() {
+        weekOffset = 0
+        showingWeek = true
+    }
+
+    var shownWeek: Date { calendar.date(byAdding: .weekOfYear, value: weekOffset, to: shownDay) ?? shownDay }
+
+    /// Clic sur un jour de la vue semaine : retour à la journée, sur ce jour-là.
+    func showDay(_ day: Date) {
+        let base = calendar.startOfDay(for: baseDay)
+        dayOffset = calendar.dateComponents([.day], from: base, to: calendar.startOfDay(for: day)).day ?? 0
+        showingWeek = false
+    }
+
     func openSettings() {
         feedDraft = feedURL?.absoluteString ?? ""
-        friendDraft = friendURL?.absoluteString ?? ""
+        friendDraft = friendURLs[friendSlot]?.absoluteString ?? ""
         saveResult = nil
         friendResult = nil
         diagnosticCopied = false

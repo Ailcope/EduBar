@@ -16,6 +16,8 @@ struct StatsView: View {
         let exams = schedule.courses.filter { $0.isExam && $0.end > now }.prefix(3)
         let subjects = Stats.bySubject(schedule.courses, now: now)
         let colors = model.subjectColors
+        let months = Report.monthly(schedule.courses, now: now, calendar: model.calendar)
+        let thisMonth = months.last { model.calendar.isDate($0.month, equalTo: now, toGranularity: .month) }
 
         return VStack(alignment: .leading, spacing: 12) {
             HStack {
@@ -28,6 +30,15 @@ struct StatsView: View {
             VStack(alignment: .leading, spacing: 4) {
                 row("Cette semaine", "\(DayView.hours(week.total)) · \(DayView.hours(week.done)) faites")
                 row("Semaine prochaine", DayView.hours(nextWeek.total))
+                row("Ce mois-ci", "\(DayView.hours(thisMonth?.total ?? 0)) faites")
+                HStack {
+                    Button(action: model.copyReport) { Label("Copier le relevé d'heures", systemImage: "tablecells") }
+                        .buttonStyle(.borderless)
+                        .disabled(months.isEmpty)
+                        .help("Heures faites par mois et par matière, à coller dans Excel ou Numbers (entreprise, OPCO).")
+                    if model.reportCopied { Text("Copié, colle-le dans un tableur.").foregroundStyle(.green) }
+                }
+                .font(.caption)
             }
 
             if !exams.isEmpty {
@@ -71,7 +82,7 @@ struct StatsView: View {
                     Text("+ \(subjects.count - Self.maxSubjects) autres matières")
                         .font(.caption).foregroundStyle(.secondary)
                 }
-                Text("Faites / prévues, d'après les cours présents dans ton calendrier Edusign.")
+                Text("Faites / prévues. Les jours passés sont gardés sur ce Mac, même quand Edusign les retire.")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
