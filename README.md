@@ -12,12 +12,13 @@ Ton emploi du temps Edusign dans la barre des menus macOS.
 
 ## Installation
 
-1. Télécharge `EduBar-x.y.z.zip` depuis les [Releases](../../releases) et dézippe-le.
-2. Glisse `EduBar.app` dans `Applications`.
+1. Télécharge `EduBar-x.y.z.dmg` depuis les [Releases](../../releases) (ou le `.zip`), ouvre-le.
+2. Glisse `EduBar.app` sur le raccourci `Applications`.
 3. L'app n'est pas notarisée par Apple. Au premier lancement : clic droit sur l'app, puis **Ouvrir**. Si macOS dit qu'elle est endommagée :
    ```sh
    xattr -dr com.apple.quarantine /Applications/EduBar.app
    ```
+4. Après chaque mise à jour, macOS demande si EduBar peut lire son élément du Trousseau : clique **Toujours autoriser** (l'app est signée ad-hoc, macOS la voit comme une nouvelle app).
 
 macOS 14 ou plus récent, Apple Silicon ou Intel.
 
@@ -43,7 +44,7 @@ Pas besoin de Xcode, les Command Line Tools suffisent (`xcode-select --install`)
 
 ```sh
 swift test                 # tests
-scripts/bundle.sh 0.1.0    # dist/EduBar.app + dist/EduBar-0.1.0.zip (universel, signature ad-hoc)
+scripts/bundle.sh 0.1.0    # dist/EduBar.app + .zip + .dmg (universel, signature ad-hoc)
 ```
 
 `EduBar --snapshot <dossier> [--at "2026-09-22 13:10"]` rend le popover en PNG à partir du cache, pratique pour vérifier le rendu.
@@ -58,7 +59,7 @@ scripts/bundle.sh 0.1.0    # dist/EduBar.app + dist/EduBar-0.1.0.zip (universel,
 
 Your Edusign timetable in the macOS menu bar: time until the next break or class, the next room, and a heads-up 15 minutes before a class ends when the next one is in a different room. Click for the full day.
 
-**Install:** download the zip from Releases, move `EduBar.app` to Applications, right-click and choose **Open** the first time (the app is not notarized), or run `xattr -dr com.apple.quarantine /Applications/EduBar.app`.
+**Install:** download the dmg (or zip) from Releases, drag `EduBar.app` to Applications, right-click and choose **Open** the first time (the app is not notarized), or run `xattr -dr com.apple.quarantine /Applications/EduBar.app`.
 
 **Calendar URL:** log in to Edusign, open the browser console and run the snippet above. Paste the `webcal://` URL in EduBar's settings. The URL only contains your school and student IDs, so anyone who has it can read your timetable: keep it private. EduBar stores it in the macOS Keychain.
 

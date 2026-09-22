@@ -1,5 +1,5 @@
 #!/bin/sh
-# Construit dist/EduBar.app (signature ad-hoc) et dist/EduBar-<version>.zip.
+# Construit dist/EduBar.app (signature ad-hoc), dist/EduBar-<version>.zip et dist/EduBar-<version>.dmg.
 # Usage : scripts/bundle.sh [version]   (défaut : 0.1.0)
 set -eu
 
@@ -21,5 +21,16 @@ codesign --verify --verbose=1 "$APP"
 
 rm -f "$ROOT/dist/EduBar-$VERSION.zip"
 ditto -c -k --keepParent "$APP" "$ROOT/dist/EduBar-$VERSION.zip"
+
+# DMG : l'app + un raccourci vers /Applications pour le glisser-déposer.
+DMG="$ROOT/dist/EduBar-$VERSION.dmg"
+STAGE="$(mktemp -d)"
+cp -R "$APP" "$STAGE/"
+ln -s /Applications "$STAGE/Applications"
+rm -f "$DMG"
+hdiutil create -quiet -volname "EduBar $VERSION" -srcfolder "$STAGE" -fs HFS+ -format UDZO "$DMG"
+rm -rf "$STAGE"
+
 echo "OK : $APP"
 echo "OK : $ROOT/dist/EduBar-$VERSION.zip"
+echo "OK : $DMG"
