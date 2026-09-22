@@ -47,7 +47,7 @@ Deux cibles SwiftPM :
 
 | État | Texte |
 |---|---|
-| En cours, alerte salle active | `⚠️ Salle 501 dans 14 min` |
+| En cours, alerte salle active (≤ 15 min avant la fin) | `⚠️ Salle 501 · fin dans 14 min` |
 | En cours, cours suivant aujourd'hui | `📚 Pause dans 23 min` |
 | En cours, dernier cours du jour | `📚 Fin dans 23 min` |
 | En pause | `☕ Cours dans 8 min · 501` (salle omise si inconnue) |
