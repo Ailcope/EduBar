@@ -1,7 +1,7 @@
 import Foundation
 
 /// Un cours du calendrier.
-public struct Course: Identifiable, Hashable, Sendable {
+public struct Course: Identifiable, Hashable, Codable, Sendable {
     public let id: String
     public let title: String
     public let start: Date

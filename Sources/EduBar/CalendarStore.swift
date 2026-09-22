@@ -15,6 +15,7 @@ enum FetchError: LocalizedError {
 }
 
 /// Télécharge le flux, garde un cache disque et les derniers cours valides si le réseau tombe.
+/// Les journées passées, qu'Edusign retire du flux, sont archivées à part.
 @MainActor @Observable
 final class CalendarStore {
     private(set) var courses: [Course] = []
@@ -23,12 +24,21 @@ final class CalendarStore {
     private(set) var isLoading = false
 
     private let cacheURL: URL
+    private let historyURL: URL
+    private var archived: [Course] = []
 
     /// `cacheName` : fichier du cache disque (un par calendrier).
     init(cacheName: String = "calendar.ics") {
         cacheURL = Self.cacheDirectory.appendingPathComponent(cacheName)
+        // Hors de Caches, que macOS peut vider : ces cours-là ne se retéléchargent pas.
+        historyURL = FeedFile.standard.url.deletingLastPathComponent()
+            .appendingPathComponent("history-" + (cacheName as NSString).deletingPathExtension + ".json")
+        if let data = try? Data(contentsOf: historyURL), let saved = try? JSONDecoder().decode([Course].self, from: data) {
+            archived = saved
+        }
+        courses = archived
         if let text = try? String(contentsOf: cacheURL, encoding: .utf8) {
-            courses = ICSParser.parse(text)
+            courses = History.merge(archived: archived, fresh: ICSParser.parse(text), now: Date(), calendar: .current)
             lastUpdated = (try? cacheURL.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
         }
     }
@@ -46,8 +56,10 @@ final class CalendarStore {
         defer { isLoading = false }
         do {
             let (text, parsed) = try await Self.fetch(url)
-            courses = parsed
-            lastUpdated = Date()
+            let now = Date()
+            courses = History.merge(archived: archived, fresh: parsed, now: now, calendar: .current)
+            archive(History.archivable(courses, now: now, calendar: .current))
+            lastUpdated = now
             lastError = nil
             try? text.write(to: cacheURL, atomically: true, encoding: .utf8)
         } catch {
@@ -61,6 +73,16 @@ final class CalendarStore {
         lastUpdated = nil
         lastError = nil
         try? FileManager.default.removeItem(at: cacheURL)
+        archived = []
+        try? FileManager.default.removeItem(at: historyURL)
+    }
+
+    /// Même protection que l'URL (0600, dossier 0700) : l'emploi du temps reste privé.
+    private func archive(_ past: [Course]) {
+        guard past != archived, let data = try? JSONEncoder().encode(past) else { return }
+        let file = FeedFile(directory: historyURL.deletingLastPathComponent(), name: historyURL.lastPathComponent)
+        guard (try? file.write(String(decoding: data, as: UTF8.self))) != nil else { return }
+        archived = past
     }
 
     nonisolated static func fetch(_ url: URL) async throws -> (text: String, courses: [Course]) {

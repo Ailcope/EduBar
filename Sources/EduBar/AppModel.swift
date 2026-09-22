@@ -298,6 +298,8 @@ final class AppModel {
             try FeedFile.standard.write(url.absoluteString)
             // Autre calendrier : ses différences avec l'ancien ne sont pas des changements.
             let changed = url != feedURL
+            // Ni son cache ni ses journées archivées ne se mélangent au nouveau.
+            if changed { store.clear() }
             feedURL = url
             await refresh(announceChanges: !changed)
             return (true, "\(courses.count) cours trouvés.")
@@ -325,6 +327,7 @@ final class AppModel {
             do {
                 let (_, courses) = try await CalendarStore.fetch(url)
                 try FeedFile.friend.write(url.absoluteString)
+                if url != friendURL { friendStore.clear() }
                 friendURL = url
                 await friendStore.refresh(from: url)
                 friendResult = (true, "\(courses.count) cours trouvés.")

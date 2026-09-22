@@ -54,6 +54,7 @@ Marche avec **Edusign** &bull; **SwiftUI** &bull; **Notifications macOS**
 - **Ajouter à Calendrier.** Un bouton abonne l'app Calendrier au flux Edusign : les cours y apparaissent et restent à jour.
 - **Textes personnalisables.** Chaque texte de la barre et ses émojis se réécrivent, avec les variables `{temps}`, `{salle}` et `{jour}`.
 - **Hors ligne.** Le calendrier est mis en cache dans `~/Library/Caches/EduBar/`, l'app marche sans réseau.
+- **Journées passées gardées.** Edusign retire la veille du flux : EduBar archive chaque journée passée (400 jours, `~/Library/Application Support/EduBar/`, 0600), la navigation et les stats restent complètes.
 - **Mises à jour.** EduBar regarde toutes les 6 h s'il existe une nouvelle release et l'installe toute seule : téléchargement vérifié (empreinte SHA-256 publiée par GitHub, identifiant, version et signature), remplacement de l'app, relance. Les réglages sont conservés. Un clic sur la notification « EduBar mis à jour » ouvre les nouveautés. Lancée depuis le `.dmg`, elle propose **Installer** : copie, relance depuis Applications et éjection de l'image disque. Si elle ne peut pas se remplacer, une notification annonce la nouvelle version et mène au téléchargement.
 
 ## Installation

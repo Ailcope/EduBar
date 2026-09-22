@@ -53,6 +53,7 @@ Works with **Edusign** &bull; **SwiftUI** &bull; **macOS Notifications**
 - **Add to Calendar.** One button subscribes the Calendar app to the Edusign feed.
 - **Custom texts.** Every menu bar text and emoji can be rewritten, with `{temps}`, `{salle}` and `{jour}` placeholders.
 - **Offline.** The timetable is cached locally, so the app keeps working without network.
+- **Past days kept.** Edusign drops yesterday from the feed: EduBar archives every past day locally (400 days, 0600), so browsing back and stats stay complete.
 - **Updates.** Checks GitHub every 6 hours and installs new releases by itself: verified download (GitHub's SHA-256 digest, bundle id, version and signature), in-place replacement, relaunch. Settings are kept. Clicking the "updated" notification opens the release notes. When run from the `.dmg`, it offers **Installer**: copy, relaunch from Applications and eject the disk image. If it cannot replace itself, a notification announces the new version and links to the download.
 
 ## Install
