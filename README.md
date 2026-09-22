@@ -41,12 +41,12 @@ Works with **Edusign** &bull; **SwiftUI** &bull; **macOS Notifications**
 - **Ajouter à Calendrier.** Un bouton abonne l'app Calendrier au flux Edusign : les cours y apparaissent et restent à jour.
 - **Textes personnalisables.** Chaque texte de la barre et ses émojis se réécrivent, avec les variables `{temps}`, `{salle}` et `{jour}`.
 - **Hors ligne.** Le calendrier est mis en cache dans `~/Library/Caches/EduBar/`, l'app marche sans réseau.
-- **Mises à jour.** EduBar regarde une fois par jour s'il existe une nouvelle release et l'installe toute seule : téléchargement vérifié (empreinte SHA-256 publiée par GitHub, identifiant, version et signature), remplacement de l'app, relance. Les réglages sont conservés. Un clic sur la notification « EduBar mis à jour » ouvre les nouveautés. Lancée depuis le `.dmg`, elle propose **Installer dans Applications** : copie, relance depuis Applications et éjection de l'image disque.
+- **Mises à jour.** EduBar regarde une fois par jour s'il existe une nouvelle release et l'installe toute seule : téléchargement vérifié (empreinte SHA-256 publiée par GitHub, identifiant, version et signature), remplacement de l'app, relance. Les réglages sont conservés. Un clic sur la notification « EduBar mis à jour » ouvre les nouveautés. Lancée depuis le `.dmg`, elle propose **Installer** : copie, relance depuis Applications et éjection de l'image disque.
 
 ### Installation
 
 1. Télécharge `EduBar-x.y.z.dmg` (ou le `.zip`) depuis les [Releases](https://github.com/Ailcope/EduBar/releases) et ouvre-le.
-2. Glisse `EduBar.app` sur le raccourci `Applications`, puis éjecte le `.dmg`. Lancée depuis le `.dmg`, l'app empêche de l'éjecter et ne peut pas se mettre à jour : le bouton **Installer dans Applications** du menu règle ça.
+2. Glisse `EduBar.app` sur le raccourci `Applications`, puis éjecte le `.dmg`. Lancée depuis le `.dmg`, l'app empêche de l'éjecter et ne peut pas se mettre à jour : le bouton **Installer** du menu règle ça.
 3. L'app n'est pas notarisée par Apple. Au premier lancement : clic droit sur l'app, puis **Ouvrir**. Si macOS dit qu'elle est endommagée :
    ```sh
    xattr -dr com.apple.quarantine /Applications/EduBar.app
@@ -143,12 +143,12 @@ swift test -Xswiftc -plugin-path -Xswiftc /Library/Developer/CommandLineTools/us
 - **Add to Calendar.** One button subscribes the Calendar app to the Edusign feed.
 - **Custom texts.** Every menu bar text and emoji can be rewritten, with `{temps}`, `{salle}` and `{jour}` placeholders.
 - **Offline.** The timetable is cached locally, so the app keeps working without network.
-- **Updates.** Checks GitHub once a day and installs new releases by itself: verified download (GitHub's SHA-256 digest, bundle id, version and signature), in-place replacement, relaunch. Settings are kept. Clicking the "updated" notification opens the release notes. When run from the `.dmg`, it offers **Installer dans Applications**: copy, relaunch from Applications and eject the disk image.
+- **Updates.** Checks GitHub once a day and installs new releases by itself: verified download (GitHub's SHA-256 digest, bundle id, version and signature), in-place replacement, relaunch. Settings are kept. Clicking the "updated" notification opens the release notes. When run from the `.dmg`, it offers **Installer**: copy, relaunch from Applications and eject the disk image.
 
 ### Install
 
 1. Download `EduBar-x.y.z.dmg` (or the `.zip`) from the [Releases](https://github.com/Ailcope/EduBar/releases) and open it.
-2. Drag `EduBar.app` onto the `Applications` shortcut, then eject the `.dmg`. Run from the `.dmg`, the app blocks the eject and cannot update itself: the **Installer dans Applications** button in the menu fixes that.
+2. Drag `EduBar.app` onto the `Applications` shortcut, then eject the `.dmg`. Run from the `.dmg`, the app blocks the eject and cannot update itself: the **Installer** button in the menu fixes that.
 3. The app is not notarized. On first launch, right-click it and choose **Open**. If macOS says it is damaged:
    ```sh
    xattr -dr com.apple.quarantine /Applications/EduBar.app

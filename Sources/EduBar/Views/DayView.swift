@@ -13,9 +13,10 @@ struct DayView: View {
             header
             if UpdateInstaller.diskImageVolume != nil || UpdateInstaller.isTranslocated {
                 banner(
-                    "EduBar tourne depuis l'image disque",
-                    icon: "externaldrive", button: "Installer dans Applications", action: model.installInApplications
+                    UpdateInstaller.isTranslocated ? "EduBar n'est pas dans Applications" : "EduBar tourne depuis le .dmg",
+                    icon: "externaldrive", button: "Installer", action: model.installInApplications
                 )
+                .help("Copie EduBar dans Applications, la relance de là et éjecte le .dmg. Nécessaire pour les mises à jour.")
                 if let message = model.installMessage {
                     Text(message).font(.caption).foregroundStyle(.orange).fixedSize(horizontal: false, vertical: true)
                 }
