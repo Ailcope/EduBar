@@ -21,8 +21,25 @@ struct DayView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             header
+            if let update = model.updates.available {
+                HStack {
+                    Label("EduBar \(update.version.description) disponible", systemImage: "arrow.down.circle")
+                        .font(.caption.weight(.semibold))
+                    Spacer()
+                    Button("Télécharger", action: model.updates.install)
+                        .controlSize(.small)
+                }
+                .padding(8)
+                .background(RoundedRectangle(cornerRadius: 8).fill(Color.accentColor.opacity(0.15)))
+            }
             Divider()
-            if model.feedURL == nil {
+            if !model.feedLoaded {
+                emptyState(
+                    "Lecture du Trousseau…",
+                    detail: "Si macOS le demande, autorise EduBar à lire son élément (Toujours autoriser).",
+                    button: nil
+                )
+            } else if model.feedURL == nil {
                 emptyState(
                     "Aucun calendrier configuré",
                     detail: "Colle l'URL webcal de ton calendrier Edusign dans les réglages.",
@@ -107,9 +124,10 @@ struct DayView: View {
 
     private func breakRow(from: Date, to: Date) -> some View {
         let isNow = from <= model.now && model.now < to
+        let lunch = Display.isLunch(from: from, to: to, calendar: model.calendar)
         return HStack(spacing: 6) {
-            Image(systemName: "cup.and.saucer")
-            Text("Pause \(Display.duration(to.timeIntervalSince(from)))")
+            Image(systemName: lunch ? "fork.knife" : "cup.and.saucer")
+            Text("\(lunch ? "Pause déjeuner" : "Pause") \(Display.duration(to.timeIntervalSince(from)))")
             if isNow { Text("· maintenant").fontWeight(.semibold) }
         }
         .font(.caption)

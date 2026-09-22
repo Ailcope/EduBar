@@ -6,9 +6,13 @@ Ton emploi du temps Edusign dans la barre des menus macOS.
 
 - En cours : `📚 Pause dans 23 min` (ou `Fin dans…` pour le dernier cours).
 - En pause : `☕ Cours dans 8 min · 506`.
+- Pause déjeuner (1 h ou plus, entre 11h et 14h) : `📚 Déjeuner dans 20 min`, puis `🍽️ Cours dans 50 min · 501`.
 - 15 min avant la fin d'un cours, si le suivant est dans une autre salle : `⚠️ Salle 501 · fin dans 14 min`, plus une notification.
 - Journée finie : `Demain 9h45`.
 - Un clic : la journée complète, avec les salles et les pauses.
+- Mises à jour : EduBar regarde une fois par jour s'il existe une nouvelle release et propose de télécharger le `.dmg` (rien ne s'installe tout seul).
+
+L'app est livrée sans calendrier : c'est toi qui colles ton URL au premier lancement.
 
 ## Installation
 
@@ -36,7 +40,7 @@ macOS 14 ou plus récent, Apple Silicon ou Intel.
 
 ## Confidentialité
 
-L'URL suffit à lire ton emploi du temps : elle ne contient que ton identifiant d'école et d'élève, sans mot de passe. Ne la partage pas. EduBar la garde dans le Trousseau macOS, ne l'écrit jamais dans les logs et ne parle qu'à `api.edusign.fr` (ou à l'hôte que tu donnes). Le calendrier est mis en cache dans `~/Library/Caches/EduBar/` pour marcher hors ligne.
+L'URL suffit à lire ton emploi du temps : elle ne contient que ton identifiant d'école et d'élève, sans mot de passe. Ne la partage pas. EduBar la garde dans le Trousseau macOS, ne l'écrit jamais dans les logs et ne parle qu'à `api.edusign.fr` (ou à l'hôte que tu donnes) et à `api.github.com` pour les mises à jour, sans rien envoyer d'autre que sa version. Le calendrier est mis en cache dans `~/Library/Caches/EduBar/` pour marcher hors ligne.
 
 ## Compiler
 
@@ -46,6 +50,14 @@ Pas besoin de Xcode, les Command Line Tools suffisent (`xcode-select --install`)
 swift test                 # tests
 scripts/bundle.sh 0.1.0    # dist/EduBar.app + .zip + .dmg (universel, signature ad-hoc)
 ```
+
+Si `swift test` échoue avec `plugin for module 'TestingMacros' not found` (Command Line Tools récents), donne le chemin du plugin :
+
+```sh
+swift test -Xswiftc -plugin-path -Xswiftc /Library/Developer/CommandLineTools/usr/lib/swift/host/plugins/testing
+```
+
+Pour publier une version : `scripts/bundle.sh x.y.z`, puis une release GitHub `vx.y.z` avec le `.dmg`. Les apps installées la verront dans la journée.
 
 `EduBar --snapshot <dossier> [--at "2026-09-22 13:10"]` rend le popover en PNG à partir du cache, pratique pour vérifier le rendu.
 
@@ -57,7 +69,7 @@ scripts/bundle.sh 0.1.0    # dist/EduBar.app + .zip + .dmg (universel, signature
 
 ## English
 
-Your Edusign timetable in the macOS menu bar: time until the next break or class, the next room, and a heads-up 15 minutes before a class ends when the next one is in a different room. Click for the full day.
+Your Edusign timetable in the macOS menu bar: time until the next break or class, the next room, and a heads-up 15 minutes before a class ends when the next one is in a different room. Lunch breaks are labeled as such. Click for the full day. Ships without any calendar URL; EduBar checks GitHub once a day for a new release and offers the dmg.
 
 **Install:** download the dmg (or zip) from Releases, drag `EduBar.app` to Applications, right-click and choose **Open** the first time (the app is not notarized), or run `xattr -dr com.apple.quarantine /Applications/EduBar.app`.
 

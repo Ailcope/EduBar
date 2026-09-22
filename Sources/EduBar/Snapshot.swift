@@ -11,7 +11,7 @@ enum Snapshot {
         let dir = URL(fileURLWithPath: args[i + 1], isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
 
-        let model = AppModel()
+        let model = AppModel(readKeychainNow: true)
         if let j = args.firstIndex(of: "--at"), j + 1 < args.count {
             let f = DateFormatter()
             f.locale = Locale(identifier: "en_US_POSIX")

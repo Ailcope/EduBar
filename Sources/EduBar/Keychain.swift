@@ -1,7 +1,7 @@
 import Foundation
 import Security
 
-/// Petit wrapper Keychain (mot de passe générique) pour l'URL du flux, qui contient des jetons.
+/// Petit wrapper Keychain (mot de passe générique) pour l'URL du flux : ses identifiants suffisent à lire l'emploi du temps.
 enum Keychain {
     static let service = "dev.ailcope.edubar"
 

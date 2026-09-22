@@ -38,6 +38,22 @@ struct SettingsView: View {
             Divider()
             Toggle("Prévenir 15 min avant un changement de salle", isOn: binding(\.notifyRoomChanges))
             Toggle("Lancer au démarrage", isOn: binding(\.launchAtLogin))
+
+            Divider()
+            HStack {
+                Text("Version \(model.updates.current ?? "dev")").font(.caption).foregroundStyle(.secondary)
+                Spacer()
+                if model.updates.checking { ProgressView().controlSize(.small) }
+                if model.updates.available != nil {
+                    Button("Télécharger", action: model.updates.install)
+                } else {
+                    Button("Rechercher les mises à jour", action: model.updates.checkNow)
+                        .disabled(model.updates.checking)
+                }
+            }
+            if let message = model.updates.message {
+                Text(message).font(.caption).foregroundStyle(.secondary)
+            }
         }
         .padding(14)
         .frame(width: 340)

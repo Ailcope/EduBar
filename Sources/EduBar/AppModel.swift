@@ -9,6 +9,7 @@ final class AppModel {
     private(set) var now = Date()
     private(set) var feedURL: URL?
     let store = CalendarStore()
+    let updates = UpdateChecker()
     let calendar = Calendar.autoupdatingCurrent
 
     var notifyRoomChanges: Bool {
@@ -24,9 +25,16 @@ final class AppModel {
     @ObservationIgnored private let notifier = Notifier()
     @ObservationIgnored private var started = false
 
-    init() {
-        feedURL = Keychain.get("feedURL").flatMap(FeedURL.normalize)
+    /// Faux tant que le Trousseau n'a pas répondu (macOS peut demander l'accès après une mise à jour).
+    private(set) var feedLoaded = false
+
+    /// `readKeychainNow` : lecture synchrone, pour le mode `--snapshot` seulement.
+    init(readKeychainNow: Bool = false) {
         notifyRoomChanges = UserDefaults.standard.object(forKey: "notifyRoomChanges") as? Bool ?? true
+        if readKeychainNow {
+            feedURL = Keychain.get("feedURL").flatMap(FeedURL.normalize)
+            feedLoaded = true
+        }
     }
 
     // MARK: - État dérivé
@@ -46,7 +54,13 @@ final class AppModel {
         started = true
         notifier.requestAuthorization()
 
-        Task { await store.refresh(from: feedURL) }
+        // Hors du fil principal : une demande d'accès au Trousseau ne doit pas figer la barre.
+        Task {
+            let raw = await Task.detached { Keychain.get("feedURL") }.value
+            feedURL = raw.flatMap(FeedURL.normalize)
+            feedLoaded = true
+            await refresh()
+        }
         // Horloge : toutes les 30 s, calée sur :00 et :30.
         Task {
             while !Task.isCancelled {
@@ -55,11 +69,13 @@ final class AppModel {
                 tick()
             }
         }
-        // Rafraîchissement du flux toutes les 15 min.
+        // Rafraîchissement du flux toutes les 15 min ; mises à jour de l'app une fois par jour.
         Task {
+            await updates.checkIfDue()
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(15 * 60))
                 await store.refresh(from: feedURL)
+                await updates.checkIfDue()
             }
         }
         NotificationCenter.default.addObserver(
