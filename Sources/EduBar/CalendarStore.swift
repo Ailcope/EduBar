@@ -22,19 +22,23 @@ final class CalendarStore {
     private(set) var lastError: String?
     private(set) var isLoading = false
 
-    private let cacheURL: URL = {
-        let dir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("EduBar", isDirectory: true)
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        return dir.appendingPathComponent("calendar.ics")
-    }()
+    private let cacheURL: URL
 
-    init() {
+    /// `cacheName` : fichier du cache disque (un par calendrier).
+    init(cacheName: String = "calendar.ics") {
+        cacheURL = Self.cacheDirectory.appendingPathComponent(cacheName)
         if let text = try? String(contentsOf: cacheURL, encoding: .utf8) {
             courses = ICSParser.parse(text)
             lastUpdated = (try? cacheURL.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
         }
     }
+
+    private static let cacheDirectory: URL = {
+        let dir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("EduBar", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir
+    }()
 
     func refresh(from url: URL?) async {
         guard let url, !isLoading else { return }

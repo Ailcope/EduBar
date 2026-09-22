@@ -6,7 +6,7 @@ import ServiceManagement
 
 /// Volets des réglages (un seul ouvert à la fois : le popover n'a pas de défilement).
 enum SettingsPanel {
-    case notifications, alternance, shortcuts, templates
+    case notifications, alternance, shortcuts, friend, templates
 }
 
 @MainActor @Observable
@@ -27,6 +27,22 @@ final class AppModel {
     var notifyScheduleChanges: Bool {
         didSet { UserDefaults.standard.set(notifyScheduleChanges, forKey: "notifyScheduleChanges") }
     }
+
+    /// Raccourci global qui ouvre le menu.
+    var hotKey: HotKeyChoice {
+        didSet {
+            UserDefaults.standard.set(hotKey.rawValue, forKey: "hotKey")
+            if frozenNow == nil { GlobalHotKey.register(hotKey) }
+        }
+    }
+
+    /// Calendrier d'un pote, pour les pauses communes. Lu comme le tien, rien n'est envoyé.
+    private(set) var friendURL: URL?
+    let friendStore = CalendarStore(cacheName: "friend.ics")
+    var friendName: String { didSet { UserDefaults.standard.set(friendName, forKey: "friendName") } }
+    var friendDraft = ""
+    var friendResult: (ok: Bool, message: String)?
+    var diagnosticCopied = false
 
     // État de l'UI (pas de @State : c'est une macro que les Command Line Tools ne savent pas développer avec le SDK macOS 27).
     var showingSettings = false
@@ -63,6 +79,9 @@ final class AppModel {
         alternance = Self.load("alternance") ?? .defaults
         shortcuts = Self.load("shortcuts") ?? .defaults
         notifyScheduleChanges = defaults.object(forKey: "notifyScheduleChanges") as? Bool ?? true
+        hotKey = defaults.string(forKey: "hotKey").flatMap(HotKeyChoice.init) ?? .optionCommandE
+        friendName = defaults.string(forKey: "friendName") ?? ""
+        friendURL = FeedFile.friend.read().flatMap(FeedURL.normalize)
         if readKeychainNow {
             feedURL = Self.loadFeed().flatMap(FeedURL.normalize)
             feedLoaded = true
@@ -79,7 +98,7 @@ final class AppModel {
 
     // MARK: - État dérivé
 
-    var schedule: Schedule { Schedule(courses: store.courses) }
+    var schedule: Schedule { Schedule(courses: snapshotCourses ?? store.courses) }
     var status: Status { schedule.status(at: now, calendar: calendar) }
     var alert: RoomAlert? {
         RoomChange.alert(for: status, at: now, lead: TimeInterval(max(0, notifications.roomChange.minutes) * 60))
@@ -95,6 +114,31 @@ final class AppModel {
     func isCompanyDay(_ day: Date) -> Bool {
         alternance.isCompanyDay(day, schedule: schedule, calendar: calendar)
     }
+
+    /// Prochaines vacances. En alternance « automatique », une semaine sans cours est une semaine en
+    /// entreprise : impossible de distinguer des vacances, rien n'est affiché.
+    var vacation: Vacation? {
+        guard alternance.mode != .auto else { return nil }
+        return Vacations.next(from: now, schedule: schedule, calendar: calendar, isCompanyDay: isCompanyDay)
+    }
+
+    /// Indice de couleur par matière (voir `SubjectPalette`).
+    var subjectColors: [String: Int] {
+        SubjectColors.assign(schedule.courses.map(\.subjectKey), count: SubjectPalette.colors.count)
+    }
+
+    var friendSchedule: Schedule? {
+        if let snapshotFriend { return snapshotFriend }
+        return friendURL == nil ? nil : Schedule(courses: friendStore.courses)
+    }
+
+    /// Pote factice du mode `--snapshot` (jamais un vrai calendrier dans une capture).
+    @ObservationIgnored var snapshotFriend: Schedule?
+
+    /// Cours anonymisés du mode `--snapshot --demo` (captures du README).
+    @ObservationIgnored var snapshotCourses: [Course]?
+
+    var friendLabel: String { friendName.trimmingCharacters(in: .whitespaces).isEmpty ? "Ton pote" : friendName }
 
     /// Jour affiché par défaut : aujourd'hui s'il reste des cours, sinon le prochain jour de cours.
     var baseDay: Date {
@@ -124,6 +168,13 @@ final class AppModel {
         started = true
         notifier.requestAuthorization()
         announceUpdateIfJustInstalled()
+        GlobalHotKey.register(hotKey)
+        updates.onFound = { [weak self] r in
+            self?.notifier.send(PendingNotification(
+                id: "available-\(r.version)", title: "EduBar \(r.version) disponible",
+                body: "Clique pour la télécharger, ou ouvre le menu d'EduBar.", url: r.dmg ?? r.page
+            ))
+        }
 
         // Hors du fil principal : une demande d'accès au Trousseau (migration) ne doit pas figer la barre.
         Task {
@@ -140,7 +191,7 @@ final class AppModel {
                 tick()
             }
         }
-        // Rafraîchissement du flux toutes les 15 min ; mises à jour de l'app une fois par jour.
+        // Rafraîchissement du flux toutes les 15 min ; mises à jour de l'app toutes les 6 h.
         Task {
             await updates.checkIfDue()
             while !Task.isCancelled {
@@ -210,6 +261,7 @@ final class AppModel {
         let before = store.courses
         let stamp = store.lastUpdated
         await store.refresh(from: feedURL)
+        if frozenNow == nil { await friendStore.refresh(from: friendURL) }
         if announceChanges, notifyScheduleChanges, frozenNow == nil, store.lastUpdated != stamp {
             let changes = ScheduleDiff.changes(from: before, to: store.courses, now: Date())
             for n in ScheduleDiff.notifications(changes, now: Date(), calendar: calendar) { notifier.send(n) }
@@ -254,6 +306,64 @@ final class AppModel {
         }
     }
 
+    /// Calendrier du pote : même vérification que le tien, fichier à part (0600). Champ vide : supprimé.
+    func saveFriend() {
+        let raw = friendDraft
+        friendResult = nil
+        Task {
+            if raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                FeedFile.friend.remove()
+                friendURL = nil
+                friendStore.clear()
+                friendResult = (true, "Calendrier retiré.")
+                return
+            }
+            guard let url = FeedURL.normalize(raw) else {
+                friendResult = (false, "URL invalide : elle doit commencer par webcal:// ou https://.")
+                return
+            }
+            do {
+                let (_, courses) = try await CalendarStore.fetch(url)
+                try FeedFile.friend.write(url.absoluteString)
+                friendURL = url
+                await friendStore.refresh(from: url)
+                friendResult = (true, "\(courses.count) cours trouvés.")
+            } catch {
+                friendResult = (false, error.localizedDescription)
+            }
+        }
+    }
+
+    /// Infos utiles pour déboguer, copiées dans le presse-papiers. Jamais d'URL ni de jeton.
+    func copyDiagnostic() {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(diagnosticText(), forType: .string)
+        diagnosticCopied = true
+    }
+
+    func diagnosticText() -> String {
+        let app = Bundle.main.bundleURL
+        let quarantine = getxattr(app.path, "com.apple.quarantine", nil, 0, 0, 0) >= 0
+        let os = ProcessInfo.processInfo.operatingSystemVersion
+        return Diagnostic.render([
+            ("Version", updates.current ?? "dev"),
+            ("macOS", "\(os.majorVersion).\(os.minorVersion).\(os.patchVersion)"),
+            ("Emplacement", UpdateInstaller.isTranslocated ? "isolée par macOS (App Translocation)"
+                : app.path.replacingOccurrences(of: NSHomeDirectory(), with: "~")),
+            ("Depuis le .dmg", UpdateInstaller.diskImageVolume == nil ? "non" : "oui"),
+            ("Quarantaine", quarantine ? "oui" : "non"),
+            ("Mise à jour sur place", UpdateInstaller.canReplaceSelf ? "possible" : "impossible"),
+            ("Calendrier", feedURL == nil ? "non configuré" : "configuré"),
+            ("Cours", "\(store.courses.count)"),
+            ("Dernière mise à jour", store.lastUpdated.map { $0.formatted(.iso8601) } ?? "jamais"),
+            ("Erreur", store.lastError ?? "aucune"),
+            ("Pote", friendURL == nil ? "non" : "oui, \(friendStore.courses.count) cours"),
+            ("Alternance", alternance.mode.rawValue),
+            ("Raccourci", hotKey.label),
+            ("Mise à jour dispo", updates.available?.version.description ?? "non"),
+        ])
+    }
+
     /// Abonne l'app Calendrier au flux (elle le tient à jour elle-même).
     func subscribeInCalendar() {
         guard let url = feedURL, var c = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return }
@@ -282,7 +392,10 @@ final class AppModel {
 
     func openSettings() {
         feedDraft = feedURL?.absoluteString ?? ""
+        friendDraft = friendURL?.absoluteString ?? ""
         saveResult = nil
+        friendResult = nil
+        diagnosticCopied = false
         panel = nil
         showingStats = false
         showingSettings = true

@@ -51,6 +51,10 @@ struct DayView: View {
                 } else {
                     timeline(courses)
                 }
+                if let friend = model.friendSchedule, !courses.isEmpty {
+                    friendSummary(day, friend: friend)
+                }
+                notes(day)
                 weekSummary(day)
             }
             Divider()
@@ -118,7 +122,9 @@ struct DayView: View {
 
     private func emptyDay(_ day: Date) -> some View {
         let text: (title: String, icon: String)
-        if model.isCompanyDay(day) {
+        if let holiday = Holidays.name(of: day, calendar: model.calendar) {
+            text = ("Férié · \(holiday)", "flag")
+        } else if model.isCompanyDay(day) {
             text = ("Journée en entreprise", "building.2")
         } else if model.calendar.isDateInWeekend(day) {
             text = ("Week-end", "sun.max")
@@ -131,6 +137,62 @@ struct DayView: View {
             .padding(8)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.04)))
+    }
+
+    /// Pauses communes avec le pote et l'heure à laquelle il finit.
+    private func friendSummary(_ day: Date, friend: Schedule) -> some View {
+        let shared = Together.day(day, mine: model.schedule, friend: friend, calendar: model.calendar)
+        let name = model.friendLabel
+        let t = { (d: Date) in Display.time(d, calendar: model.calendar) }
+        let headline: String
+        if let end = shared.friendEnd {
+            headline = end <= model.now ? "\(name) a fini à \(t(end))" : "\(name) finit à \(t(end))"
+        } else {
+            headline = "\(name) n'a pas cours"
+        }
+        return VStack(alignment: .leading, spacing: 2) {
+            Label(headline, systemImage: "person.2")
+                .font(.caption.weight(.semibold))
+            if shared.friendEnd != nil {
+                Text(shared.breaks.isEmpty
+                    ? "Pas de pause commune"
+                    : "Pauses communes : " + shared.breaks.map { "\(t($0.start))-\(t($0.end))" }.joined(separator: " · "))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.04)))
+    }
+
+    /// Jours fériés qui expliquent un trou (semaine affichée, ou jours sautés pour arriver ici) et vacances.
+    @ViewBuilder
+    private func notes(_ day: Date) -> some View {
+        let cal = model.calendar
+        let week = cal.dateInterval(of: .weekOfYear, for: day)
+        let weekStart = week?.start ?? cal.startOfDay(for: day)
+        // Jour par défaut (prochain jour de cours) : aussi les fériés sautés depuis aujourd'hui.
+        let from = model.dayOffset == 0 ? min(weekStart, cal.startOfDay(for: model.now)) : weekStart
+        let to = max(from, week?.end ?? day)
+        let holidays = Holidays.weekdays(in: DateInterval(start: from, end: to), calendar: cal)
+            .filter { !cal.isDate($0.day, inSameDayAs: day) }
+        let vacation = model.vacation.flatMap { v -> String? in
+            let days = cal.dateComponents([.day], from: cal.startOfDay(for: model.now), to: v.start).day ?? 0
+            return days <= 60 ? Vacations.label(v, now: model.now, calendar: cal) : nil
+        }
+        if !holidays.isEmpty || vacation != nil {
+            VStack(alignment: .leading, spacing: 2) {
+                ForEach(holidays, id: \.day) { h in
+                    Label("Férié \(h.day.formatted(.dateTime.weekday(.abbreviated).day().month(.twoDigits).locale(fr))) · \(h.name)",
+                          systemImage: "flag")
+                }
+                if let vacation { Label(vacation, systemImage: "beach.umbrella") }
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
     }
 
     private func weekSummary(_ day: Date) -> some View {
@@ -153,20 +215,24 @@ struct DayView: View {
     static func hours(_ t: TimeInterval) -> String { t <= 0 ? "0 h" : Display.duration(t) }
 
     private func timeline(_ courses: [Course]) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        let colors = model.subjectColors
+        return VStack(alignment: .leading, spacing: 6) {
             ForEach(Array(courses.enumerated()), id: \.element.id) { i, c in
                 if i > 0, c.start > courses[i - 1].end {
                     breakRow(from: courses[i - 1].end, to: c.start)
                 }
-                courseRow(c, roomChanged: i > 0 && roomChanged(from: courses[i - 1], to: c))
+                courseRow(c, roomChanged: i > 0 && roomChanged(from: courses[i - 1], to: c), colors: colors)
             }
         }
     }
 
-    private func courseRow(_ c: Course, roomChanged: Bool) -> some View {
+    private func courseRow(_ c: Course, roomChanged: Bool, colors: [String: Int]) -> some View {
         let isCurrent = c.start <= model.now && model.now < c.end
         let isPast = c.end <= model.now
         return HStack(alignment: .top, spacing: 10) {
+            RoundedRectangle(cornerRadius: 1.5)
+                .fill(SubjectPalette.color(c.subjectKey, in: colors))
+                .frame(width: 3)
             VStack(alignment: .trailing, spacing: 0) {
                 Text(Display.time(c.start, calendar: model.calendar))
                 Text(Display.time(c.end, calendar: model.calendar)).foregroundStyle(.secondary)
@@ -222,7 +288,7 @@ struct DayView: View {
         }
         .font(.caption)
         .foregroundStyle(isNow ? Color.accentColor : Color.secondary)
-        .padding(.leading, 50)
+        .padding(.leading, 63)
     }
 
     private func emptyState(_ title: String, detail: String, button: String?) -> some View {

@@ -16,6 +16,8 @@ final class UpdateChecker {
     private(set) var installing = false
 
     @ObservationIgnored private var lastCheck: Date?
+    /// Appelé une fois par version trouvée qui ne peut pas s'installer toute seule (notification).
+    @ObservationIgnored var onFound: ((Release) -> Void)?
 
     let current = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
 
@@ -25,11 +27,17 @@ final class UpdateChecker {
     /// Clé posée juste avant la relance, pour annoncer la mise à jour au démarrage suivant.
     static let updatedFromKey = "updatedFrom"
 
-    /// Vérification automatique : au plus une fois par jour, et installe ce qu'elle trouve.
+    /// Vérification automatique : au plus toutes les 6 h, et installe ce qu'elle trouve.
+    /// Si elle ne peut pas (lancée depuis le .dmg…), prévient par une notification.
     func checkIfDue() async {
-        if let lastCheck, Date().timeIntervalSince(lastCheck) < 24 * 60 * 60 { return }
+        if let lastCheck, Date().timeIntervalSince(lastCheck) < 6 * 60 * 60 { return }
         _ = await check()
-        if canInstallInPlace { await installInPlace() }
+        if canInstallInPlace {
+            await installInPlace()
+        } else if let r = available, UserDefaults.standard.string(forKey: "notifiedVersion") != r.version.description {
+            UserDefaults.standard.set(r.version.description, forKey: "notifiedVersion")
+            onFound?(r)
+        }
     }
 
     /// Vérification demandée depuis les réglages.

@@ -43,11 +43,16 @@ struct SettingsView: View {
 
             Divider()
             Toggle("Lancer au démarrage", isOn: binding(\.launchAtLogin))
+            Picker("Ouvrir le menu au clavier", selection: binding(\.hotKey)) {
+                ForEach(HotKeyChoice.allCases, id: \.self) { Text($0.label).tag($0) }
+            }
+            .help("Depuis n'importe quelle app. Change-le s'il gêne un raccourci d'une autre app.")
 
             Divider()
             group("Notifications", .notifications) { notificationsEditor }
             group("Alternance", .alternance) { alternanceEditor }
             group("Raccourcis", .shortcuts) { shortcutsEditor }
+            group("Pauses communes", .friend) { friendEditor }
             group("Personnaliser les textes", .templates) { templatesEditor }
 
             Divider()
@@ -65,6 +70,14 @@ struct SettingsView: View {
             }
             if let message = model.updates.message {
                 Text(message).font(.caption).foregroundStyle(.secondary)
+            }
+            HStack {
+                Button(action: model.copyDiagnostic) { Label("Copier le diagnostic", systemImage: "doc.on.clipboard") }
+                    .font(.caption)
+                    .help("Version, emplacement, quarantaine, dernier rafraîchissement… Jamais l'URL du calendrier.")
+                if model.diagnosticCopied {
+                    Text("Copié, colle-le dans ton message.").font(.caption).foregroundStyle(.green)
+                }
             }
         }
         .padding(14)
@@ -279,6 +292,34 @@ struct SettingsView: View {
                 .font(.caption)
                 .disabled(current.isEmpty)
         }
+    }
+
+    // MARK: - Pauses communes
+
+    private var friendEditor: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            caption("Colle l'URL Edusign d'un pote (il la récupère comme toi) : EduBar affiche vos pauses communes et l'heure à laquelle il finit. Elle reste sur ce Mac, rien n'est envoyé.")
+            TextField("Prénom", text: binding(\.friendName))
+                .textFieldStyle(.roundedBorder)
+                .font(.callout)
+            TextField("webcal://…", text: binding(\.friendDraft))
+                .textFieldStyle(.roundedBorder)
+                .font(.callout)
+                .onSubmit(model.saveFriend)
+            HStack {
+                Button("Enregistrer", action: model.saveFriend)
+                    .font(.caption)
+                if let result = model.friendResult {
+                    Label(result.message, systemImage: result.ok ? "checkmark.circle" : "xmark.circle")
+                        .font(.caption)
+                        .foregroundStyle(result.ok ? .green : .red)
+                        .lineLimit(2)
+                }
+            }
+            caption("Champ vide puis Enregistrer : son calendrier est oublié.")
+        }
+        .font(.body.weight(.regular))
+        .padding(.top, 6)
     }
 
     // MARK: - Aides

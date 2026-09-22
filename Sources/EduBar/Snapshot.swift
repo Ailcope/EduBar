@@ -1,4 +1,5 @@
 import AppKit
+import EduBarCore
 import SwiftUI
 
 /// `EduBar --snapshot <dossier> [--at "yyyy-MM-dd HH:mm"]` : rend le popover et les réglages en PNG
@@ -18,7 +19,20 @@ enum Snapshot {
             f.dateFormat = "yyyy-MM-dd HH:mm"
             model.frozenNow = f.date(from: args[j + 1])
         }
+        // `--demo` : mêmes horaires, matières et salles fictives (captures publiées).
+        let demo = args.contains("--demo")
+        if demo { model.snapshotCourses = anonymized(model.schedule.courses) }
         model.tick()
+        // Pote factice : tes cours, finis 30 min plus tôt, sans le dernier de la journée.
+        let savedName = UserDefaults.standard.string(forKey: "friendName")
+        model.friendName = demo ? "Alex" : "Marvin"
+        model.snapshotFriend = Schedule(courses: Dictionary(grouping: model.schedule.courses) {
+            model.calendar.startOfDay(for: $0.start)
+        }.values.flatMap { day in
+            day.dropLast(day.count > 1 ? 1 : 0).map {
+                Course(id: "f-\($0.id)", title: $0.title, start: $0.start, end: $0.end.addingTimeInterval(-1800), room: nil)
+            }
+        })
 
         let bar = Text(model.barText.isEmpty ? "(icône seule)" : model.barText).padding(6)
         write(bar, to: dir.appendingPathComponent("bar.png"))
@@ -41,13 +55,36 @@ enum Snapshot {
         model.alternance = alternance
         model.panel = .shortcuts
         write(SettingsView(model: model), to: dir.appendingPathComponent("shortcuts.png"))
+        model.panel = .friend
+        model.friendDraft = "webcal://api.edusign.fr/student/account/ical?…"
+        write(SettingsView(model: model), to: dir.appendingPathComponent("friend.png"))
         model.panel = nil
+        model.diagnosticCopied = true
+        print(model.diagnosticText())
         write(SettingsView(model: model), to: dir.appendingPathComponent("settings-closed.png"))
         write(StatsView(model: model), to: dir.appendingPathComponent("stats.png"))
         model.step(1)
         write(DayView(model: model, openSettings: {}), to: dir.appendingPathComponent("day-next.png"))
         print("bar: \(model.barText)")
+        UserDefaults.standard.set(savedName, forKey: "friendName")
         exit(0)
+    }
+
+    private static let demoSubjects = [
+        "Réseaux et protocoles", "Algorithmique", "Systèmes Linux", "Anglais technique", "Bases de données",
+        "Cybersécurité", "Développement web", "Gestion de projet", "Mathématiques", "Cloud et virtualisation",
+    ]
+
+    /// Chaque matière et chaque salle reçoit un nom fictif stable ; horaires et examens sont gardés.
+    private static func anonymized(_ courses: [Course]) -> [Course] {
+        let subjects = Array(Set(courses.map(\.subjectKey))).sorted()
+        let rooms = Array(Set(courses.compactMap(\.room))).sorted()
+        return courses.map { c in
+            let i = subjects.firstIndex(of: c.subjectKey) ?? 0
+            let title = demoSubjects[i % demoSubjects.count] + (c.isExam ? " · examen" : "")
+            let room = c.room.flatMap { rooms.firstIndex(of: $0) }.map { "Salle \(101 + 100 * ($0 % 4) + $0 / 4)" }
+            return Course(id: "demo-\(c.id)", title: title, start: c.start, end: c.end, room: room)
+        }
     }
 
     private static func write(_ view: some View, to url: URL) {

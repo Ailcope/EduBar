@@ -15,6 +15,7 @@ struct StatsView: View {
         let nextWeek = Stats.week(of: nextWeekDay, now: now, schedule: schedule, calendar: model.calendar)
         let exams = schedule.courses.filter { $0.isExam && $0.end > now }.prefix(3)
         let subjects = Stats.bySubject(schedule.courses, now: now)
+        let colors = model.subjectColors
 
         return VStack(alignment: .leading, spacing: 12) {
             HStack {
@@ -52,16 +53,18 @@ struct StatsView: View {
                 ForEach(subjects.prefix(Self.maxSubjects), id: \.title) { s in
                     VStack(alignment: .leading, spacing: 2) {
                         HStack(alignment: .firstTextBaseline) {
+                            Circle().fill(SubjectPalette.color(s.key, in: colors)).frame(width: 7, height: 7)
                             Text(s.title).lineLimit(1)
+                            if s.exams > 0 {
+                                Text(s.exams > 1 ? "\(s.exams) examens" : "examen").foregroundStyle(.orange)
+                            }
                             Spacer()
                             Text("\(DayView.hours(s.done)) / \(DayView.hours(s.total))")
                                 .monospacedDigit()
                                 .foregroundStyle(.secondary)
                         }
                         .font(.caption)
-                        ProgressView(value: s.total > 0 ? s.done / s.total : 0)
-                            .controlSize(.small)
-                            .tint(s.exams > 0 ? .orange : .accentColor)
+                        bar(s.total > 0 ? s.done / s.total : 0, color: SubjectPalette.color(s.key, in: colors))
                     }
                 }
                 if subjects.count > Self.maxSubjects {
@@ -78,6 +81,18 @@ struct StatsView: View {
         .frame(width: 340)
         // Menu refermé : retour à la journée à la réouverture.
         .onDisappear { model.showingStats = false }
+    }
+
+    /// Barre de progression à la couleur de la matière (`ProgressView` ignore `tint` en petite taille).
+    private func bar(_ fraction: Double, color: Color) -> some View {
+        Capsule()
+            .fill(Color.primary.opacity(0.08))
+            .overlay(alignment: .leading) {
+                GeometryReader { g in
+                    Capsule().fill(color).frame(width: max(fraction > 0 ? 4 : 0, g.size.width * min(1, fraction)))
+                }
+            }
+            .frame(height: 4)
     }
 
     private func row(_ label: String, _ value: String) -> some View {
