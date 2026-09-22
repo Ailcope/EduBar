@@ -1,0 +1,25 @@
+#!/bin/sh
+# Construit dist/EduBar.app (signature ad-hoc) et dist/EduBar-<version>.zip.
+# Usage : scripts/bundle.sh [version]   (défaut : 0.1.0)
+set -eu
+
+VERSION="${1:-0.1.0}"
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+APP="$ROOT/dist/EduBar.app"
+
+cd "$ROOT"
+swift build -c release --arch arm64 --arch x86_64
+BIN="$(swift build -c release --arch arm64 --arch x86_64 --show-bin-path)/EduBar"
+
+rm -rf "$APP"
+mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+cp "$BIN" "$APP/Contents/MacOS/EduBar"
+sed "s/__VERSION__/$VERSION/g" Resources/Info.plist > "$APP/Contents/Info.plist"
+
+codesign --force --sign - --timestamp=none "$APP"
+codesign --verify --verbose=1 "$APP"
+
+rm -f "$ROOT/dist/EduBar-$VERSION.zip"
+ditto -c -k --keepParent "$APP" "$ROOT/dist/EduBar-$VERSION.zip"
+echo "OK : $APP"
+echo "OK : $ROOT/dist/EduBar-$VERSION.zip"
