@@ -85,7 +85,7 @@ Deux cibles SwiftPM :
 ## Build et release
 
 - `swift test`, `swift build -c release`.
-- `scripts/bundle.sh` : crée `dist/EduBar.app` (Info.plist `LSUIElement`, `CFBundleIdentifier` `cc.mathys.edubar`), `codesign --sign -`, zip.
+- `scripts/bundle.sh` : crée `dist/EduBar.app` (Info.plist `LSUIElement`, `CFBundleIdentifier` `dev.ailcope.edubar`), `codesign --sign -`, zip.
 - README FR/EN avec contournement Gatekeeper (clic droit → Ouvrir, ou `xattr -dr com.apple.quarantine`).
 
 ## Hors périmètre (YAGNI)
