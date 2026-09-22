@@ -165,7 +165,19 @@ final class AppModel {
     func openSettings() {
         feedDraft = feedURL?.absoluteString ?? ""
         saveResult = nil
+        collapsePanels()
         showingSettings = true
+    }
+
+    /// Replie les volets avant de revenir à la journée : la fenêtre du menu garde sinon leur hauteur.
+    func closeSettings() {
+        collapsePanels()
+        showingSettings = false
+    }
+
+    func collapsePanels() {
+        showingTemplates = false
+        showingNotifications = false
     }
 
     func saveDraft() {

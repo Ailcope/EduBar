@@ -7,7 +7,7 @@ struct SettingsView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Button { model.showingSettings = false } label: { Image(systemName: "chevron.left") }
+                Button(action: model.closeSettings) { Image(systemName: "chevron.left") }
                     .buttonStyle(.borderless)
                 Text("Réglages").font(.headline)
             }
@@ -74,6 +74,8 @@ struct SettingsView: View {
         }
         .padding(14)
         .frame(width: 340)
+        // Menu refermé pendant les réglages : volets repliés à la réouverture.
+        .onDisappear(perform: model.collapsePanels)
     }
 
     private static let fields: [(label: String, path: WritableKeyPath<BarTemplates, String>)] = [
