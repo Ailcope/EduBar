@@ -1,3 +1,4 @@
+import AppKit
 import EduBarCore
 import Foundation
 import UserNotifications
@@ -23,6 +24,7 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
         content.title = n.title
         content.body = n.body
         content.sound = .default
+        if let url = n.url { content.userInfo = ["url": url.absoluteString] }
         UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: n.id, content: content, trigger: nil))
     }
 
@@ -31,5 +33,16 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
         _ center: UNUserNotificationCenter, willPresent notification: UNNotification
     ) async -> UNNotificationPresentationOptions {
         [.banner, .list, .sound]
+    }
+
+    /// Clic sur une notification qui porte une page (notes de version) : on l'ouvre.
+    nonisolated func userNotificationCenter(
+        _ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse
+    ) async {
+        guard response.actionIdentifier == UNNotificationDefaultActionIdentifier,
+              let raw = response.notification.request.content.userInfo["url"] as? String,
+              let url = URL(string: raw), url.scheme == "https"
+        else { return }
+        await MainActor.run { _ = NSWorkspace.shared.open(url) }
     }
 }

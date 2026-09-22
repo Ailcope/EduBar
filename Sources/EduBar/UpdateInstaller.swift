@@ -60,14 +60,46 @@ enum UpdateInstaller {
         _ = try fm.replaceItemAt(current, withItemAt: app)
     }
 
-    /// Quitte, puis rouvre l'app une fois ce processus terminé.
-    @MainActor static func relaunch() {
+    /// Lancée depuis une image disque montée (le .dmg) : l'image ne peut pas être éjectée
+    /// et l'app ne peut pas se mettre à jour.
+    static var diskImageVolume: URL? {
+        let app = Bundle.main.bundleURL
+        guard app.pathExtension == "app", app.path.hasPrefix("/Volumes/") else { return nil }
+        return (try? app.resourceValues(forKeys: [.volumeURLKey]))?.volume
+    }
+
+    /// Translocalisée par Gatekeeper (lancée depuis Téléchargements sans avoir été déplacée).
+    static var isTranslocated: Bool { Bundle.main.bundleURL.path.contains("/AppTranslocation/") }
+
+    /// Copie l'app en cours dans /Applications (en remplaçant une ancienne copie). Renvoie la copie.
+    static func copyToApplications() throws -> URL {
+        let fm = FileManager.default
+        let apps = URL(fileURLWithPath: "/Applications", isDirectory: true)
+        guard fm.isWritableFile(atPath: apps.path) else { throw Failure.notReplaceable }
+        let destination = apps.appending(path: "EduBar.app")
+        let work = try fm.url(for: .itemReplacementDirectory, in: .userDomainMask, appropriateFor: apps, create: true)
+        defer { try? fm.removeItem(at: work) }
+        let staged = work.appending(path: "EduBar.app")
+        try run("/usr/bin/ditto", [Bundle.main.bundleURL.path, staged.path])
+        if fm.fileExists(atPath: destination.path) {
+            _ = try fm.replaceItemAt(destination, withItemAt: staged)
+        } else {
+            try fm.moveItem(at: staged, to: destination)
+        }
+        return destination
+    }
+
+    /// Quitte, puis rouvre l'app (`app`, par défaut elle-même) une fois ce processus terminé.
+    /// `ejecting` : image disque à éjecter entre les deux.
+    @MainActor static func relaunch(at app: URL = Bundle.main.bundleURL, ejecting volume: URL? = nil) {
         let task = Process()
         task.executableURL = URL(fileURLWithPath: "/bin/sh")
-        // Chemin et PID passés en arguments, jamais interpolés dans le script.
+        // Chemins et PID passés en arguments, jamais interpolés dans le script.
         task.arguments = [
-            "-c", "while /bin/kill -0 \"$1\" 2>/dev/null; do /bin/sleep 0.2; done; /usr/bin/open -n \"$2\"",
-            "sh", String(ProcessInfo.processInfo.processIdentifier), Bundle.main.bundleURL.path,
+            "-c",
+            "while /bin/kill -0 \"$1\" 2>/dev/null; do /bin/sleep 0.2; done; "
+                + "if [ -n \"$3\" ]; then /usr/bin/hdiutil detach \"$3\" -quiet || true; fi; /usr/bin/open -n \"$2\"",
+            "sh", String(ProcessInfo.processInfo.processIdentifier), app.path, volume?.path ?? "",
         ]
         do {
             try task.run()

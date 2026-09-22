@@ -1,36 +1,30 @@
 import EduBarCore
 import SwiftUI
 
-/// Popover principal : la journée (ou le prochain jour de cours).
+/// Popover principal : une journée (par défaut aujourd'hui, ou le prochain jour de cours), flèches ← → pour les autres.
 struct DayView: View {
     let model: AppModel
     let openSettings: () -> Void
 
     private var fr: Locale { Locale(identifier: "fr_FR") }
 
-    /// Jour affiché : aujourd'hui s'il reste des cours, sinon le prochain jour de cours.
-    private var shown: (date: Date, courses: [Course], isToday: Bool)? {
-        let today = model.schedule.courses(on: model.now, calendar: model.calendar)
-        if today.contains(where: { $0.end > model.now }) { return (model.now, today, true) }
-        guard let next = model.schedule.courses.first(where: { $0.start > model.now }) else {
-            return today.isEmpty ? nil : (model.now, today, true)
-        }
-        return (next.start, model.schedule.courses(on: next.start, calendar: model.calendar), false)
-    }
-
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             header
-            if let update = model.updates.available {
-                HStack {
-                    Label("EduBar \(update.version.description) disponible", systemImage: "arrow.down.circle")
-                        .font(.caption.weight(.semibold))
-                    Spacer()
-                    Button("Télécharger", action: model.updates.install)
-                        .controlSize(.small)
+            if UpdateInstaller.diskImageVolume != nil || UpdateInstaller.isTranslocated {
+                banner(
+                    "EduBar tourne depuis l'image disque",
+                    icon: "externaldrive", button: "Installer dans Applications", action: model.installInApplications
+                )
+                if let message = model.installMessage {
+                    Text(message).font(.caption).foregroundStyle(.orange).fixedSize(horizontal: false, vertical: true)
                 }
-                .padding(8)
-                .background(RoundedRectangle(cornerRadius: 8).fill(Color.accentColor.opacity(0.15)))
+            } else if let update = model.updates.available {
+                banner(
+                    "EduBar \(update.version.description) disponible", icon: "arrow.down.circle",
+                    button: model.updates.canInstallInPlace ? "Mettre à jour" : "Télécharger", action: model.updates.install
+                )
+                .disabled(model.updates.installing)
             }
             Divider()
             if !model.feedLoaded {
@@ -45,21 +39,25 @@ struct DayView: View {
                     detail: "Colle l'URL webcal de ton calendrier Edusign dans les réglages.",
                     button: "Configurer"
                 )
-            } else if let shown {
-                if !shown.isToday {
-                    Text("Prochains cours · \(dayTitle(shown.date))")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                }
-                timeline(shown.courses)
+            } else if model.schedule.courses.isEmpty {
+                emptyState("Aucun cours", detail: "Le calendrier ne contient aucun cours.", button: nil)
             } else {
-                emptyState("Aucun cours à venir", detail: "Le calendrier ne contient plus de cours.", button: nil)
+                dayNavigation
+                let day = model.shownDay
+                let courses = model.schedule.courses(on: day, calendar: model.calendar)
+                if courses.isEmpty {
+                    emptyDay(day)
+                } else {
+                    timeline(courses)
+                }
+                weekSummary(day)
             }
             Divider()
             footer
         }
         .padding(14)
         .frame(width: 340)
+        .onDisappear { model.dayOffset = 0 }
     }
 
     // MARK: - Morceaux
@@ -75,6 +73,83 @@ struct DayView: View {
             }
         }
     }
+
+    private func banner(_ title: String, icon: String, button: String, action: @escaping () -> Void) -> some View {
+        HStack {
+            Label(title, systemImage: icon)
+                .font(.caption.weight(.semibold))
+            Spacer()
+            Button(button, action: action)
+                .controlSize(.small)
+        }
+        .padding(8)
+        .background(RoundedRectangle(cornerRadius: 8).fill(Color.accentColor.opacity(0.15)))
+    }
+
+    private var dayNavigation: some View {
+        let day = model.shownDay
+        let isToday = model.calendar.isDate(day, inSameDayAs: model.now)
+        let title: String
+        if isToday {
+            title = "Aujourd'hui"
+        } else if model.calendar.isDateInTomorrow(day) {
+            title = "Demain · \(dayTitle(day))"
+        } else {
+            title = dayTitle(day).capitalized(with: fr)
+        }
+        return HStack(spacing: 6) {
+            Button { model.step(-1) } label: { Image(systemName: "chevron.left") }
+                .help("Jour précédent")
+            Text(model.dayOffset == 0 && !isToday ? "Prochains cours · \(dayTitle(day))" : title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+            Spacer(minLength: 4)
+            if model.dayOffset != 0 {
+                Button("Revenir") { model.dayOffset = 0 }
+                    .font(.caption)
+            }
+            Button { model.step(1) } label: { Image(systemName: "chevron.right") }
+                .help("Jour suivant")
+        }
+        .buttonStyle(.borderless)
+    }
+
+    private func emptyDay(_ day: Date) -> some View {
+        let text: (title: String, icon: String)
+        if model.isCompanyDay(day) {
+            text = ("Journée en entreprise", "building.2")
+        } else if model.calendar.isDateInWeekend(day) {
+            text = ("Week-end", "sun.max")
+        } else {
+            text = ("Pas de cours", "calendar")
+        }
+        return Label(text.title, systemImage: text.icon)
+            .font(.callout)
+            .foregroundStyle(.secondary)
+            .padding(8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.04)))
+    }
+
+    private func weekSummary(_ day: Date) -> some View {
+        let w = Stats.week(of: day, now: model.now, schedule: model.schedule, calendar: model.calendar)
+        let thisWeek = model.calendar.isDate(day, equalTo: model.now, toGranularity: .weekOfYear)
+        var text = "\(thisWeek ? "Cette semaine" : "Semaine") : \(Self.hours(w.total)) de cours"
+        if w.done > 0, w.done < w.total { text += " · \(Self.hours(w.done)) faites" }
+        return Button(action: { model.showingStats = true }) {
+            HStack(spacing: 4) {
+                Image(systemName: "chart.bar")
+                Text(text)
+            }
+        }
+        .buttonStyle(.borderless)
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .help("Heures par matière")
+    }
+
+    static func hours(_ t: TimeInterval) -> String { t <= 0 ? "0 h" : Display.duration(t) }
 
     private func timeline(_ courses: [Course]) -> some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -99,9 +174,19 @@ struct DayView: View {
             .frame(width: 40, alignment: .trailing)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(c.shortTitle.prefix(1).uppercased() + c.shortTitle.dropFirst())
-                    .font(.callout.weight(isCurrent ? .semibold : .regular))
-                    .fixedSize(horizontal: false, vertical: true)
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text(c.displayTitle)
+                        .font(.callout.weight(isCurrent || c.isExam ? .semibold : .regular))
+                        .fixedSize(horizontal: false, vertical: true)
+                    if c.isExam {
+                        Text("Examen")
+                            .font(.caption2.weight(.bold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 1)
+                            .background(Capsule().fill(Color.orange))
+                    }
+                }
                 HStack(spacing: 4) {
                     Image(systemName: "mappin.and.ellipse")
                     Text(c.room ?? "Salle non indiquée")
@@ -118,6 +203,10 @@ struct DayView: View {
         .background(
             RoundedRectangle(cornerRadius: 8)
                 .fill(isCurrent ? Color.accentColor.opacity(0.15) : Color.primary.opacity(0.04))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .strokeBorder(Color.orange.opacity(c.isExam ? 0.6 : 0), lineWidth: 1)
         )
         .opacity(isPast ? 0.5 : 1)
     }
@@ -163,6 +252,9 @@ struct DayView: View {
             }
             .disabled(model.store.isLoading || model.feedURL == nil)
             .help("Rafraîchir")
+            Button { model.showingStats = true } label: { Image(systemName: "chart.bar") }
+                .disabled(model.schedule.courses.isEmpty)
+                .help("Statistiques")
             Button(action: openSettings) { Image(systemName: "gearshape") }
                 .help("Réglages")
             Button { NSApp.terminate(nil) } label: { Image(systemName: "power") }

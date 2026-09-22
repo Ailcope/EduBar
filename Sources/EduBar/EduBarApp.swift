@@ -17,6 +17,8 @@ struct EduBarApp: App {
             Group {
                 if model.showingSettings {
                     SettingsView(model: model)
+                } else if model.showingStats {
+                    StatsView(model: model)
                 } else {
                     DayView(model: model, openSettings: model.openSettings)
                 }
