@@ -41,7 +41,7 @@ final class AppModel {
     @ObservationIgnored private let notifier = Notifier()
     @ObservationIgnored private var started = false
 
-    /// Faux tant que le Trousseau n'a pas répondu (macOS peut demander l'accès après une mise à jour).
+    /// Faux tant que l'URL n'est pas lue (la migration depuis le Trousseau peut attendre une autorisation).
     private(set) var feedLoaded = false
 
     /// `readKeychainNow` : lecture synchrone, pour le mode `--snapshot` seulement.
@@ -59,7 +59,7 @@ final class AppModel {
         templates = UserDefaults.standard.data(forKey: "barTemplates")
             .flatMap { try? JSONDecoder().decode(BarTemplates.self, from: $0) } ?? .defaults
         if readKeychainNow {
-            feedURL = Keychain.get("feedURL").flatMap(FeedURL.normalize)
+            feedURL = Self.loadFeed().flatMap(FeedURL.normalize)
             feedLoaded = true
         }
     }
@@ -83,9 +83,9 @@ final class AppModel {
         started = true
         notifier.requestAuthorization()
 
-        // Hors du fil principal : une demande d'accès au Trousseau ne doit pas figer la barre.
+        // Hors du fil principal : une demande d'accès au Trousseau (migration) ne doit pas figer la barre.
         Task {
-            let raw = await Task.detached { Keychain.get("feedURL") }.value
+            let raw = await Task.detached { Self.loadFeed() }.value
             feedURL = raw.flatMap(FeedURL.normalize)
             feedLoaded = true
             await refresh()
@@ -140,9 +140,20 @@ final class AppModel {
 
     // MARK: - Réglages
 
+    /// L'URL enregistrée. Jusqu'à la v0.3.2 elle était dans le Trousseau : on l'y reprend une fois
+    /// et on la déplace dans le fichier, qui survit aux mises à jour sans redemander d'accès.
+    nonisolated static func loadFeed() -> String? {
+        let file = FeedFile.standard
+        if let value = file.read() { return value }
+        guard let old = Keychain.get("feedURL") else { return nil }
+        if (try? file.write(old)) != nil { Keychain.set(nil, for: "feedURL") }
+        return old
+    }
+
     /// Teste l'URL puis l'enregistre. Renvoie un message à afficher.
     func save(feed raw: String) async -> (ok: Bool, message: String) {
         if raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            FeedFile.standard.remove()
             Keychain.set(nil, for: "feedURL")
             feedURL = nil
             store.clear()
@@ -153,7 +164,7 @@ final class AppModel {
         }
         do {
             let (_, courses) = try await CalendarStore.fetch(url)
-            Keychain.set(url.absoluteString, for: "feedURL")
+            try FeedFile.standard.write(url.absoluteString)
             feedURL = url
             await refresh()
             return (true, "\(courses.count) cours trouvés.")

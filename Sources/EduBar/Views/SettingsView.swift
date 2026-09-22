@@ -18,7 +18,7 @@ struct SettingsView: View {
                 TextField("webcal://api.edusign.fr/student/account/ical?…", text: binding(\.feedDraft))
                     .textFieldStyle(.roundedBorder)
                     .onSubmit(model.saveDraft)
-                Text("Pour l'obtenir : connecte-toi sur Edusign, ouvre la console du navigateur et lance le snippet du README. L'URL reste sur ce Mac (Trousseau).")
+                Text("Pour l'obtenir : connecte-toi sur Edusign, ouvre la console du navigateur et lance le snippet du README. L'URL reste sur ce Mac, lisible par ta session seulement.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)

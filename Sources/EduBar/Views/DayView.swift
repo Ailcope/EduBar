@@ -35,8 +35,8 @@ struct DayView: View {
             Divider()
             if !model.feedLoaded {
                 emptyState(
-                    "Lecture du Trousseau…",
-                    detail: "Si macOS le demande, autorise EduBar à lire son élément (Toujours autoriser).",
+                    "Chargement…",
+                    detail: "Si macOS le demande, autorise EduBar à lire son ancien élément du Trousseau : c'est la dernière fois.",
                     button: nil
                 )
             } else if model.feedURL == nil {

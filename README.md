@@ -10,7 +10,7 @@
 **Your Edusign timetable in the macOS menu bar, native Swift, no Xcode.**
 **Ton emploi du temps Edusign dans la barre des menus macOS, en Swift natif, sans Xcode.**
 
-Works with **Edusign** &bull; **macOS Keychain** &bull; **macOS Notifications**
+Works with **Edusign** &bull; **SwiftUI** &bull; **macOS Notifications**
 
 [🇬🇧 English](#-english) &bull; [🇫🇷 Français](#-français)
 
@@ -24,7 +24,7 @@ Works with **Edusign** &bull; **macOS Keychain** &bull; **macOS Notifications**
 
 ### Overview
 
-**EduBar** is a small macOS menu bar app that reads your Edusign timetable and tells you, at a glance, how long until the next break or class and which room to go to. Click it for the full day, with rooms and breaks. It warns you 15 minutes before a class ends when the next one is in a different room, and sends notifications for class end, class start and room changes. It ships without any calendar URL: you paste yours on first launch, and it stays in your Keychain.
+**EduBar** is a small macOS menu bar app that reads your Edusign timetable and tells you, at a glance, how long until the next break or class and which room to go to. Click it for the full day, with rooms and breaks. It warns you 15 minutes before a class ends when the next one is in a different room, and sends notifications for class end, class start and room changes. It ships without any calendar URL: you paste yours on first launch, and it stays on your Mac.
 
 ### Features
 
@@ -44,7 +44,7 @@ Works with **Edusign** &bull; **macOS Keychain** &bull; **macOS Notifications**
    ```sh
    xattr -dr com.apple.quarantine /Applications/EduBar.app
    ```
-4. After each update, macOS asks whether EduBar may read its Keychain item: click **Always Allow** (the app is ad-hoc signed, so macOS sees each build as a new app).
+4. Updating from 0.3.2 or older: macOS asks once whether EduBar may read its old Keychain item. Click **Always Allow**, the URL then moves to a file and survives every later update.
 
 Requires macOS 14 or later, Apple Silicon or Intel.
 
@@ -77,7 +77,7 @@ Notification placeholders: `{cours}`, `{heure}`, `{temps}`, `{salle}`, `{pause}`
 
 ### Privacy
 
-The URL is enough to read your timetable: it only holds your school and student IDs, no password. Keep it private. EduBar stores it in the macOS Keychain, never writes it to logs, and only talks to `api.edusign.fr` (or the host you give it) and to `api.github.com` for updates, sending nothing but its version.
+The URL is enough to read your timetable: it only holds your school and student IDs, no password. Keep it private. EduBar stores it in `~/Library/Application Support/EduBar/feed-url`, readable by your user only (0600), never writes it to logs, and only talks to `api.edusign.fr` (or the host you give it) and to `api.github.com` for updates, sending nothing but its version.
 
 ### Build
 
@@ -100,7 +100,7 @@ scripts/bundle.sh 0.1.0    # dist/EduBar.app + .zip + .dmg (universal, ad-hoc si
 
 ### Aperçu
 
-**EduBar** est une petite app pour la barre des menus macOS qui lit ton emploi du temps Edusign et te dit d'un coup d'œil combien de temps avant la prochaine pause ou le prochain cours, et dans quelle salle aller. Un clic affiche la journée complète, avec les salles et les pauses. Elle prévient 15 minutes avant la fin d'un cours quand le suivant est dans une autre salle, et envoie des notifications de fin de cours, de début de cours et de changement de salle. Elle est livrée sans calendrier : tu colles ton URL au premier lancement, et elle reste dans ton Trousseau.
+**EduBar** est une petite app pour la barre des menus macOS qui lit ton emploi du temps Edusign et te dit d'un coup d'œil combien de temps avant la prochaine pause ou le prochain cours, et dans quelle salle aller. Un clic affiche la journée complète, avec les salles et les pauses. Elle prévient 15 minutes avant la fin d'un cours quand le suivant est dans une autre salle, et envoie des notifications de fin de cours, de début de cours et de changement de salle. Elle est livrée sans calendrier : tu colles ton URL au premier lancement, et elle reste sur ton Mac.
 
 ### Fonctionnalités
 
@@ -120,7 +120,7 @@ scripts/bundle.sh 0.1.0    # dist/EduBar.app + .zip + .dmg (universal, ad-hoc si
    ```sh
    xattr -dr com.apple.quarantine /Applications/EduBar.app
    ```
-4. Après chaque mise à jour, macOS demande si EduBar peut lire son élément du Trousseau : clique **Toujours autoriser** (l'app est signée ad-hoc, macOS la voit comme une nouvelle app).
+4. En venant de la 0.3.2 ou avant : macOS demande une dernière fois si EduBar peut lire son ancien élément du Trousseau. Clique **Toujours autoriser**, l'URL passe ensuite dans un fichier et survit à toutes les mises à jour.
 
 macOS 14 ou plus récent, Apple Silicon ou Intel.
 
@@ -162,7 +162,7 @@ Variables : `{cours}`, `{heure}`, `{temps}`, `{salle}`, `{pause}` (`pause de 15 
 
 ### Confidentialité
 
-L'URL suffit à lire ton emploi du temps : elle ne contient que ton identifiant d'école et d'élève, sans mot de passe. Ne la partage pas. EduBar la garde dans le Trousseau macOS, ne l'écrit jamais dans les logs et ne parle qu'à `api.edusign.fr` (ou à l'hôte que tu donnes) et à `api.github.com` pour les mises à jour, sans rien envoyer d'autre que sa version.
+L'URL suffit à lire ton emploi du temps : elle ne contient que ton identifiant d'école et d'élève, sans mot de passe. Ne la partage pas. EduBar la garde dans `~/Library/Application Support/EduBar/feed-url`, lisible par ta session seulement (0600), ne l'écrit jamais dans les logs et ne parle qu'à `api.edusign.fr` (ou à l'hôte que tu donnes) et à `api.github.com` pour les mises à jour, sans rien envoyer d'autre que sa version.
 
 ### Compiler
 
