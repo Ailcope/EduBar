@@ -28,8 +28,10 @@ jobs:
         with:
           persist-credentials: false
 
+      # En release comme scripts/bundle.sh : en debug, swift-frontend 6.3 plante
+      # en IRGen sur SettingsView.swift (SmallVector unable to grow).
       - name: swift build
-        run: swift build
+        run: swift build -c release
 
       - name: swift test
-        run: swift test
+        run: swift test -c release -Xswiftc -enable-testing
