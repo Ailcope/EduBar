@@ -28,10 +28,11 @@ jobs:
         with:
           persist-credentials: false
 
-      # En release comme scripts/bundle.sh : en debug, swift-frontend 6.3 plante
-      # en IRGen sur SettingsView.swift (SmallVector unable to grow).
-      - name: swift build
-        run: swift build -c release
+      # Seuls EduBarCore et ses tests passent en CI : swift-frontend 6.3
+      # (Xcode 26.6) plante en IRGen sur la cible EduBar (SettingsView.swift,
+      # SmallVector unable to grow), en debug comme en release.
+      - name: swift build (EduBarCore + tests)
+        run: swift build --target EduBarCoreTests
 
       - name: swift test
-        run: swift test -c release -Xswiftc -enable-testing
+        run: swift test --skip-build
