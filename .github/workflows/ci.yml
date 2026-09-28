@@ -32,7 +32,7 @@ jobs:
       # (Xcode 26.6) plante en IRGen sur la cible EduBar (SettingsView.swift,
       # SmallVector unable to grow), en debug comme en release.
       - name: swift build (EduBarCore + tests)
-        run: swift build --target EduBarCoreTests
+        run: swift build --product EduBarPackageTests
 
       - name: swift test
         run: swift test --skip-build
