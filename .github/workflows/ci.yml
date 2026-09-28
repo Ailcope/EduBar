@@ -1,0 +1,38 @@
+# CI : à chaque push sur main et à chaque pull request.
+#
+# Les actions sont épinglées par SHA de commit (version en commentaire),
+# Dependabot propose les montées. Aucun secret n'est utilisé.
+
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    runs-on: macos-26
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Seuls EduBarCore et ses tests passent en CI : swift-frontend 6.3
+      # (Xcode 26.6) plante en IRGen sur la cible EduBar (SettingsView.swift,
+      # SmallVector unable to grow), en debug comme en release.
+      - name: swift build (EduBarCore + tests)
+        run: swift build --product EduBarPackageTests
+
+      - name: swift test
+        run: swift test --skip-build
