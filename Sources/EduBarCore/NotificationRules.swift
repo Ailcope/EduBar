@@ -100,12 +100,12 @@ public struct NotificationRules: Codable, Equatable, Sendable {
                     ? "déjeuner" : "pause de " + Display.duration($0.start.timeIntervalSince(b.last.end))
             } ?? "fin de journée"
             events.append((.classEnd, b.last, b.last.end, [
-                "cours": b.last.shortTitle, "heure": Display.time(b.last.end, calendar: calendar),
+                "cours": b.last.displayTitle, "heure": Display.time(b.last.end, calendar: calendar),
                 "temps": Display.duration(b.last.end.timeIntervalSince(now)),
                 "salle": b.last.room.map(Display.shortRoom), "pause": pause,
             ]))
             events.append((.classStart, b.first, b.first.start, [
-                "cours": b.first.shortTitle, "heure": Display.time(b.first.start, calendar: calendar),
+                "cours": b.first.displayTitle, "heure": Display.time(b.first.start, calendar: calendar),
                 "temps": Display.duration(b.first.start.timeIntervalSince(now)),
                 "salle": b.first.room.map(Display.shortRoom), "pause": nil,
             ]))
@@ -116,7 +116,7 @@ public struct NotificationRules: Codable, Equatable, Sendable {
                   RoomChange.normalized(room) != c.room.map(RoomChange.normalized)
             else { continue }
             events.append((.roomChange, c, c.end, [
-                "cours": n.shortTitle, "heure": Display.time(n.start, calendar: calendar),
+                "cours": n.displayTitle, "heure": Display.time(n.start, calendar: calendar),
                 "temps": Display.duration(c.end.timeIntervalSince(now)),
                 "salle": Display.shortRoom(room), "pause": nil,
             ]))

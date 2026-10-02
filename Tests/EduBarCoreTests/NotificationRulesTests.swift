@@ -14,7 +14,7 @@ import Testing
         let n = due("2026-09-22 11:10")
         #expect(n.count == 1)
         #expect(n[0].title == "Fin du cours dans 5 min")
-        #expect(n[0].body == "cours c0 se termine à 11h15. Ensuite : pause de 15 min.")
+        #expect(n[0].body == "Cours c0 se termine à 11h15. Ensuite : pause de 15 min.")
     }
 
     @Test func classEndBeforeLunchAndRoomChange() {
@@ -29,13 +29,13 @@ import Testing
         // c2 et c3 s'enchaînent : une seule fin de cours, à 17h.
         #expect(due("2026-09-22 15:26").isEmpty)
         let n = due("2026-09-22 16:55")
-        #expect(n.map(\.body) == ["cours c3 se termine à 17h. Ensuite : fin de journée."])
+        #expect(n.map(\.body) == ["Cours c3 se termine à 17h. Ensuite : fin de journée."])
     }
 
     @Test func classStartAfterBreakAndFirst() {
         let n = due("2026-09-22 13:55")
         #expect(n.map(\.title) == ["Cours dans 5 min · 501"])
-        #expect(n[0].body == "cours c2 à 14h · 501")
+        #expect(n[0].body == "Cours c2 à 14h · 501")
         #expect(due("2026-09-22 09:40").map(\.title) == ["Cours dans 5 min · 506"])
         // Pas de salle : elle disparaît avec son séparateur.
         #expect(due("2026-09-23 09:40").map(\.title) == ["Cours dans 5 min"])
@@ -52,7 +52,7 @@ import Testing
         #expect(due("2026-09-22 11:14", r).isEmpty)
         let n = due("2026-09-22 11:15", r)
         #expect(n.map(\.title) == ["Fini"])
-        #expect(n[0].body == "cours c0 se termine à 11h15. Ensuite : pause de 15 min.") // vide : défaut
+        #expect(n[0].body == "Cours c0 se termine à 11h15. Ensuite : pause de 15 min.") // vide : défaut
     }
 
     @Test func idsAreStablePerEvent() {
