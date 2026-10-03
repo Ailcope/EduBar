@@ -94,10 +94,13 @@ enum Snapshot {
         model.feedDraft = "webcal://api.edusign.fr/student/account/ical?…"
         model.panel = .weather
         let weather = model.weather
-        model.weather = WeatherSettings(
+        var shown = WeatherSettings(
             enabled: true, place: WeatherPlace(name: "Paris", region: "Île-de-France", country: "France", latitude: 48.85, longitude: 2.35),
             hours: 12
         )
+        shown.campus = WeatherPlace(name: "Lyon", region: "Auvergne-Rhône-Alpes", country: "France", latitude: 45.75, longitude: 4.85)
+        shown.rainAlert = true
+        model.weather = shown
         write(SettingsView(model: model), to: dir.appendingPathComponent("weather.png"))
         model.weather = weather
         model.friendNames = savedNames

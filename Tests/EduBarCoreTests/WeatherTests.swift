@@ -269,3 +269,122 @@ import Testing
         #expect(try Weather.decodePlaces(json, limit: 2).count == 2)
     }
 }
+
+@Suite struct RainAlertTests {
+    let schedule = Schedule(courses: [c0, c1, c2, c3, c4])
+    var settings: WeatherSettings {
+        var s = WeatherSettings.defaults
+        s.enabled = true
+        s.place = WeatherTests.reims
+        s.rainAlert = true
+        return s
+    }
+
+    func hours(_ values: [(String, Int)]) -> [RainHour] {
+        values.map { RainHour(time: at($0.0), probability: $0.1) }
+    }
+
+    @Test func offByDefaultAndOldSettingsDecode() throws {
+        #expect(!WeatherSettings.defaults.rainAlert)
+        let s = try JSONDecoder().decode(WeatherSettings.self, from: Data(#"{"enabled":true}"#.utf8))
+        #expect(!s.rainAlert)
+        #expect(s.rainMinutes == 30)
+        #expect(s.rainThreshold == 50)
+    }
+
+    @Test func checkIsDueOnlyBeforeTheLastClassEnds() {
+        func due(_ time: String) -> Date? {
+            Weather.rainCheckDue(schedule: schedule, now: at(time), calendar: cal, settings: settings)
+        }
+        // Mardi : fin des cours à 17h, alerte 30 min avant.
+        #expect(due("2026-09-22 16:29") == nil)
+        #expect(due("2026-09-22 16:30") == at("2026-09-22 17:00"))
+        #expect(due("2026-09-22 16:59") == at("2026-09-22 17:00"))
+        #expect(due("2026-09-22 17:00") == nil)
+        // Pas avant une pause (fin de c1 à 13h).
+        #expect(due("2026-09-22 12:45") == nil)
+        // Jour sans cours.
+        #expect(due("2026-09-24 16:45") == nil)
+        var off = settings
+        off.rainAlert = false
+        #expect(Weather.rainCheckDue(schedule: schedule, now: at("2026-09-22 16:45"), calendar: cal, settings: off) == nil)
+        off = settings
+        off.enabled = false
+        #expect(Weather.rainCheckDue(schedule: schedule, now: at("2026-09-22 16:45"), calendar: cal, settings: off) == nil)
+    }
+
+    @Test func alertsWhenRainIsLikelyInTheHourAfterLeaving() throws {
+        let end = at("2026-09-22 17:00")
+        // Open-Meteo : la valeur de 18h couvre 17h-18h.
+        let rainy = hours([("2026-09-22 17:00", 10), ("2026-09-22 18:00", 70), ("2026-09-22 19:00", 90)])
+        let n = try #require(Weather.rainAlert(end: end, hours: rainy, settings: settings, calendar: cal))
+        #expect(n.title == "🌧️ Pluie probable à la sortie")
+        #expect(n.body == "70 % de risque de pluie à Reims après 17h. Pense au parapluie.")
+        #expect(n.id == "rain-\(Int(end.timeIntervalSince1970))")
+    }
+
+    @Test func silentUnderTheThresholdOrWithoutData() {
+        let end = at("2026-09-22 17:00")
+        let dry = hours([("2026-09-22 17:00", 95), ("2026-09-22 18:00", 40), ("2026-09-22 19:00", 95)])
+        #expect(Weather.rainAlert(end: end, hours: dry, settings: settings, calendar: cal) == nil)
+        #expect(Weather.rainAlert(end: end, hours: [], settings: settings, calendar: cal) == nil)
+        var low = settings
+        low.rainThreshold = 40
+        #expect(Weather.rainAlert(end: end, hours: dry, settings: low, calendar: cal)?.body.hasPrefix("40 %") == true)
+    }
+
+    @Test func endAtHalfPastLooksAtBothHours() {
+        // Sortie à 18h30 : les valeurs de 19h (18h-19h) et 20h (19h-20h) comptent, la plus forte gagne.
+        let end = at("2026-09-22 18:30")
+        let h = hours([("2026-09-22 18:00", 99), ("2026-09-22 19:00", 20), ("2026-09-22 20:00", 60), ("2026-09-22 21:00", 99)])
+        #expect(Weather.rainAlert(end: end, hours: h, settings: settings, calendar: cal)?.body.hasPrefix("60 %") == true)
+    }
+
+    @Test func decodesHourlyProbabilities() throws {
+        let json = Data(#"{"hourly":{"time":[1790600400,1790604000,1790607600],"precipitation_probability":[5,null,80]}}"#.utf8)
+        let h = try Weather.decodeRain(json)
+        #expect(h == [
+            RainHour(time: Date(timeIntervalSince1970: 1790600400), probability: 5),
+            RainHour(time: Date(timeIntervalSince1970: 1790607600), probability: 80),
+        ])
+        let url = Weather.rainURL(WeatherTests.reims).absoluteString
+        #expect(url.contains("hourly=precipitation_probability"))
+        #expect(url.contains("timeformat=unixtime"))
+        #expect(url.contains("latitude=49.27"))
+    }
+}
+
+@Suite struct CampusTests {
+    let paris = WeatherPlace(name: "Paris", region: "Île-de-France", country: "France", latitude: 48.85, longitude: 2.35)
+
+    @Test func rainAlertUsesTheCampusWhenThereIsOne() throws {
+        var s = WeatherSettings(enabled: true, place: WeatherTests.reims, hours: 12)
+        s.rainAlert = true
+        #expect(s.rainPlace == WeatherTests.reims)
+        s.campus = paris
+        #expect(s.rainPlace == paris)
+        let end = at("2026-09-22 17:00")
+        let n = try #require(Weather.rainAlert(
+            end: end, hours: [RainHour(time: at("2026-09-22 18:00"), probability: 80)], settings: s, calendar: cal
+        ))
+        #expect(n.body == "80 % de risque de pluie à Paris après 17h. Pense au parapluie.")
+        // La ville affichée ne change pas.
+        #expect(s.place == WeatherTests.reims)
+    }
+
+    @Test func campusAloneIsEnoughForTheAlert() {
+        var s = WeatherSettings(enabled: true, place: nil, hours: 12)
+        s.rainAlert = true
+        let schedule = Schedule(courses: [c0, c1, c2, c3])
+        #expect(Weather.rainCheckDue(schedule: schedule, now: at("2026-09-22 16:45"), calendar: cal, settings: s) == nil)
+        s.campus = paris
+        #expect(Weather.rainCheckDue(schedule: schedule, now: at("2026-09-22 16:45"), calendar: cal, settings: s) != nil)
+    }
+
+    @Test func campusSurvivesARoundTripAndOldSettingsHaveNone() throws {
+        var s = WeatherSettings.defaults
+        s.campus = paris
+        #expect(try JSONDecoder().decode(WeatherSettings.self, from: JSONEncoder().encode(s)) == s)
+        #expect(try JSONDecoder().decode(WeatherSettings.self, from: Data("{}".utf8)).campus == nil)
+    }
+}

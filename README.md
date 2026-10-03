@@ -53,6 +53,8 @@ Marche avec **Edusign** &bull; **SwiftUI** &bull; **Notifications macOS**
 - **Vacances et jours fériés.** Une coupure de 7 jours ou plus s'annonce sous la journée : `Vacances dans 12 jours`, puis `Vacances · reprise lun. 02/11`. Les jours fériés de la semaine sont listés pour expliquer les trous : `Férié mer. 11/11 · Armistice`.
 - **Pauses communes.** Dans ⚙️ > **Pauses communes**, colle l'URL Edusign de 3 potes maximum (ils la récupèrent comme toi), avec leur prénom : la journée affiche `Alex finit à 15h30` et vos pauses en commun, pour chacun.
 - **Météo.** Dans ⚙️ > **Météo**, choisis ta ville : quand le prochain cours est loin (12 h ou plus par défaut, réglable), la barre affiche `🌤️ 23°` à la place et la journée s'ouvre sur la météo du moment et des 5 jours. Données [Open-Meteo](https://open-meteo.com), sans clé ni compte. La recherche propose les villes françaises en premier. Elle se recharge toute seule au délai choisi (15 min à 3 h), ou seulement au bouton ↻ du menu si tu coupes l'actualisation automatique. Désactivée par défaut.
+- **Deux villes.** La ville affichée (chez toi, au travail) et celle du campus, si elle est différente : la première sert à la barre et à la journée, la seconde à l'alerte pluie.
+- **Alerte pluie.** Dans ⚙️ > **Météo**, une notification 30 min avant la fin du dernier cours de la journée s'il risque de pleuvoir à la sortie : `🌧️ Pluie probable à la sortie` · `70 % de risque de pluie à Paris après 19h. Pense au parapluie.` Délai (5 min à 2 h) et seuil (50 % par défaut) réglables, rien n'est envoyé s'il ne pleut pas. Désactivée par défaut.
 - **Raccourci clavier.** ⌥⌘E ouvre et referme le menu depuis n'importe quelle app, sans autorisation d'accessibilité. Modifiable ou désactivable dans ⚙️.
 - **Copier le diagnostic.** En bas des réglages, un bouton copie la version, l'emplacement de l'app, l'état de la quarantaine et du calendrier, pour un rapport de bug. Jamais l'URL.
 - **Ajouter à Calendrier.** Un bouton abonne l'app Calendrier au flux Edusign : les cours y apparaissent et restent à jour.
@@ -117,7 +119,7 @@ L'URL suffit à lire ton emploi du temps : elle ne contient que ton identifiant 
 
 Pour les pauses communes, l'URL de ton pote suit les mêmes règles : il te la donne lui-même, elle reste dans `~/Library/Application Support/EduBar/friend-url` (0600) et son calendrier en cache ne quitte pas ton Mac. Vider le champ puis **Enregistrer** l'oublie.
 
-La météo est désactivée par défaut. Activée, EduBar parle aussi à Open-Meteo (`geocoding-api.open-meteo.com` pour chercher la ville, `api.open-meteo.com` pour la météo) : il n'envoie que le nom cherché et les coordonnées de la ville arrondies au centième de degré, jamais ton emploi du temps, et seulement quand la météo doit s'afficher.
+La météo est désactivée par défaut. Activée, EduBar parle aussi à Open-Meteo (`geocoding-api.open-meteo.com` pour chercher la ville, `api.open-meteo.com` pour la météo) : il n'envoie que le nom cherché et les coordonnées de la ville arrondies au centième de degré, jamais ton emploi du temps, et seulement quand la météo doit s'afficher. L'alerte pluie ajoute une requête par jour de cours, juste avant la sortie, pour la ville du campus.
 
 ## Compiler
 

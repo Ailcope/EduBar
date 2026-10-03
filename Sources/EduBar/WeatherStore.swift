@@ -66,6 +66,11 @@ final class WeatherStore {
         return try Weather.decodePlaces(try await get(url))
     }
 
+    /// Risque de pluie heure par heure (alerte avant la sortie) : une requête, pas de cache.
+    nonisolated static func rain(_ place: WeatherPlace) async throws -> [RainHour] {
+        try Weather.decodeRain(try await get(Weather.rainURL(place)))
+    }
+
     nonisolated private static func get(_ url: URL) async throws -> Data {
         let request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 20)
         let (data, response) = try await URLSession.shared.data(for: request)

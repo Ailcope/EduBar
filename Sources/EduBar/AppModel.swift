@@ -33,6 +33,13 @@ final class AppModel {
     }
     let weatherStore = WeatherStore()
     var weatherDraft = ""
+    /// La recherche de ville remplit le campus (alerte pluie) plutôt que la ville affichée.
+    var weatherForCampus = false {
+        didSet {
+            weatherResults = []
+            weatherMessage = nil
+        }
+    }
     private(set) var weatherResults: [WeatherPlace] = []
     private(set) var weatherSearching = false
     private(set) var weatherMessage: String?
@@ -181,6 +188,28 @@ final class AppModel {
         Task { await weatherStore.refreshIfDue(place, settings: settings, force: force) }
     }
 
+    @ObservationIgnored private var rainChecked: Date?
+    @ObservationIgnored private var rainAttempt: Date?
+
+    /// Avant la fin du dernier cours du jour : regarde une fois le risque de pluie et prévient s'il le faut.
+    /// Après un échec réseau, nouvel essai 5 min plus tard.
+    private func checkRain() {
+        guard let end = Weather.rainCheckDue(schedule: schedule, now: now, calendar: calendar, settings: weather),
+              let place = weather.rainPlace, rainChecked != end else { return }
+        if let rainAttempt, now.timeIntervalSince(rainAttempt) < 5 * 60 { return }
+        rainAttempt = now
+        let settings = weather
+        Task {
+            guard let hours = try? await WeatherStore.rain(place) else { return }
+            rainChecked = end
+            if let n = Weather.rainAlert(end: end, hours: hours, settings: settings, calendar: calendar) { notifier.send(n) }
+        }
+    }
+
+    func testRainAlert() {
+        notifier.send(Weather.rainSample(settings: weather, calendar: calendar))
+    }
+
     /// Bouton ↻ du menu : le calendrier, et la météo même hors délai.
     func refreshNow() async {
         refreshWeatherIfWanted(force: true)
@@ -204,11 +233,12 @@ final class AppModel {
         }
     }
 
+    /// Range la ville trouvée dans l'emplacement en cours de recherche : ville affichée ou campus.
     func pickWeatherPlace(_ place: WeatherPlace) {
         weatherResults = []
         weatherDraft = ""
         weatherMessage = nil
-        weather.place = place
+        if weatherForCampus { weather.campus = place } else { weather.place = place }
     }
 
     func isCompanyDay(_ day: Date) -> Bool {
@@ -325,6 +355,7 @@ final class AppModel {
         now = frozenNow ?? Date()
         guard frozenNow == nil else { return }
         refreshWeatherIfWanted()
+        checkRain()
         for n in notifications.due(schedule: schedule, at: now, calendar: calendar) { notifier.send(n) }
         for run in shortcuts.due(schedule: schedule, at: now, calendar: calendar)
         where ranShortcuts.insert(run.id).inserted {

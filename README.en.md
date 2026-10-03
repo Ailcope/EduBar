@@ -52,6 +52,8 @@ Works with **Edusign** &bull; **SwiftUI** &bull; **macOS Notifications**
 - **Shared breaks.** In ⚙️ > **Pauses communes**, paste the Edusign URL of up to 3 friends (they get it the same way you do), with their first name: the day view shows `Alex finit à 15h30` and the breaks you share, for each of them.
 - **Weekend.** During the last class of the week (no class or company day left afterwards): `🎉 Week-end dans 1 h 15`. The text can be rewritten, or turned off in ⚙️ > **Personnaliser les textes**.
 - **Weather.** In ⚙️ > **Météo**, pick your city: when the next class is far away (12 h or more by default, adjustable), the menu bar shows `🌤️ 23°` instead and the day view opens on the current weather and a 5-day forecast. Data from [Open-Meteo](https://open-meteo.com), no key, no account. The search lists French cities first. It reloads by itself at the delay you pick (15 min to 3 h), or only with the menu's ↻ button if you turn automatic refresh off. Off by default.
+- **Two cities.** The displayed city (home, work) and the campus one, if different: the first feeds the menu bar and the day view, the second the rain alert.
+- **Rain alert.** In ⚙️ > **Météo**, a notification 30 min before the last class of the day ends if rain is likely when you leave: `🌧️ Pluie probable à la sortie`. Lead time (5 min to 2 h) and threshold (50 % by default) are adjustable, nothing is sent when it stays dry. Off by default.
 - **Keyboard shortcut.** ⌥⌘E opens and closes the menu from any app, no Accessibility permission needed. Change or disable it in ⚙️.
 - **Copy diagnostics.** A button at the bottom of the settings copies the version, app location, quarantine and calendar state for a bug report. Never the URL.
 - **Add to Calendar.** One button subscribes the Calendar app to the Edusign feed.
@@ -106,7 +108,7 @@ The URL is enough to read your timetable: it only holds your school and student 
 
 For shared breaks, your friend's URL follows the same rules: they give it to you themselves, it stays in `~/Library/Application Support/EduBar/friend-url` (0600) and their cached timetable never leaves your Mac. Clear the field and hit **Enregistrer** to forget it.
 
-Weather is off by default. Once enabled, EduBar also talks to Open-Meteo (`geocoding-api.open-meteo.com` to find the city, `api.open-meteo.com` for the forecast): it only sends the searched name and the city's coordinates rounded to a hundredth of a degree, never your timetable, and only when the weather has to be shown.
+Weather is off by default. Once enabled, EduBar also talks to Open-Meteo (`geocoding-api.open-meteo.com` to find the city, `api.open-meteo.com` for the forecast): it only sends the searched name and the city's coordinates rounded to a hundredth of a degree, never your timetable, and only when the weather has to be shown. The rain alert adds one request per school day, right before you leave, for the campus city.
 
 ## Build
 

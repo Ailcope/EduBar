@@ -98,21 +98,19 @@ struct WeatherEditor: View {
                 } else {
                     caption("Chargée une fois, puis seulement avec le bouton ↻ du menu.")
                 }
-                if let place = settings.place {
-                    HStack {
-                        Label(place.label, systemImage: "location.fill")
-                            .font(.caption)
-                            .lineLimit(2)
-                        Spacer()
-                        Button("Retirer") { model.weather.place = nil }
-                            .font(.caption)
-                    }
-                    if let error = model.weatherStore.lastError {
-                        Label(error, systemImage: "xmark.circle").font(.caption).foregroundStyle(.red).lineLimit(2)
-                    }
+                placeRow("Affichée", "location.fill", settings.place, empty: "aucune ville") { model.weather.place = nil }
+                placeRow("Campus", "graduationcap.fill", settings.campus, empty: "même ville") { model.weather.campus = nil }
+                if let error = model.weatherStore.lastError {
+                    Label(error, systemImage: "xmark.circle").font(.caption).foregroundStyle(.red).lineLimit(2)
                 }
+                Picker("Ville à chercher", selection: binding(\.weatherForCampus)) {
+                    Text("Ville affichée").tag(false)
+                    Text("Campus").tag(true)
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
                 HStack {
-                    TextField(settings.place == nil ? "Ta ville" : "Changer de ville", text: binding(\.weatherDraft))
+                    TextField(model.weatherForCampus ? "Ville du campus" : "Chez toi, au travail…", text: binding(\.weatherDraft))
                         .textFieldStyle(.roundedBorder)
                         .font(.callout)
                         .onSubmit(model.searchWeather)
@@ -133,12 +131,49 @@ struct WeatherEditor: View {
                 if let message = model.weatherMessage {
                     Label(message, systemImage: "xmark.circle").font(.caption).foregroundStyle(.red).lineLimit(2)
                 } else if settings.place == nil, model.weatherResults.isEmpty {
-                    caption("Choisis une ville pour l'activer.")
+                    caption("Choisis la ville affichée pour voir la météo.")
                 }
+                caption("Ville affichée : celle de la barre et de la journée (chez toi, au travail). Campus : celle de l'alerte pluie, si elle est différente.")
+                rainEditor(settings)
             }
         }
         .font(.body.weight(.regular))
         .padding(.top, 6)
+    }
+
+    private func placeRow(
+        _ title: String, _ icon: String, _ place: WeatherPlace?, empty: String, remove: @escaping () -> Void
+    ) -> some View {
+        HStack {
+            Label("\(title) : \(place?.label ?? empty)", systemImage: icon)
+                .font(.caption)
+                .foregroundStyle(place == nil ? .secondary : .primary)
+                .lineLimit(2)
+            Spacer()
+            if place != nil {
+                Button("Retirer", action: remove).font(.caption)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func rainEditor(_ settings: WeatherSettings) -> some View {
+        HStack {
+            Toggle("Alerte pluie avant la sortie", isOn: binding(\.weather.rainAlert))
+                .font(.callout.weight(.medium))
+            Spacer()
+            Button("Tester", action: model.testRainAlert)
+                .font(.caption)
+        }
+        if settings.rainAlert {
+            Stepper("\(settings.rainMinutes) min avant la fin des cours", value: binding(\.weather.rainMinutes), in: 5...120, step: 5)
+                .font(.caption)
+            Stepper("À partir de \(settings.rainThreshold) % de risque", value: binding(\.weather.rainThreshold), in: 10...90, step: 10)
+                .font(.caption)
+            caption(settings.rainPlace.map {
+                "Une notification avant la fin du dernier cours de la journée, seulement s'il risque de pleuvoir à \($0.name) dans l'heure qui suit."
+            } ?? "Choisis une ville : sans elle, pas d'alerte.")
+        }
     }
 
     private func caption(_ text: String) -> some View {

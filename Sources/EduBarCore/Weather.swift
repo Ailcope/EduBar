@@ -33,6 +33,17 @@ public struct WeatherSettings: Codable, Equatable, Sendable {
     public var autoRefresh: Bool
     /// Délai entre deux rechargements automatiques.
     public var refreshMinutes: Int
+    /// Prévenir avant la fin du dernier cours de la journée s'il risque de pleuvoir à la sortie.
+    public var rainAlert = false
+    /// Combien de minutes avant la fin des cours.
+    public var rainMinutes = 30
+    /// Probabilité de pluie (%) à partir de laquelle prévenir.
+    public var rainThreshold = 50
+    /// Ville du campus, si ce n'est pas `place` (chez soi, au travail) : c'est là qu'on sort de cours.
+    public var campus: WeatherPlace?
+
+    /// La ville de l'alerte pluie : le campus, sinon la ville affichée.
+    public var rainPlace: WeatherPlace? { campus ?? place }
 
     public static let defaults = WeatherSettings(enabled: false, place: nil, hours: 12)
     /// Délais proposés dans les réglages.
@@ -55,6 +66,10 @@ public struct WeatherSettings: Codable, Equatable, Sendable {
         hours = try c.decodeIfPresent(Int.self, forKey: .hours) ?? d.hours
         autoRefresh = try c.decodeIfPresent(Bool.self, forKey: .autoRefresh) ?? d.autoRefresh
         refreshMinutes = try c.decodeIfPresent(Int.self, forKey: .refreshMinutes) ?? d.refreshMinutes
+        rainAlert = try c.decodeIfPresent(Bool.self, forKey: .rainAlert) ?? d.rainAlert
+        rainMinutes = try c.decodeIfPresent(Int.self, forKey: .rainMinutes) ?? d.rainMinutes
+        rainThreshold = try c.decodeIfPresent(Int.self, forKey: .rainThreshold) ?? d.rainThreshold
+        campus = try c.decodeIfPresent(WeatherPlace.self, forKey: .campus)
     }
 }
 
@@ -100,6 +115,17 @@ public struct Forecast: Codable, Equatable, Sendable {
     }
 }
 
+/// Probabilité de pluie (%) sur l'heure qui précède `time` (convention d'Open-Meteo).
+public struct RainHour: Equatable, Sendable {
+    public var time: Date
+    public var probability: Int
+
+    public init(time: Date, probability: Int) {
+        self.time = time
+        self.probability = probability
+    }
+}
+
 public struct WeatherCondition: Equatable, Sendable {
     public let label: String
     public let emoji: String
@@ -134,6 +160,73 @@ public enum Weather {
         }
         guard let next else { return true }
         return next.start.timeIntervalSince(now) >= TimeInterval(hours) * 3600
+    }
+
+    // MARK: - Alerte pluie
+
+    /// La fin des cours du jour, si c'est le moment de regarder la pluie : alerte activée, ville
+    /// choisie (campus ou, à défaut, ville affichée), et on est dans les `rainMinutes` qui précèdent la fin de la dernière suite de cours.
+    public static func rainCheckDue(schedule: Schedule, now: Date, calendar: Calendar, settings: WeatherSettings) -> Date? {
+        guard settings.enabled, settings.rainAlert, settings.rainPlace != nil,
+              let end = schedule.blocks(on: now, calendar: calendar).last?.end else { return nil }
+        let lead = TimeInterval(max(0, settings.rainMinutes) * 60)
+        return end.addingTimeInterval(-lead) <= now && now < end ? end : nil
+    }
+
+    /// La notification, si la pluie est assez probable dans l'heure qui suit la sortie. Sinon rien.
+    public static func rainAlert(
+        end: Date, hours: [RainHour], settings: WeatherSettings, calendar: Calendar
+    ) -> PendingNotification? {
+        // La valeur de l'heure T couvre T-1h à T : celles qui recoupent [fin, fin + 1 h].
+        let risk = hours.filter { $0.time > end && $0.time < end.addingTimeInterval(2 * 3600) }.map(\.probability).max()
+        guard let risk, risk >= settings.rainThreshold else { return nil }
+        return rainNotification(risk: risk, end: end, city: settings.rainPlace?.name, calendar: calendar,
+                                id: "rain-\(Int(end.timeIntervalSince1970))")
+    }
+
+    /// Exemple pour le bouton « Tester ».
+    public static func rainSample(settings: WeatherSettings, now: Date = Date(), calendar: Calendar = .current) -> PendingNotification {
+        let end = now.addingTimeInterval(TimeInterval(max(0, settings.rainMinutes) * 60))
+        return rainNotification(risk: max(settings.rainThreshold, 70), end: end, city: settings.rainPlace?.name,
+                                calendar: calendar, id: "test-rain-\(now.timeIntervalSince1970)")
+    }
+
+    private static func rainNotification(risk: Int, end: Date, city: String?, calendar: Calendar, id: String) -> PendingNotification {
+        PendingNotification(
+            id: id, title: "🌧️ Pluie probable à la sortie",
+            body: "\(risk) % de risque de pluie" + (city.map { " à \($0)" } ?? "")
+                + " après \(Display.time(end, calendar: calendar)). Pense au parapluie."
+        )
+    }
+
+    /// Probabilités heure par heure sur deux jours (une sortie tard le soir déborde sur le lendemain).
+    public static func rainURL(_ place: WeatherPlace) -> URL {
+        var c = URLComponents(string: "https://api.open-meteo.com/v1/forecast")!
+        c.queryItems = [
+            URLQueryItem(name: "latitude", value: String(format: "%.2f", place.latitude)),
+            URLQueryItem(name: "longitude", value: String(format: "%.2f", place.longitude)),
+            URLQueryItem(name: "hourly", value: "precipitation_probability"),
+            URLQueryItem(name: "timeformat", value: "unixtime"),
+            URLQueryItem(name: "forecast_days", value: "2"),
+        ]
+        return c.url!
+    }
+
+    private struct RainPayload: Decodable {
+        struct Hourly: Decodable {
+            let time: [Double]
+            let precipitation_probability: [Int?]
+        }
+
+        let hourly: Hourly
+    }
+
+    /// Les heures sans probabilité connue sont laissées de côté.
+    public static func decodeRain(_ data: Data) throws -> [RainHour] {
+        let h = try JSONDecoder().decode(RainPayload.self, from: data).hourly
+        return zip(h.time, h.precipitation_probability).compactMap { time, p in
+            p.map { RainHour(time: Date(timeIntervalSince1970: time), probability: $0) }
+        }
     }
 
     // MARK: - Open-Meteo
