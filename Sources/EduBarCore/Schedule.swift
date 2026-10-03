@@ -26,6 +26,20 @@ public struct Schedule: Sendable {
         courses.filter { calendar.isDate($0.start, inSameDayAs: day) }
     }
 
+    /// Vrai pendant la dernière suite de cours de la semaine : après elle, plus de cours ni de jour
+    /// en entreprise (alternance) avant le week-end.
+    public func endsWeek(_ status: Status, calendar: Calendar, isCompanyDay: (Date) -> Bool = { _ in false }) -> Bool {
+        guard case let .inClass(_, _, blockEnd, nil) = status else { return false }
+        let sameWeek = { (date: Date) in calendar.isDate(date, equalTo: blockEnd, toGranularity: .weekOfYear) }
+        if courses.contains(where: { $0.start >= blockEnd && sameWeek($0.start) }) { return false }
+        var day = blockEnd
+        while let next = calendar.date(byAdding: .day, value: 1, to: day), sameWeek(next) {
+            if isCompanyDay(next) { return false }
+            day = next
+        }
+        return true
+    }
+
     public func status(at now: Date, calendar: Calendar) -> Status {
         let today = courses(on: now, calendar: calendar)
         let upcoming = courses.first { $0.start > now }

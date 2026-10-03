@@ -6,7 +6,7 @@ import ServiceManagement
 
 /// Volets des réglages (un seul ouvert à la fois : le popover n'a pas de défilement).
 enum SettingsPanel {
-    case notifications, alternance, shortcuts, friend, templates
+    case notifications, alternance, shortcuts, friend, weather, templates
 }
 
 @MainActor @Observable
@@ -23,6 +23,25 @@ final class AppModel {
     var templates: BarTemplates { didSet { Self.persist(templates, "barTemplates") } }
     var alternance: Alternance { didSet { Self.persist(alternance, "alternance") } }
     var shortcuts: ShortcutSettings { didSet { Self.persist(shortcuts, "shortcuts") } }
+    /// Météo à la place du prochain cours quand il est loin.
+    var weather: WeatherSettings {
+        didSet {
+            Self.persist(weather, "weather")
+            if !weather.enabled || weather.place == nil { weatherStore.clear() }
+            refreshWeatherIfWanted()
+        }
+    }
+    let weatherStore = WeatherStore()
+    var weatherDraft = ""
+    private(set) var weatherResults: [WeatherPlace] = []
+    private(set) var weatherSearching = false
+    private(set) var weatherMessage: String?
+
+    /// Pendant le dernier cours de la semaine, la barre annonce le week-end.
+    var announceWeekend: Bool {
+        didSet { UserDefaults.standard.set(announceWeekend, forKey: "announceWeekend") }
+    }
+
     /// Prévenir quand un cours est annulé, déplacé, ajouté ou change de salle.
     var notifyScheduleChanges: Bool {
         didSet { UserDefaults.standard.set(notifyScheduleChanges, forKey: "notifyScheduleChanges") }
@@ -90,6 +109,8 @@ final class AppModel {
         templates = Self.load("barTemplates") ?? .defaults
         alternance = Self.load("alternance") ?? .defaults
         shortcuts = Self.load("shortcuts") ?? .defaults
+        weather = Self.load("weather") ?? .defaults
+        announceWeekend = defaults.object(forKey: "announceWeekend") as? Bool ?? true
         notifyScheduleChanges = defaults.object(forKey: "notifyScheduleChanges") as? Bool ?? true
         hotKey = defaults.string(forKey: "hotKey").flatMap(HotKeyChoice.init) ?? .optionCommandE
         friendNames = (0..<FeedFile.friendSlots).map { defaults.string(forKey: Self.friendNameKey($0)) ?? "" }
@@ -122,7 +143,8 @@ final class AppModel {
         guard feedURL != nil else { return "" }
         let text = Display.barText(
             status: status, alert: alert, now: now, calendar: calendar, templates: templates,
-            companyToday: isCompanyDay(now)
+            companyToday: isCompanyDay(now), weather: shownWeather,
+            weekend: announceWeekend && schedule.endsWeek(status, calendar: calendar, isCompanyDay: isCompanyDay)
         )
         // Planning peut-être périmé : visible sans ouvrir le menu.
         guard staleSince != nil else { return text }
@@ -133,6 +155,60 @@ final class AppModel {
     var staleSince: String? {
         guard feedURL != nil, frozenNow == nil else { return nil }
         return Freshness.staleSince(store.lastUpdated, now: now)
+    }
+
+    /// La ville dont la météo doit s'afficher maintenant : activée, ville choisie, prochain cours loin.
+    private var weatherPlaceWanted: WeatherPlace? {
+        guard weather.enabled, let place = weather.place, feedURL != nil,
+              Weather.applies(status, now: now, hours: weather.hours) else { return nil }
+        return place
+    }
+
+    /// Météo à afficher à la place du prochain cours ; nil si elle ne s'applique pas ou n'est pas chargée.
+    var shownWeather: (forecast: Forecast, city: String)? {
+        if let snapshotWeather { return snapshotWeather }
+        guard let place = weatherPlaceWanted, let forecast = weatherStore.forecast(for: place),
+              Weather.isFresh(forecast, now: now, settings: weather) else { return nil }
+        return (forecast, place.name)
+    }
+
+    /// Météo factice du mode `--snapshot`.
+    @ObservationIgnored var snapshotWeather: (forecast: Forecast, city: String)?
+
+    private func refreshWeatherIfWanted(force: Bool = false) {
+        guard frozenNow == nil, let place = weatherPlaceWanted else { return }
+        let settings = weather
+        Task { await weatherStore.refreshIfDue(place, settings: settings, force: force) }
+    }
+
+    /// Bouton ↻ du menu : le calendrier, et la météo même hors délai.
+    func refreshNow() async {
+        refreshWeatherIfWanted(force: true)
+        await refresh()
+    }
+
+    func searchWeather() {
+        let query = weatherDraft
+        guard !weatherSearching, Weather.searchURL(query) != nil else { return }
+        weatherSearching = true
+        weatherMessage = nil
+        Task {
+            do {
+                weatherResults = try await WeatherStore.search(query)
+                weatherMessage = weatherResults.isEmpty ? "Aucune ville trouvée." : nil
+            } catch {
+                weatherResults = []
+                weatherMessage = error.localizedDescription
+            }
+            weatherSearching = false
+        }
+    }
+
+    func pickWeatherPlace(_ place: WeatherPlace) {
+        weatherResults = []
+        weatherDraft = ""
+        weatherMessage = nil
+        weather.place = place
     }
 
     func isCompanyDay(_ day: Date) -> Bool {
@@ -248,6 +324,7 @@ final class AppModel {
     func tick() {
         now = frozenNow ?? Date()
         guard frozenNow == nil else { return }
+        refreshWeatherIfWanted()
         for n in notifications.due(schedule: schedule, at: now, calendar: calendar) { notifier.send(n) }
         for run in shortcuts.due(schedule: schedule, at: now, calendar: calendar)
         where ranShortcuts.insert(run.id).inserted {
@@ -404,6 +481,8 @@ final class AppModel {
             ("Erreur", store.lastError ?? "aucune"),
             ("Potes", friendCounts.isEmpty ? "aucun" : friendCounts),
             ("Alternance", alternance.mode.rawValue),
+            ("Météo", !weather.enabled ? "désactivée" : weather.place == nil ? "sans ville"
+                : weatherStore.lastError.map { "erreur : \($0)" } ?? "activée"),
             ("Raccourci", hotKey.label),
             ("Mise à jour dispo", updates.available?.version.description ?? "non"),
         ])
@@ -463,6 +542,9 @@ final class AppModel {
         friendDraft = friendURLs[friendSlot]?.absoluteString ?? ""
         saveResult = nil
         friendResult = nil
+        weatherDraft = ""
+        weatherResults = []
+        weatherMessage = nil
         diagnosticCopied = false
         panel = nil
         showingStats = false

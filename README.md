@@ -37,6 +37,7 @@ Marche avec **Edusign** &bull; **SwiftUI** &bull; **Notifications macOS**
 ## Fonctionnalités
 
 - **Coup d'œil dans la barre.** `📚 Pause dans 23 min` en cours (`Fin dans…` pour le dernier), `☕ Cours dans 8 min · 506` en pause, `Demain 9h45` une fois la journée finie.
+- **Week-end.** Pendant le dernier cours de la semaine (plus de cours ni de jour en entreprise ensuite) : `🎉 Week-end dans 1 h 15`. Texte modifiable, et désactivable dans ⚙️ > **Personnaliser les textes**.
 - **Pause déjeuner.** Une pause d'1 h ou plus entre 11h et 14h s'affiche comme le déjeuner : `🍽️ Déjeuner dans 20 min`, puis `📚 Cours dans 50 min · 501` pendant le repas.
 - **Changement de salle.** 15 min avant la fin d'un cours, si le suivant est ailleurs : `⚠️ Salle 501 · fin dans 14 min`.
 - **Notifications.** Fin de cours, début de cours et changement de salle, chacune activable, avec son délai (0 à 60 min), son titre et son texte, et un bouton **Tester**.
@@ -51,6 +52,7 @@ Marche avec **Edusign** &bull; **SwiftUI** &bull; **Notifications macOS**
 - **Couleur par matière.** Chaque matière a sa couleur, la même dans la journée et dans les statistiques (l'orange reste aux examens).
 - **Vacances et jours fériés.** Une coupure de 7 jours ou plus s'annonce sous la journée : `Vacances dans 12 jours`, puis `Vacances · reprise lun. 02/11`. Les jours fériés de la semaine sont listés pour expliquer les trous : `Férié mer. 11/11 · Armistice`.
 - **Pauses communes.** Dans ⚙️ > **Pauses communes**, colle l'URL Edusign de 3 potes maximum (ils la récupèrent comme toi), avec leur prénom : la journée affiche `Alex finit à 15h30` et vos pauses en commun, pour chacun.
+- **Météo.** Dans ⚙️ > **Météo**, choisis ta ville : quand le prochain cours est loin (12 h ou plus par défaut, réglable), la barre affiche `🌤️ 23°` à la place et la journée s'ouvre sur la météo du moment et des 5 jours. Données [Open-Meteo](https://open-meteo.com), sans clé ni compte. La recherche propose les villes françaises en premier. Elle se recharge toute seule au délai choisi (15 min à 3 h), ou seulement au bouton ↻ du menu si tu coupes l'actualisation automatique. Désactivée par défaut.
 - **Raccourci clavier.** ⌥⌘E ouvre et referme le menu depuis n'importe quelle app, sans autorisation d'accessibilité. Modifiable ou désactivable dans ⚙️.
 - **Copier le diagnostic.** En bas des réglages, un bouton copie la version, l'emplacement de l'app, l'état de la quarantaine et du calendrier, pour un rapport de bug. Jamais l'URL.
 - **Ajouter à Calendrier.** Un bouton abonne l'app Calendrier au flux Edusign : les cours y apparaissent et restent à jour.
@@ -86,13 +88,14 @@ macOS 14 ou plus récent, Apple Silicon ou Intel.
 
 ## Personnaliser les textes
 
-Dans ⚙️ > **Personnaliser les textes**, chaque situation a son modèle, émojis compris : en cours avant une pause, avant le déjeuner, dernier cours, en pause, pendant le déjeuner, avant le premier cours, changement de salle, journée finie, examen proche, journée en entreprise.
+Dans ⚙️ > **Personnaliser les textes**, chaque situation a son modèle, émojis compris : en cours avant une pause, avant le déjeuner, dernier cours de la journée, dernier cours de la semaine, en pause, pendant le déjeuner, avant le premier cours, changement de salle, journée finie, examen proche, journée en entreprise, météo.
 
 | Variable | Contenu |
 |---|---|
 | `{temps}` | le temps restant (`23 min`, `1 h 05`) |
 | `{salle}` | la salle (`501`). Inconnue, elle disparaît avec son séparateur : `Cours dans 8 min · {salle}` devient `Cours dans 8 min` |
 | `{jour}` | le prochain cours quand la journée est finie (`Demain 9h45`) |
+| `{meteo}`, `{temp}`, `{ville}` | pour le texte météo seulement : l'émoji du temps qu'il fait (`🌤️`), la température (`23°`) et ta ville |
 
 Exemple : `🏃 Go {salle} dans {temps}`. Un champ vide reprend le texte par défaut, et un bouton rétablit tout.
 
@@ -113,6 +116,8 @@ Variables : `{cours}`, `{heure}`, `{temps}`, `{salle}`, `{pause}` (`pause de 15 
 L'URL suffit à lire ton emploi du temps : elle ne contient que ton identifiant d'école et d'élève, sans mot de passe. Ne la partage pas. EduBar la garde dans `~/Library/Application Support/EduBar/feed-url`, lisible par ta session seulement (0600), ne l'écrit jamais dans les logs et ne parle qu'à `api.edusign.fr` (ou à l'hôte que tu donnes) et à `api.github.com` pour les mises à jour, sans rien envoyer d'autre que sa version. Avec **Ajouter à Calendrier**, c'est l'app Calendrier qui lit ensuite l'URL elle-même.
 
 Pour les pauses communes, l'URL de ton pote suit les mêmes règles : il te la donne lui-même, elle reste dans `~/Library/Application Support/EduBar/friend-url` (0600) et son calendrier en cache ne quitte pas ton Mac. Vider le champ puis **Enregistrer** l'oublie.
+
+La météo est désactivée par défaut. Activée, EduBar parle aussi à Open-Meteo (`geocoding-api.open-meteo.com` pour chercher la ville, `api.open-meteo.com` pour la météo) : il n'envoie que le nom cherché et les coordonnées de la ville arrondies au centième de degré, jamais ton emploi du temps, et seulement quand la météo doit s'afficher.
 
 ## Compiler
 

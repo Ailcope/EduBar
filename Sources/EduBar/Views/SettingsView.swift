@@ -53,6 +53,7 @@ struct SettingsView: View {
             group("Alternance", .alternance) { alternanceEditor }
             group("Raccourcis", .shortcuts) { shortcutsEditor }
             group("Pauses communes", .friend) { friendEditor }
+            group("Météo", .weather) { WeatherEditor(model: model) }
             group("Personnaliser les textes", .templates) { templatesEditor }
 
             Divider()
@@ -101,6 +102,7 @@ struct SettingsView: View {
         ("En cours, pause ensuite", \.beforeBreak),
         ("En cours, déjeuner ensuite", \.beforeLunch),
         ("Dernier cours de la journée", \.lastClass),
+        ("Dernier cours de la semaine", \.lastOfWeek),
         ("En pause", \.onBreak),
         ("Pendant le déjeuner", \.onLunch),
         ("Avant le premier cours", \.beforeFirst),
@@ -108,14 +110,17 @@ struct SettingsView: View {
         ("Journée finie", \.dayOver),
         ("Examen demain ou tout à l'heure", \.examSoon),
         ("Journée en entreprise", \.company),
+        ("Météo (prochain cours loin)", \.weather),
     ]
 
     private var templatesEditor: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Émojis et textes libres. Variables : {temps}, {salle}, {jour}. Un champ vide reprend le texte par défaut.")
+            Text("Émojis et textes libres. Variables : {temps}, {salle}, {jour}. Météo : {meteo}, {temp}, {ville}, {jour}. Un champ vide reprend le texte par défaut.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
+            Toggle("Annoncer le week-end au dernier cours de la semaine", isOn: binding(\.announceWeekend))
+                .font(.caption)
             ForEach(Self.fields, id: \.label) { field in
                 VStack(alignment: .leading, spacing: 2) {
                     Text(field.label).font(.caption).foregroundStyle(.secondary)

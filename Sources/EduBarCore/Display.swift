@@ -45,9 +45,11 @@ public enum Display {
 
     /// Texte de la barre des menus. Chaîne vide : afficher seulement l'icône.
     /// `companyToday` : journée en entreprise (alternance).
+    /// `weekend` : dernière suite de cours de la semaine (voir `Schedule.endsWeek`).
+    /// `weather` : météo à afficher à la place du prochain cours (il est loin), avec le nom de la ville.
     public static func barText(
         status: Status, alert: RoomAlert?, now: Date, calendar: Calendar, templates: BarTemplates = .defaults,
-        companyToday: Bool = false
+        companyToday: Bool = false, weather: (forecast: Forecast, city: String)? = nil, weekend: Bool = false
     ) -> String {
         func until(_ date: Date) -> String { duration(date.timeIntervalSince(now)) }
         if let alert {
@@ -68,7 +70,7 @@ public enum Display {
                calendar.isDate(next.start, inSameDayAs: tomorrow) {
                 return exam(next, jour: "demain \(time(next.start, calendar: calendar))")
             }
-            if companyToday, case .noClassToday = status {
+            if weather == nil, companyToday, case .noClassToday = status {
                 return BarTemplates.render(
                     templates.pick(\.company), salle: next.room.map(shortRoom),
                     jour: dayLabel(next.start, now: now, calendar: calendar)
@@ -76,11 +78,24 @@ public enum Display {
             }
         default: break
         }
+        if let weather {
+            let next: Course?
+            switch status {
+            case let .inClass(_, n, _, _), let .dayOver(n), let .noClassToday(n): next = n
+            case let .onBreak(_, n), let .beforeFirst(n): next = n
+            }
+            let f = weather.forecast
+            return Template.render(templates.pick(\.weather), [
+                "meteo": Weather.condition(f.code, isDay: f.isDay).emoji, "temp": Weather.degrees(f.temperature),
+                "ville": weather.city, "jour": next.map { dayLabel($0.start, now: now, calendar: calendar) },
+            ])
+        }
         switch status {
         case let .inClass(_, _, blockEnd, breakUntil):
             let lunch = breakUntil.map { isLunch(from: blockEnd, to: $0, calendar: calendar) } ?? false
             let t = lunch ? templates.pick(\.beforeLunch)
-                : breakUntil == nil ? templates.pick(\.lastClass) : templates.pick(\.beforeBreak)
+                : breakUntil != nil ? templates.pick(\.beforeBreak)
+                : templates.pick(weekend ? \.lastOfWeek : \.lastClass)
             return BarTemplates.render(t, temps: until(blockEnd), salle: nil)
         case let .onBreak(previous, next):
             let lunch = isLunch(from: previous.end, to: next.start, calendar: calendar)

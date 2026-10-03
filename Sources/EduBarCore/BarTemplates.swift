@@ -23,6 +23,10 @@ public struct BarTemplates: Codable, Equatable, Sendable {
     public var company: String
     /// Journée finie ou sans cours (`{jour}` : « Demain 9h45 »).
     public var dayOver: String
+    /// Météo quand le prochain cours est loin (`{meteo}`, `{temp}`, `{ville}`, `{jour}`).
+    public var weather: String
+    /// En cours, plus rien après cette semaine : le week-end commence dans `{temps}`.
+    public var lastOfWeek: String
 
     public static let defaults = BarTemplates(
         roomChange: "⚠️ Salle {salle} · fin dans {temps}",
@@ -34,13 +38,15 @@ public struct BarTemplates: Codable, Equatable, Sendable {
         beforeFirst: "Cours dans {temps} · {salle}",
         dayOver: "{jour}",
         examSoon: "📝 Examen {jour} · {salle}",
-        company: "🏢 Entreprise · école {jour}"
+        company: "🏢 Entreprise · école {jour}",
+        weather: "{meteo} {temp}",
+        lastOfWeek: "🎉 Week-end dans {temps}"
     )
 
     public init(
         roomChange: String, beforeBreak: String, beforeLunch: String, lastClass: String,
         onBreak: String, onLunch: String, beforeFirst: String, dayOver: String,
-        examSoon: String, company: String
+        examSoon: String, company: String, weather: String, lastOfWeek: String
     ) {
         self.roomChange = roomChange
         self.beforeBreak = beforeBreak
@@ -52,6 +58,8 @@ public struct BarTemplates: Codable, Equatable, Sendable {
         self.dayOver = dayOver
         self.examSoon = examSoon
         self.company = company
+        self.weather = weather
+        self.lastOfWeek = lastOfWeek
     }
 
     /// Les clés absentes (réglages d'une ancienne version) prennent la valeur par défaut.
@@ -68,6 +76,8 @@ public struct BarTemplates: Codable, Equatable, Sendable {
         dayOver = try c.decodeIfPresent(String.self, forKey: .dayOver) ?? d.dayOver
         examSoon = try c.decodeIfPresent(String.self, forKey: .examSoon) ?? d.examSoon
         company = try c.decodeIfPresent(String.self, forKey: .company) ?? d.company
+        weather = try c.decodeIfPresent(String.self, forKey: .weather) ?? d.weather
+        lastOfWeek = try c.decodeIfPresent(String.self, forKey: .lastOfWeek) ?? d.lastOfWeek
     }
 
     /// Le modèle, ou celui par défaut s'il est vide.

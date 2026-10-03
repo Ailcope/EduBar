@@ -75,6 +75,31 @@ enum Snapshot {
         model.step(1)
         write(DayView(model: model, openSettings: {}), to: dir.appendingPathComponent("day-next.png"))
         print("bar: \(model.barText)")
+        // Météo factice (jamais la vraie ville dans une capture), sur la journée par défaut.
+        model.dayOffset = 0
+        let key = { (offset: Int) in
+            Weather.dayKey(model.calendar.date(byAdding: .day, value: offset, to: model.now) ?? model.now, calendar: model.calendar)
+        }
+        let fakeDays = [(3, 8.1, 23.0, 0), (2, 12.5, 24.8, 5), (45, 11.1, 21.3, 10), (80, 14.0, 17.2, 56), (61, 9.4, 15.0, 80)]
+        model.snapshotWeather = (Forecast(
+            temperature: 22.9, apparent: 22.7, code: 1, isDay: true, wind: 4.1,
+            days: fakeDays.enumerated().map { i, d in Forecast.Day(date: key(i), code: d.0, min: d.1, max: d.2, rain: d.3) },
+            fetched: model.now
+        ), "Paris")
+        write(Text(model.barText).padding(6), to: dir.appendingPathComponent("bar-weather.png"))
+        write(DayView(model: model, openSettings: {}), to: dir.appendingPathComponent("day-weather.png"))
+        print("bar (météo): \(model.barText)")
+        model.snapshotWeather = nil
+        model.openSettings()
+        model.feedDraft = "webcal://api.edusign.fr/student/account/ical?…"
+        model.panel = .weather
+        let weather = model.weather
+        model.weather = WeatherSettings(
+            enabled: true, place: WeatherPlace(name: "Paris", region: "Île-de-France", country: "France", latitude: 48.85, longitude: 2.35),
+            hours: 12
+        )
+        write(SettingsView(model: model), to: dir.appendingPathComponent("weather.png"))
+        model.weather = weather
         model.friendNames = savedNames
         exit(0)
     }

@@ -43,6 +43,9 @@ struct DayView: View {
             } else if model.schedule.courses.isEmpty {
                 emptyState("Aucun cours", detail: "Le calendrier ne contient aucun cours.", button: nil)
             } else {
+                if let weather = model.shownWeather {
+                    WeatherCard(model: model, forecast: weather.forecast, city: weather.city)
+                }
                 dayNavigation
                 let day = model.shownDay
                 let courses = model.schedule.courses(on: day, calendar: model.calendar)
@@ -318,7 +321,7 @@ struct DayView: View {
             .lineLimit(2)
             Spacer()
             Button {
-                Task { await model.refresh() }
+                Task { await model.refreshNow() }
             } label: {
                 Image(systemName: "arrow.clockwise")
             }

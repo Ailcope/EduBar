@@ -50,6 +50,8 @@ Works with **Edusign** &bull; **SwiftUI** &bull; **macOS Notifications**
 - **Subject colors.** Each subject gets its own color, the same in the day view and in the stats (orange stays for exams).
 - **Holidays and breaks.** A gap of 7 days or more shows up under the day: `Vacances dans 12 jours`, then `Vacances · reprise lun. 02/11`. French public holidays of the week are listed to explain the gaps: `Férié mer. 11/11 · Armistice`.
 - **Shared breaks.** In ⚙️ > **Pauses communes**, paste the Edusign URL of up to 3 friends (they get it the same way you do), with their first name: the day view shows `Alex finit à 15h30` and the breaks you share, for each of them.
+- **Weekend.** During the last class of the week (no class or company day left afterwards): `🎉 Week-end dans 1 h 15`. The text can be rewritten, or turned off in ⚙️ > **Personnaliser les textes**.
+- **Weather.** In ⚙️ > **Météo**, pick your city: when the next class is far away (12 h or more by default, adjustable), the menu bar shows `🌤️ 23°` instead and the day view opens on the current weather and a 5-day forecast. Data from [Open-Meteo](https://open-meteo.com), no key, no account. The search lists French cities first. It reloads by itself at the delay you pick (15 min to 3 h), or only with the menu's ↻ button if you turn automatic refresh off. Off by default.
 - **Keyboard shortcut.** ⌥⌘E opens and closes the menu from any app, no Accessibility permission needed. Change or disable it in ⚙️.
 - **Copy diagnostics.** A button at the bottom of the settings copies the version, app location, quarantine and calendar state for a bug report. Never the URL.
 - **Add to Calendar.** One button subscribes the Calendar app to the Edusign feed.
@@ -103,6 +105,8 @@ Notification placeholders: `{cours}`, `{heure}`, `{temps}`, `{salle}`, `{pause}`
 The URL is enough to read your timetable: it only holds your school and student IDs, no password. Keep it private. EduBar stores it in `~/Library/Application Support/EduBar/feed-url`, readable by your user only (0600), never writes it to logs, and only talks to `api.edusign.fr` (or the host you give it) and to `api.github.com` for updates, sending nothing but its version. With **Add to Calendar**, the Calendar app then reads the URL itself.
 
 For shared breaks, your friend's URL follows the same rules: they give it to you themselves, it stays in `~/Library/Application Support/EduBar/friend-url` (0600) and their cached timetable never leaves your Mac. Clear the field and hit **Enregistrer** to forget it.
+
+Weather is off by default. Once enabled, EduBar also talks to Open-Meteo (`geocoding-api.open-meteo.com` to find the city, `api.open-meteo.com` for the forecast): it only sends the searched name and the city's coordinates rounded to a hundredth of a degree, never your timetable, and only when the weather has to be shown.
 
 ## Build
 
