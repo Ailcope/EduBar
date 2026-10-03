@@ -102,9 +102,75 @@ enum Snapshot {
         shown.rainAlert = true
         model.weather = shown
         write(SettingsView(model: model), to: dir.appendingPathComponent("weather.png"))
+        // Chaque volet seul, pour illustrer sa fonctionnalité dans le README.
+        let panels: [(SettingsPanel, String)] = [
+            (.weather, "weather"), (.notifications, "notifications"), (.alternance, "alternance"),
+            (.shortcuts, "shortcuts"), (.friend, "friend"), (.templates, "templates"),
+        ]
+        for (panel, name) in panels {
+            model.panel = panel
+            if panel == .alternance { model.alternance.mode = .weekdays }
+            write(SettingsView(model: model, panelOnly: true), to: dir.appendingPathComponent("panel-\(name).png"))
+            if panel == .alternance { model.alternance = alternance }
+        }
         model.weather = weather
         model.friendNames = savedNames
+        writeBars(to: dir, weather: Forecast(
+            temperature: 22.9, apparent: 22.7, code: 1, isDay: true, wind: 4.1, days: [], fetched: model.now
+        ))
         exit(0)
+    }
+
+    /// Textes de la barre dans chaque situation, sur un emploi du temps inventé (mardi 22/09/2026).
+    private static func writeBars(to dir: URL, weather: Forecast) {
+        var cal = Calendar(identifier: .gregorian)
+        cal.locale = Locale(identifier: "fr_FR")
+        let at = { (day: Int, h: Int, m: Int) in
+            cal.date(from: DateComponents(year: 2026, month: 9, day: day, hour: h, minute: m))!
+        }
+        let course = { (id: String, day: Int, start: (Int, Int), end: (Int, Int), room: String, title: String) in
+            Course(id: id, title: title, start: at(day, start.0, start.1), end: at(day, end.0, end.1), room: room)
+        }
+        let tuesday = [
+            course("a", 22, (9, 45), (11, 15), "506", "Réseaux"), course("b", 22, (11, 30), (13, 0), "506", "Réseaux"),
+            course("c", 22, (14, 0), (15, 30), "501", "Systèmes Linux"), course("d", 22, (15, 45), (17, 15), "501", "Systèmes Linux"),
+        ]
+        let wednesday = course("e", 23, (9, 45), (11, 15), "501", "Anglais technique")
+        let exam = course("x", 23, (9, 0), (11, 0), "501", "Partiel réseaux")
+        let monday = course("m", 28, (9, 0), (11, 0), "501", "Réseaux")
+
+        func bar(_ courses: [Course], _ now: Date, company: Bool = false, weather: Forecast? = nil, weekend: Bool = false) -> String {
+            let status = Schedule(courses: courses).status(at: now, calendar: cal)
+            return Display.barText(
+                status: status, alert: RoomChange.alert(for: status, at: now), now: now, calendar: cal,
+                companyToday: company, weather: weather.map { ($0, "Paris") }, weekend: weekend
+            )
+        }
+        let week = tuesday + [wednesday]
+        let sets: [(String, [String])] = [
+            ("glance", [bar(week, at(22, 10, 52)), bar(week, at(22, 11, 22)), bar(week, at(22, 16, 30)), bar(week, at(22, 18, 0))]),
+            ("lunch", [bar(week, at(22, 12, 40)), bar(week, at(22, 13, 10))]),
+            ("room", [bar(week, at(22, 12, 46))]),
+            ("weekend", [bar(tuesday, at(22, 16, 0), weekend: true)]),
+            ("exam", [bar(tuesday + [exam], at(22, 18, 0))]),
+            ("company", [bar(tuesday + [monday], at(24, 10, 0), company: true)]),
+            ("weather", [bar(week, at(22, 18, 0), weather: weather)]),
+            ("stale", [bar(week, at(22, 18, 0)) + " ⚠︎"]),
+        ]
+        for (name, texts) in sets {
+            print("bar-\(name): \(texts)")
+            let view = VStack(alignment: .trailing, spacing: 6) {
+                ForEach(texts, id: \.self) { text in
+                    Text(text)
+                        .font(.system(size: 13, weight: .medium))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(Capsule().fill(Color.primary.opacity(0.08)))
+                }
+            }
+            .padding(8)
+            write(view, to: dir.appendingPathComponent("bar-\(name).png"))
+        }
     }
 
     private static let demoSubjects = [

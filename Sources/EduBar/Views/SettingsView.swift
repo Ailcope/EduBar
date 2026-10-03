@@ -3,8 +3,30 @@ import SwiftUI
 
 struct SettingsView: View {
     let model: AppModel
+    /// Seulement le volet ouvert, sans le reste des réglages (captures du README).
+    var panelOnly = false
 
     var body: some View {
+        if panelOnly {
+            VStack(alignment: .leading, spacing: 12) { panels }
+                .padding(14)
+                .frame(width: 340)
+        } else {
+            full
+        }
+    }
+
+    @ViewBuilder
+    private var panels: some View {
+        group("Notifications", .notifications) { notificationsEditor }
+        group("Alternance", .alternance) { alternanceEditor }
+        group("Raccourcis", .shortcuts) { shortcutsEditor }
+        group("Pauses communes", .friend) { friendEditor }
+        group("Météo", .weather) { WeatherEditor(model: model) }
+        group("Personnaliser les textes", .templates) { templatesEditor }
+    }
+
+    private var full: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Button(action: model.closeSettings) { Image(systemName: "chevron.left") }
@@ -49,12 +71,7 @@ struct SettingsView: View {
             .help("Depuis n'importe quelle app. Change-le s'il gêne un raccourci d'une autre app.")
 
             Divider()
-            group("Notifications", .notifications) { notificationsEditor }
-            group("Alternance", .alternance) { alternanceEditor }
-            group("Raccourcis", .shortcuts) { shortcutsEditor }
-            group("Pauses communes", .friend) { friendEditor }
-            group("Météo", .weather) { WeatherEditor(model: model) }
-            group("Personnaliser les textes", .templates) { templatesEditor }
+            panels
 
             Divider()
             HStack {
@@ -88,12 +105,15 @@ struct SettingsView: View {
     }
 
     // Un seul volet ouvert à la fois : le popover n'a pas de défilement.
+    @ViewBuilder
     private func group(_ title: String, _ panel: SettingsPanel, @ViewBuilder content: @escaping () -> some View) -> some View {
-        DisclosureGroup(title, isExpanded: Binding(
-            get: { model.panel == panel },
-            set: { model.panel = $0 ? panel : (model.panel == panel ? nil : model.panel) }
-        ), content: content)
-        .font(.callout.weight(.semibold))
+        if !panelOnly || model.panel == panel {
+            DisclosureGroup(title, isExpanded: Binding(
+                get: { model.panel == panel },
+                set: { model.panel = $0 ? panel : (model.panel == panel ? nil : model.panel) }
+            ), content: content)
+            .font(.callout.weight(.semibold))
+        }
     }
 
     // MARK: - Textes

@@ -28,7 +28,6 @@ Marche avec **Edusign** &bull; **SwiftUI** &bull; **Notifications macOS**
 - [Confidentialité](#confidentialité)
 - [Compiler](#compiler)
 - [Licence](#licence)
-- [Captures](#captures)
 
 ## Aperçu
 
@@ -36,31 +35,88 @@ Marche avec **Edusign** &bull; **SwiftUI** &bull; **Notifications macOS**
 
 ## Fonctionnalités
 
+Les captures montrent des matières, des salles, des prénoms et une météo fictifs (`EduBar --snapshot <dossier> --demo`).
+
 - **Coup d'œil dans la barre.** `📚 Pause dans 23 min` en cours (`Fin dans…` pour le dernier), `☕ Cours dans 8 min · 506` en pause, `Demain 9h45` une fois la journée finie.
+
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/bar-glance-dark.png"><img src="docs/screenshots/bar-glance.png" width="203" alt="Textes de la barre au fil de la journée"></picture>
+
 - **Week-end.** Pendant le dernier cours de la semaine (plus de cours ni de jour en entreprise ensuite) : `🎉 Week-end dans 1 h 15`. Texte modifiable, et désactivable dans ⚙️ > **Personnaliser les textes**.
+
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/bar-weekend-dark.png"><img src="docs/screenshots/bar-weekend.png" width="194" alt="Annonce du week-end"></picture>
+
 - **Pause déjeuner.** Une pause d'1 h ou plus entre 11h et 14h s'affiche comme le déjeuner : `🍽️ Déjeuner dans 20 min`, puis `📚 Cours dans 50 min · 501` pendant le repas.
+
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/bar-lunch-dark.png"><img src="docs/screenshots/bar-lunch.png" width="209" alt="Avant et pendant le déjeuner"></picture>
+
 - **Changement de salle.** 15 min avant la fin d'un cours, si le suivant est ailleurs : `⚠️ Salle 501 · fin dans 14 min`.
+
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/bar-room-dark.png"><img src="docs/screenshots/bar-room.png" width="220" alt="Alerte de changement de salle"></picture>
+
 - **Notifications.** Fin de cours, début de cours et changement de salle, chacune activable, avec son délai (0 à 60 min), son titre et son texte, et un bouton **Tester**.
+
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/panel-notifications-dark.png"><img src="docs/screenshots/panel-notifications.png" width="340" alt="Réglages des notifications"></picture>
+
 - **Changements d'emploi du temps.** Un cours annulé, déplacé, ajouté ou changé de salle dans les deux semaines à venir envoie une notification : `❌ Cours annulé · demain 14h`, `🔁 Cours déplacé · …`, `📍 Salle changée · 501`.
 - **Jours suivants.** Les flèches ‹ › du menu passent d'un jour à l'autre (les week-ends vides sont sautés), **Revenir** ramène à aujourd'hui.
+
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/day-dark.png"><img src="docs/screenshots/day.png" width="340" alt="La journée"></picture>
+
 - **Vue semaine.** Le bouton calendrier en bas de la journée ouvre la semaine en grille, une colonne par jour et un bloc coloré par cours. Flèches pour les semaines voisines, un clic sur un jour ouvre la journée.
+
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/week-dark.png"><img src="docs/screenshots/week.png" width="420" alt="La semaine"></picture>
+
 - **Examens.** Un cours dont le titre parle d'examen, partiel, DS, contrôle, soutenance, QCM ou rattrapage a un badge orange, et la barre prévient la veille : `📝 Examen demain 9h · 501`.
+
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/bar-exam-dark.png"><img src="docs/screenshots/bar-exam.png" width="210" alt="Examen le lendemain"></picture>
+
 - **Alternance.** Dans ⚙️ > **Alternance** : jours fixes en entreprise, semaines alternées (2 semaines d'école, 2 en entreprise…) ou détection automatique des jours sans cours. Ces jours-là : `🏢 Entreprise · école Lun. 9h`.
+
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/bar-company-dark.png"><img src="docs/screenshots/bar-company.png" width="217" alt="Jour en entreprise"></picture>
+
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/panel-alternance-dark.png"><img src="docs/screenshots/panel-alternance.png" width="340" alt="Réglages de l'alternance"></picture>
+
 - **Raccourcis.** Dans ⚙️ > **Raccourcis**, un raccourci de l'app Raccourcis se lance quand les cours commencent et quand ils finissent (mode Concentration, son coupé…).
+
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/panel-shortcuts-dark.png"><img src="docs/screenshots/panel-shortcuts.png" width="340" alt="Réglages des raccourcis"></picture>
+
 - **Statistiques.** Heures de la semaine (faites et prévues), heures faites du mois, prochains examens, progression par matière.
+
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/stats-dark.png"><img src="docs/screenshots/stats.png" width="340" alt="Statistiques"></picture>
+
 - **Relevé d'heures.** Dans les statistiques, **Copier le relevé d'heures** copie les heures faites par mois et par matière, prêtes à coller dans un tableur (Numbers, Excel, Sheets).
 - **Couleur par matière.** Chaque matière a sa couleur, la même dans la journée et dans les statistiques (l'orange reste aux examens).
 - **Vacances et jours fériés.** Une coupure de 7 jours ou plus s'annonce sous la journée : `Vacances dans 12 jours`, puis `Vacances · reprise lun. 02/11`. Les jours fériés de la semaine sont listés pour expliquer les trous : `Férié mer. 11/11 · Armistice`.
+
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/holiday-dark.png"><img src="docs/screenshots/holiday.png" width="340" alt="Jour férié de la semaine"></picture>
+
 - **Pauses communes.** Dans ⚙️ > **Pauses communes**, colle l'URL Edusign de 3 potes maximum (ils la récupèrent comme toi), avec leur prénom : la journée affiche `Alex finit à 15h30` et vos pauses en commun, pour chacun.
+
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/panel-friend-dark.png"><img src="docs/screenshots/panel-friend.png" width="340" alt="Réglages des pauses communes"></picture>
+
 - **Météo.** Dans ⚙️ > **Météo**, choisis ta ville : quand le prochain cours est loin (12 h ou plus par défaut, réglable), la barre affiche `🌤️ 23°` à la place et la journée s'ouvre sur la météo du moment et des 5 jours. Données [Open-Meteo](https://open-meteo.com), sans clé ni compte. La recherche propose les villes françaises en premier. Elle se recharge toute seule au délai choisi (15 min à 3 h), ou seulement au bouton ↻ du menu si tu coupes l'actualisation automatique. Désactivée par défaut.
+
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/bar-weather-dark.png"><img src="docs/screenshots/bar-weather.png" width="81" alt="Météo dans la barre"></picture>
+
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/weather-dark.png"><img src="docs/screenshots/weather.png" width="340" alt="Météo quand le prochain cours est loin"></picture>
+
 - **Deux villes.** La ville affichée (chez toi, au travail) et celle du campus, si elle est différente : la première sert à la barre et à la journée, la seconde à l'alerte pluie.
 - **Alerte pluie.** Dans ⚙️ > **Météo**, une notification 30 min avant la fin du dernier cours de la journée s'il risque de pleuvoir à la sortie : `🌧️ Pluie probable à la sortie` · `70 % de risque de pluie à Paris après 19h. Pense au parapluie.` Délai (5 min à 2 h) et seuil (50 % par défaut) réglables, rien n'est envoyé s'il ne pleut pas. Désactivée par défaut.
+
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/panel-weather-dark.png"><img src="docs/screenshots/panel-weather.png" width="340" alt="Réglages de la météo, des deux villes et de l'alerte pluie"></picture>
+
 - **Raccourci clavier.** ⌥⌘E ouvre et referme le menu depuis n'importe quelle app, sans autorisation d'accessibilité. Modifiable ou désactivable dans ⚙️.
 - **Copier le diagnostic.** En bas des réglages, un bouton copie la version, l'emplacement de l'app, l'état de la quarantaine et du calendrier, pour un rapport de bug. Jamais l'URL.
 - **Ajouter à Calendrier.** Un bouton abonne l'app Calendrier au flux Edusign : les cours y apparaissent et restent à jour.
 - **Textes personnalisables.** Chaque texte de la barre et ses émojis se réécrivent, avec les variables `{temps}`, `{salle}` et `{jour}`.
+
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/panel-templates-dark.png"><img src="docs/screenshots/panel-templates.png" width="340" alt="Textes personnalisables"></picture>
+
 - **Hors ligne.** Le calendrier est mis en cache dans `~/Library/Caches/EduBar/`, l'app marche sans réseau.
 - **Flux figé.** Si le calendrier n'a pas pu être mis à jour depuis plus de 24 h, la barre affiche `⚠︎` et la journée dit depuis quand. Un flux Edusign vide alors que des cours sont prévus est ignoré : les cours connus restent.
+
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/bar-stale-dark.png"><img src="docs/screenshots/bar-stale.png" width="136" alt="Planning peut-être périmé"></picture>
+
 - **Journées passées gardées.** Edusign retire la veille du flux : EduBar archive chaque journée passée (400 jours, `~/Library/Application Support/EduBar/`, 0600), la navigation et les stats restent complètes.
 - **Mises à jour.** EduBar regarde toutes les 6 h s'il existe une nouvelle release et l'installe toute seule : téléchargement vérifié (empreinte SHA-256 publiée par GitHub, identifiant, version et signature), remplacement de l'app, relance. Les réglages sont conservés. Un clic sur la notification « EduBar mis à jour » ouvre les nouveautés. Lancée depuis le `.dmg`, elle propose **Installer** : copie, relance depuis Applications et éjection de l'image disque. Si elle ne peut pas se remplacer, une notification annonce la nouvelle version et mène au téléchargement.
 
@@ -143,74 +199,3 @@ swift test -Xswiftc -plugin-path -Xswiftc /Library/Developer/CommandLineTools/us
 ## Licence
 
 [PolyForm Noncommercial 1.0.0](./LICENSE.md) · libre d'utilisation, modification et partage à des fins **non commerciales**. Tout usage commercial ou revente du code nécessite l'accord de l'auteur.
-
-## Captures
-
-Matières, salles et prénom fictifs (`EduBar --snapshot <dossier> --demo`).
-
-<table>
-<tr>
-<td align="center" width="50%">
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/day-dark.png">
-  <img src="docs/screenshots/day.png" width="340" alt="La journée">
-</picture>
-<br><sub>La journée</sub>
-</td>
-<td align="center" width="50%">
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/holiday-dark.png">
-  <img src="docs/screenshots/holiday.png" width="340" alt="Jour férié de la semaine">
-</picture>
-<br><sub>Jour férié de la semaine</sub>
-</td>
-</tr>
-<tr>
-<td align="center">
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/stats-dark.png">
-  <img src="docs/screenshots/stats.png" width="340" alt="Statistiques">
-</picture>
-<br><sub>Statistiques</sub>
-</td>
-<td align="center">
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/settings-dark.png">
-  <img src="docs/screenshots/settings.png" width="340" alt="Réglages">
-</picture>
-<br><sub>Réglages</sub>
-</td>
-</tr>
-<tr>
-<td align="center">
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/week-dark.png">
-  <img src="docs/screenshots/week.png" width="340" alt="La semaine">
-</picture>
-<br><sub>La semaine</sub>
-</td>
-<td align="center">
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/friend-dark.png">
-  <img src="docs/screenshots/friend.png" width="340" alt="Pauses communes">
-</picture>
-<br><sub>Pauses communes</sub>
-</td>
-</tr>
-<tr>
-<td align="center">
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/weather-dark.png">
-  <img src="docs/screenshots/weather.png" width="340" alt="Météo quand le prochain cours est loin">
-</picture>
-<br><sub>Météo quand le prochain cours est loin</sub>
-</td>
-<td align="center">
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/weather-settings-dark.png">
-  <img src="docs/screenshots/weather-settings.png" width="340" alt="Réglages de la météo">
-</picture>
-<br><sub>Réglages de la météo</sub>
-</td>
-</tr>
-</table>

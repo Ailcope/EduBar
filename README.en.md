@@ -27,7 +27,6 @@ Works with **Edusign** &bull; **SwiftUI** &bull; **macOS Notifications**
 - [Privacy](#privacy)
 - [Build](#build)
 - [License](#license)
-- [Screenshots](#screenshots)
 
 ## Overview
 
@@ -35,31 +34,88 @@ Works with **Edusign** &bull; **SwiftUI** &bull; **macOS Notifications**
 
 ## Features
 
+Screenshots show made-up subjects, rooms, names and weather (`EduBar --snapshot <dir> --demo`).
+
 - **Menu bar at a glance.** `📚 Pause dans 23 min` during class, `☕ Cours dans 8 min · 506` on a break, `Demain 9h45` once the day is over.
+
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/bar-glance-dark.png"><img src="docs/screenshots/bar-glance.png" width="203" alt="Menu bar texts through the day"></picture>
+
 - **Lunch aware.** A break of one hour or more between 11:00 and 14:00 is shown as lunch: `🍽️ Déjeuner dans 20 min`.
+
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/bar-lunch-dark.png"><img src="docs/screenshots/bar-lunch.png" width="209" alt="Before and during lunch"></picture>
+
 - **Room changes.** 15 minutes before a class ends, if the next one is elsewhere: `⚠️ Salle 501 · fin dans 14 min`.
+
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/bar-room-dark.png"><img src="docs/screenshots/bar-room.png" width="220" alt="Room change alert"></picture>
+
 - **Notifications.** Class end, class start and room change, each with its own toggle, lead time (0 to 60 min), title and text, plus a **Test** button.
+
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/panel-notifications-dark.png"><img src="docs/screenshots/panel-notifications.png" width="340" alt="Notification settings"></picture>
+
 - **Timetable changes.** A class cancelled, moved, added or moved to another room within the next two weeks triggers a notification.
 - **Next days.** The ‹ › arrows browse the following days (empty weekends are skipped), **Revenir** goes back to today.
+
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/day-dark.png"><img src="docs/screenshots/day.png" width="340" alt="The day"></picture>
+
 - **Week view.** The calendar button at the bottom of the day opens the week as a grid, one column per day and one coloured block per course. Arrows browse nearby weeks, clicking a day opens it.
+
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/week-dark.png"><img src="docs/screenshots/week.png" width="420" alt="The week"></picture>
+
 - **Exams.** Classes whose title mentions an exam, partiel, DS, contrôle, soutenance, QCM or rattrapage get an orange badge, and the menu bar warns the day before: `📝 Examen demain 9h · 501`.
+
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/bar-exam-dark.png"><img src="docs/screenshots/bar-exam.png" width="210" alt="Exam tomorrow"></picture>
+
 - **Work-study.** In ⚙️ > **Alternance**: fixed company weekdays, alternating weeks, or automatic detection of days without classes. On those days: `🏢 Entreprise · école Lun. 9h`.
+
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/bar-company-dark.png"><img src="docs/screenshots/bar-company.png" width="217" alt="Company day"></picture>
+
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/panel-alternance-dark.png"><img src="docs/screenshots/panel-alternance.png" width="340" alt="Work-study settings"></picture>
+
 - **Shortcuts.** In ⚙️ > **Raccourcis**, run a Shortcuts shortcut when classes start and when they end.
+
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/panel-shortcuts-dark.png"><img src="docs/screenshots/panel-shortcuts.png" width="340" alt="Shortcuts settings"></picture>
+
 - **Stats.** Hours this week (done and planned), hours done this month, upcoming exams, progress per subject.
+
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/stats-dark.png"><img src="docs/screenshots/stats.png" width="340" alt="Stats"></picture>
+
 - **Hours report.** In the stats, **Copier le relevé d'heures** copies the hours done per month and per subject, ready to paste into a spreadsheet (Numbers, Excel, Sheets).
 - **Subject colors.** Each subject gets its own color, the same in the day view and in the stats (orange stays for exams).
 - **Holidays and breaks.** A gap of 7 days or more shows up under the day: `Vacances dans 12 jours`, then `Vacances · reprise lun. 02/11`. French public holidays of the week are listed to explain the gaps: `Férié mer. 11/11 · Armistice`.
+
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/holiday-dark.png"><img src="docs/screenshots/holiday.png" width="340" alt="Public holiday this week"></picture>
+
 - **Shared breaks.** In ⚙️ > **Pauses communes**, paste the Edusign URL of up to 3 friends (they get it the same way you do), with their first name: the day view shows `Alex finit à 15h30` and the breaks you share, for each of them.
+
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/panel-friend-dark.png"><img src="docs/screenshots/panel-friend.png" width="340" alt="Shared breaks settings"></picture>
+
 - **Weekend.** During the last class of the week (no class or company day left afterwards): `🎉 Week-end dans 1 h 15`. The text can be rewritten, or turned off in ⚙️ > **Personnaliser les textes**.
+
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/bar-weekend-dark.png"><img src="docs/screenshots/bar-weekend.png" width="194" alt="Weekend countdown"></picture>
+
 - **Weather.** In ⚙️ > **Météo**, pick your city: when the next class is far away (12 h or more by default, adjustable), the menu bar shows `🌤️ 23°` instead and the day view opens on the current weather and a 5-day forecast. Data from [Open-Meteo](https://open-meteo.com), no key, no account. The search lists French cities first. It reloads by itself at the delay you pick (15 min to 3 h), or only with the menu's ↻ button if you turn automatic refresh off. Off by default.
+
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/bar-weather-dark.png"><img src="docs/screenshots/bar-weather.png" width="81" alt="Weather in the menu bar"></picture>
+
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/weather-dark.png"><img src="docs/screenshots/weather.png" width="340" alt="Weather when the next class is far away"></picture>
+
 - **Two cities.** The displayed city (home, work) and the campus one, if different: the first feeds the menu bar and the day view, the second the rain alert.
 - **Rain alert.** In ⚙️ > **Météo**, a notification 30 min before the last class of the day ends if rain is likely when you leave: `🌧️ Pluie probable à la sortie`. Lead time (5 min to 2 h) and threshold (50 % by default) are adjustable, nothing is sent when it stays dry. Off by default.
+
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/panel-weather-dark.png"><img src="docs/screenshots/panel-weather.png" width="340" alt="Weather, two cities and rain alert settings"></picture>
+
 - **Keyboard shortcut.** ⌥⌘E opens and closes the menu from any app, no Accessibility permission needed. Change or disable it in ⚙️.
 - **Copy diagnostics.** A button at the bottom of the settings copies the version, app location, quarantine and calendar state for a bug report. Never the URL.
 - **Add to Calendar.** One button subscribes the Calendar app to the Edusign feed.
 - **Custom texts.** Every menu bar text and emoji can be rewritten, with `{temps}`, `{salle}` and `{jour}` placeholders.
+
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/panel-templates-dark.png"><img src="docs/screenshots/panel-templates.png" width="340" alt="Custom texts"></picture>
+
 - **Offline.** The timetable is cached locally, so the app keeps working without network.
 - **Stale feed.** If the timetable could not be refreshed for more than 24 h, the menu bar shows `⚠︎` and the day view says since when. An empty Edusign feed while courses are still planned is ignored: known courses stay.
+
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/bar-stale-dark.png"><img src="docs/screenshots/bar-stale.png" width="136" alt="Timetable may be stale"></picture>
+
 - **Past days kept.** Edusign drops yesterday from the feed: EduBar archives every past day locally (400 days, 0600), so browsing back and stats stay complete.
 - **Updates.** Checks GitHub every 6 hours and installs new releases by itself: verified download (GitHub's SHA-256 digest, bundle id, version and signature), in-place replacement, relaunch. Settings are kept. Clicking the "updated" notification opens the release notes. When run from the `.dmg`, it offers **Installer**: copy, relaunch from Applications and eject the disk image. If it cannot replace itself, a notification announces the new version and links to the download.
 
@@ -122,74 +178,3 @@ scripts/bundle.sh 0.1.0    # dist/EduBar.app + .zip + .dmg (universal, ad-hoc si
 ## License
 
 [PolyForm Noncommercial 1.0.0](./LICENSE.md) · free to use, modify and share for **noncommercial** purposes. Commercial use or reselling the code requires the author's permission.
-
-## Screenshots
-
-Placeholder subjects, rooms and name (`EduBar --snapshot <folder> --demo`). The app itself is in French.
-
-<table>
-<tr>
-<td align="center" width="50%">
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/day-dark.png">
-  <img src="docs/screenshots/day.png" width="340" alt="The day">
-</picture>
-<br><sub>The day</sub>
-</td>
-<td align="center" width="50%">
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/holiday-dark.png">
-  <img src="docs/screenshots/holiday.png" width="340" alt="Public holiday this week">
-</picture>
-<br><sub>Public holiday this week</sub>
-</td>
-</tr>
-<tr>
-<td align="center">
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/stats-dark.png">
-  <img src="docs/screenshots/stats.png" width="340" alt="Stats">
-</picture>
-<br><sub>Stats</sub>
-</td>
-<td align="center">
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/settings-dark.png">
-  <img src="docs/screenshots/settings.png" width="340" alt="Settings">
-</picture>
-<br><sub>Settings</sub>
-</td>
-</tr>
-<tr>
-<td align="center">
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/week-dark.png">
-  <img src="docs/screenshots/week.png" width="340" alt="Week">
-</picture>
-<br><sub>Week</sub>
-</td>
-<td align="center">
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/friend-dark.png">
-  <img src="docs/screenshots/friend.png" width="340" alt="Shared breaks">
-</picture>
-<br><sub>Shared breaks</sub>
-</td>
-</tr>
-<tr>
-<td align="center">
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/weather-dark.png">
-  <img src="docs/screenshots/weather.png" width="340" alt="Weather when the next class is far away">
-</picture>
-<br><sub>Weather when the next class is far away</sub>
-</td>
-<td align="center">
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/weather-settings-dark.png">
-  <img src="docs/screenshots/weather-settings.png" width="340" alt="Weather settings">
-</picture>
-<br><sub>Weather settings</sub>
-</td>
-</tr>
-</table>
