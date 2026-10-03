@@ -195,4 +195,20 @@ Matières, salles et prénom fictifs (`EduBar --snapshot <dossier> --demo`).
 <br><sub>Pauses communes</sub>
 </td>
 </tr>
+<tr>
+<td align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/weather-dark.png">
+  <img src="docs/screenshots/weather.png" width="340" alt="Météo quand le prochain cours est loin">
+</picture>
+<br><sub>Météo quand le prochain cours est loin</sub>
+</td>
+<td align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/weather-settings-dark.png">
+  <img src="docs/screenshots/weather-settings.png" width="340" alt="Réglages de la météo">
+</picture>
+<br><sub>Réglages de la météo</sub>
+</td>
+</tr>
 </table>

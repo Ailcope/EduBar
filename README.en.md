@@ -174,4 +174,20 @@ Placeholder subjects, rooms and name (`EduBar --snapshot <folder> --demo`). The 
 <br><sub>Shared breaks</sub>
 </td>
 </tr>
+<tr>
+<td align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/weather-dark.png">
+  <img src="docs/screenshots/weather.png" width="340" alt="Weather when the next class is far away">
+</picture>
+<br><sub>Weather when the next class is far away</sub>
+</td>
+<td align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/weather-settings-dark.png">
+  <img src="docs/screenshots/weather-settings.png" width="340" alt="Weather settings">
+</picture>
+<br><sub>Weather settings</sub>
+</td>
+</tr>
 </table>
