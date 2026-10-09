@@ -82,6 +82,12 @@ final class AppModel {
         didSet { UserDefaults.standard.set(notifyScheduleChanges, forKey: "notifyScheduleChanges") }
     }
 
+    /// Signal anonyme quotidien vers edu.mathys.cc (activé par défaut).
+    var usageEnabled: Bool {
+        didSet { UserDefaults.standard.set(usageEnabled, forKey: UsageReporter.enabledKey) }
+    }
+    @ObservationIgnored private let usage = UsageReporter()
+
     /// Raccourci global qui ouvre le menu.
     var hotKey: HotKeyChoice {
         didSet {
@@ -148,6 +154,7 @@ final class AppModel {
         weather = Self.load("weather") ?? .defaults
         announceWeekend = defaults.object(forKey: "announceWeekend") as? Bool ?? true
         notifyScheduleChanges = defaults.object(forKey: "notifyScheduleChanges") as? Bool ?? true
+        usageEnabled = defaults.object(forKey: UsageReporter.enabledKey) as? Bool ?? true
         hotKey = defaults.string(forKey: "hotKey").flatMap(HotKeyChoice.init) ?? .optionCommandE
         friendNames = (0..<FeedFile.friendSlots).map { defaults.string(forKey: Self.friendNameKey($0)) ?? "" }
         friendURLs = (0..<FeedFile.friendSlots).map { FeedFile.friend($0).read().flatMap(FeedURL.normalize) }
@@ -365,6 +372,14 @@ final class AppModel {
                 await updates.checkIfDue()
             }
         }
+        // Signal d'utilisation : ~2 min après le lancement, puis vérifié toutes les heures (un seul succès par jour).
+        Task {
+            try? await Task.sleep(for: .seconds(120))
+            while !Task.isCancelled {
+                if frozenNow == nil { await usage.sendIfDue(enabled: usageEnabled, calendar: calendar) }
+                try? await Task.sleep(for: .seconds(60 * 60))
+            }
+        }
         NotificationCenter.default.addObserver(
             forName: NSWorkspace.didWakeNotification, object: nil, queue: .main
         ) { [weak self] _ in
@@ -544,6 +559,7 @@ final class AppModel {
             ("Météo", !weather.enabled ? "désactivée" : weather.place == nil ? "sans ville"
                 : weatherStore.lastError.map { "erreur : \($0)" } ?? "activée"),
             ("Raccourci", hotKey.label),
+            ("Comptage", "\(usageEnabled ? "activé" : "désactivé"), dernier signal \(usage.lastDay ?? "jamais")"),
             ("Mise à jour dispo", updates.available?.version.description ?? "non"),
         ])
     }

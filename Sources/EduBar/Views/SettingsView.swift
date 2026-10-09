@@ -91,6 +91,9 @@ struct SettingsView: View {
             }
             .help("Depuis n'importe quelle app. Change-le s'il gêne un raccourci d'une autre app.")
 
+            Toggle("Compter cette installation (anonyme)", isOn: binding(\.usageEnabled))
+            caption("Un signal par jour vers edu.mathys.cc : un identifiant tiré au hasard et la version d'EduBar. Ni l'URL, ni le calendrier, ni l'IP ne sont gardés. Sert seulement à savoir combien de personnes utilisent EduBar.")
+
             Divider()
             HStack {
                 Text("Version \(model.updates.current ?? "dev")").font(.caption).foregroundStyle(.secondary)
