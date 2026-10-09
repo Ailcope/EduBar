@@ -47,27 +47,27 @@ enum Snapshot {
         // Jamais la vraie URL (jetons d'accès) dans une capture.
         model.feedDraft = "webcal://api.edusign.fr/student/account/ical?…"
         model.panel = .templates
-        write(SettingsView(model: model), to: dir.appendingPathComponent("settings.png"))
+        write(SettingsView(model: model, panelOnly: true), to: dir.appendingPathComponent("settings.png"))
         model.panel = .notifications
-        write(SettingsView(model: model), to: dir.appendingPathComponent("notifications.png"))
+        write(SettingsView(model: model, panelOnly: true), to: dir.appendingPathComponent("notifications.png"))
         model.panel = .alternance
-        write(SettingsView(model: model), to: dir.appendingPathComponent("alternance.png"))
+        write(SettingsView(model: model, panelOnly: true), to: dir.appendingPathComponent("alternance.png"))
         let alternance = model.alternance
         model.alternance.mode = .weekdays
-        write(SettingsView(model: model), to: dir.appendingPathComponent("alternance-days.png"))
+        write(SettingsView(model: model, panelOnly: true), to: dir.appendingPathComponent("alternance-days.png"))
         model.alternance.mode = .weeks
         model.alternance.schoolAnchor = model.alternance.schoolAnchor ?? model.now
-        write(SettingsView(model: model), to: dir.appendingPathComponent("alternance-weeks.png"))
+        write(SettingsView(model: model, panelOnly: true), to: dir.appendingPathComponent("alternance-weeks.png"))
         model.alternance = alternance
         model.panel = .shortcuts
-        write(SettingsView(model: model), to: dir.appendingPathComponent("shortcuts.png"))
+        write(SettingsView(model: model, panelOnly: true), to: dir.appendingPathComponent("shortcuts.png"))
         model.panel = .friend
         model.friendDraft = "webcal://api.edusign.fr/student/account/ical?…"
-        write(SettingsView(model: model), to: dir.appendingPathComponent("friend.png"))
-        model.panel = nil
+        write(SettingsView(model: model, panelOnly: true), to: dir.appendingPathComponent("friend.png"))
+        model.panel = .app
         model.diagnosticCopied = true
         print(model.diagnosticText())
-        write(SettingsView(model: model), to: dir.appendingPathComponent("settings-closed.png"))
+        write(SettingsView(model: model, panelOnly: true), to: dir.appendingPathComponent("settings-closed.png"))
         write(StatsView(model: model), to: dir.appendingPathComponent("stats.png"))
         model.openWeek()
         write(WeekView(model: model), to: dir.appendingPathComponent("week.png"))
@@ -101,7 +101,7 @@ enum Snapshot {
         shown.campus = WeatherPlace(name: "Lyon", region: "Auvergne-Rhône-Alpes", country: "France", latitude: 45.75, longitude: 4.85)
         shown.rainAlert = true
         model.weather = shown
-        write(SettingsView(model: model), to: dir.appendingPathComponent("weather.png"))
+        write(SettingsView(model: model, panelOnly: true), to: dir.appendingPathComponent("weather.png"))
         // Chaque volet seul, pour illustrer sa fonctionnalité dans le README.
         let panels: [(SettingsPanel, String)] = [
             (.weather, "weather"), (.notifications, "notifications"), (.alternance, "alternance"),

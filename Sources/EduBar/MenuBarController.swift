@@ -11,10 +11,16 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     private let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let popover = NSPopover()
     private var anchorWindow: NSWindow?
+    private let settingsWindow: SettingsWindow
 
     init(model: AppModel) {
         self.model = model
+        settingsWindow = SettingsWindow(model: model)
         super.init()
+        model.presentSettings = { [weak self] in
+            self?.popover.performClose(nil)
+            self?.settingsWindow.show()
+        }
         popover.behavior = .transient
         popover.animates = false
         popover.delegate = self
@@ -24,6 +30,10 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
         Self.shared = self
         observeLabel()
         model.start()
+        #if DEBUG
+        // Vérif visuelle : `EDUBAR_SETTINGS=1 .build/debug/EduBar` ouvre la fenêtre au lancement.
+        if ProcessInfo.processInfo.environment["EDUBAR_SETTINGS"] != nil { model.openSettings() }
+        #endif
     }
 
     func toggle() {
@@ -75,7 +85,6 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
         model.showingWeek = false
         model.weekOffset = 0
         model.reportCopied = false
-        model.collapsePanels()
         popover.contentViewController = nil
         anchorWindow?.orderOut(nil)
     }
@@ -104,15 +113,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
-/// Journée, statistiques ou réglages, selon l'état du modèle.
+/// Journée, semaine ou statistiques, selon l'état du modèle. Les réglages ont leur fenêtre.
 struct MenuContent: View {
     let model: AppModel
 
     var body: some View {
         Group {
-            if model.showingSettings {
-                SettingsView(model: model)
-            } else if model.showingStats {
+            if model.showingStats {
                 StatsView(model: model)
             } else if model.showingWeek {
                 WeekView(model: model)

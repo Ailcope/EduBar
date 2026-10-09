@@ -4,9 +4,37 @@ import Foundation
 import Observation
 import ServiceManagement
 
-/// Volets des réglages (un seul ouvert à la fois : le popover n'a pas de défilement).
-enum SettingsPanel {
-    case notifications, alternance, shortcuts, friend, weather, templates
+/// Sections de la fenêtre de réglages, dans l'ordre de la barre latérale.
+enum SettingsPanel: CaseIterable, Identifiable {
+    case calendar, notifications, alternance, shortcuts, friend, weather, templates, app
+
+    var id: Self { self }
+
+    var title: String {
+        switch self {
+        case .calendar: "Calendrier"
+        case .notifications: "Notifications"
+        case .alternance: "Alternance"
+        case .shortcuts: "Raccourcis"
+        case .friend: "Pauses communes"
+        case .weather: "Météo"
+        case .templates: "Textes de la barre"
+        case .app: "Application"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .calendar: "calendar"
+        case .notifications: "bell"
+        case .alternance: "building.2"
+        case .shortcuts: "square.stack.3d.up"
+        case .friend: "person.2"
+        case .weather: "cloud.sun"
+        case .templates: "textformat"
+        case .app: "gearshape"
+        }
+    }
 }
 
 @MainActor @Observable
@@ -80,7 +108,6 @@ final class AppModel {
     var diagnosticCopied = false
 
     // État de l'UI (pas de @State : c'est une macro que les Command Line Tools ne savent pas développer avec le SDK macOS 27).
-    var showingSettings = false
     var showingStats = false
     var showingWeek = false
     /// Décalage en semaines de la vue semaine par rapport à celle du jour affiché.
@@ -88,7 +115,9 @@ final class AppModel {
     var feedDraft = ""
     var saveResult: (ok: Bool, message: String)?
     var saving = false
-    var panel: SettingsPanel?
+    var panel: SettingsPanel = .calendar
+    /// Ouvre la fenêtre de réglages ; posé par `MenuBarController`.
+    @ObservationIgnored var presentSettings: () -> Void = {}
     /// Décalage en jours du jour affiché par rapport au jour par défaut (flèches ← →).
     var dayOffset = 0
     /// Raccourcis de l'app Raccourcis, lus à l'ouverture du volet.
@@ -577,19 +606,9 @@ final class AppModel {
         weatherResults = []
         weatherMessage = nil
         diagnosticCopied = false
-        panel = nil
-        showingStats = false
-        showingSettings = true
-    }
-
-    /// Replie les volets avant de revenir à la journée : la fenêtre du menu garde sinon leur hauteur.
-    func closeSettings() {
-        panel = nil
-        showingSettings = false
-    }
-
-    func collapsePanels() {
-        panel = nil
+        // Sans calendrier, rien d'autre ne sert : on ouvre directement sur l'URL.
+        if feedURL == nil { panel = .calendar }
+        presentSettings()
     }
 
     func saveDraft() {

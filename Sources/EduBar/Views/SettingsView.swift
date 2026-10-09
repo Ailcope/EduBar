@@ -1,77 +1,95 @@
 import EduBarCore
 import SwiftUI
 
+/// Contenu de la fenêtre « EduBar » : barre latérale des sections, la section choisie à droite.
 struct SettingsView: View {
     let model: AppModel
-    /// Seulement le volet ouvert, sans le reste des réglages (captures du README).
+    /// Seulement la section choisie, sans barre latérale ni titre (captures du README).
     var panelOnly = false
 
     var body: some View {
         if panelOnly {
-            VStack(alignment: .leading, spacing: 12) { panels }
+            VStack(alignment: .leading, spacing: 12) { content(model.panel) }
                 .padding(14)
                 .frame(width: 340)
         } else {
-            full
+            HStack(spacing: 0) {
+                List(selection: Binding(get: { model.panel }, set: { if let p = $0 { model.panel = p } })) {
+                    ForEach(SettingsPanel.allCases) { p in
+                        Label(p.title, systemImage: p.symbol).tag(p)
+                    }
+                }
+                .listStyle(.sidebar)
+                .frame(width: 200)
+
+                Divider()
+
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text(model.panel.title).font(.title2.weight(.semibold))
+                        content(model.panel)
+                    }
+                    .padding(24)
+                    .frame(maxWidth: 560, alignment: .leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+            .frame(minWidth: 620, minHeight: 440)
         }
     }
 
     @ViewBuilder
-    private var panels: some View {
-        group("Notifications", .notifications) { notificationsEditor }
-        group("Alternance", .alternance) { alternanceEditor }
-        group("Raccourcis", .shortcuts) { shortcutsEditor }
-        group("Pauses communes", .friend) { friendEditor }
-        group("Météo", .weather) { WeatherEditor(model: model) }
-        group("Personnaliser les textes", .templates) { templatesEditor }
+    private func content(_ panel: SettingsPanel) -> some View {
+        switch panel {
+        case .calendar: calendarEditor
+        case .notifications: notificationsEditor
+        case .alternance: alternanceEditor
+        case .shortcuts: shortcutsEditor
+        case .friend: friendEditor
+        case .weather: WeatherEditor(model: model)
+        case .templates: templatesEditor
+        case .app: appEditor
+        }
     }
 
-    private var full: some View {
-        VStack(alignment: .leading, spacing: 12) {
+    // MARK: - Calendrier
+
+    private var calendarEditor: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("URL du calendrier Edusign").font(.callout.weight(.semibold))
+            TextField("webcal://api.edusign.fr/student/account/ical?…", text: binding(\.feedDraft))
+                .textFieldStyle(.roundedBorder)
+                .onSubmit(model.saveDraft)
+            caption("Pour l'obtenir : connecte-toi sur Edusign, ouvre la console du navigateur et lance le snippet du README. L'URL reste sur ce Mac, lisible par ta session seulement.")
             HStack {
-                Button(action: model.closeSettings) { Image(systemName: "chevron.left") }
-                    .buttonStyle(.borderless)
-                Text("Réglages").font(.headline)
-            }
-            Divider()
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text("URL du calendrier Edusign").font(.callout.weight(.semibold))
-                TextField("webcal://api.edusign.fr/student/account/ical?…", text: binding(\.feedDraft))
-                    .textFieldStyle(.roundedBorder)
-                    .onSubmit(model.saveDraft)
-                Text("Pour l'obtenir : connecte-toi sur Edusign, ouvre la console du navigateur et lance le snippet du README. L'URL reste sur ce Mac, lisible par ta session seulement.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                HStack {
-                    Button("Enregistrer", action: model.saveDraft)
-                        .disabled(model.saving)
-                        .keyboardShortcut(.defaultAction)
-                    if model.saving { ProgressView().controlSize(.small) }
-                    if let result = model.saveResult {
-                        Label(result.message, systemImage: result.ok ? "checkmark.circle" : "xmark.circle")
-                            .font(.caption)
-                            .foregroundStyle(result.ok ? .green : .red)
-                            .lineLimit(2)
-                    }
+                Button("Enregistrer", action: model.saveDraft)
+                    .disabled(model.saving)
+                    .keyboardShortcut(.defaultAction)
+                if model.saving { ProgressView().controlSize(.small) }
+                if let result = model.saveResult {
+                    Label(result.message, systemImage: result.ok ? "checkmark.circle" : "xmark.circle")
+                        .font(.caption)
+                        .foregroundStyle(result.ok ? .green : .red)
+                        .lineLimit(2)
                 }
-                Button(action: model.subscribeInCalendar) {
-                    Label("Ajouter à Calendrier", systemImage: "calendar.badge.plus")
-                }
-                .disabled(model.feedURL == nil)
-                .help("Abonne l'app Calendrier à ce flux : tes cours y apparaissent et restent à jour.")
             }
+            Button(action: model.subscribeInCalendar) {
+                Label("Ajouter à Calendrier", systemImage: "calendar.badge.plus")
+            }
+            .disabled(model.feedURL == nil)
+            .help("Abonne l'app Calendrier à ce flux : tes cours y apparaissent et restent à jour.")
+        }
+    }
 
-            Divider()
+    // MARK: - Application
+
+    private var appEditor: some View {
+        VStack(alignment: .leading, spacing: 10) {
             Toggle("Lancer au démarrage", isOn: binding(\.launchAtLogin))
             Picker("Ouvrir le menu au clavier", selection: binding(\.hotKey)) {
                 ForEach(HotKeyChoice.allCases, id: \.self) { Text($0.label).tag($0) }
             }
             .help("Depuis n'importe quelle app. Change-le s'il gêne un raccourci d'une autre app.")
-
-            Divider()
-            panels
 
             Divider()
             HStack {
@@ -97,22 +115,6 @@ struct SettingsView: View {
                     Text("Copié, colle-le dans ton message.").font(.caption).foregroundStyle(.green)
                 }
             }
-        }
-        .padding(14)
-        .frame(width: 340)
-        // Menu refermé pendant les réglages : volets repliés à la réouverture.
-        .onDisappear(perform: model.collapsePanels)
-    }
-
-    // Un seul volet ouvert à la fois : le popover n'a pas de défilement.
-    @ViewBuilder
-    private func group(_ title: String, _ panel: SettingsPanel, @ViewBuilder content: @escaping () -> some View) -> some View {
-        if !panelOnly || model.panel == panel {
-            DisclosureGroup(title, isExpanded: Binding(
-                get: { model.panel == panel },
-                set: { model.panel = $0 ? panel : (model.panel == panel ? nil : model.panel) }
-            ), content: content)
-            .font(.callout.weight(.semibold))
         }
     }
 
@@ -157,7 +159,6 @@ struct SettingsView: View {
                 .disabled(model.templates == .defaults)
         }
         .font(.body.weight(.regular))
-        .padding(.top, 6)
     }
 
     // MARK: - Notifications
@@ -219,7 +220,6 @@ struct SettingsView: View {
                 .disabled(model.notifications == .defaults)
         }
         .font(.body.weight(.regular))
-        .padding(.top, 6)
     }
 
     // MARK: - Alternance
@@ -285,7 +285,6 @@ struct SettingsView: View {
             }
         }
         .font(.body.weight(.regular))
-        .padding(.top, 6)
     }
 
     // MARK: - Raccourcis
@@ -300,7 +299,6 @@ struct SettingsView: View {
             }
         }
         .font(.body.weight(.regular))
-        .padding(.top, 6)
         .onAppear(perform: model.loadShortcuts)
     }
 
@@ -354,7 +352,6 @@ struct SettingsView: View {
             caption("Champ vide puis Enregistrer : son calendrier est oublié.")
         }
         .font(.body.weight(.regular))
-        .padding(.top, 6)
     }
 
     // MARK: - Aides
