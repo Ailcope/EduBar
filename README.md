@@ -94,7 +94,7 @@ Les captures montrent des matières, des salles, des prénoms et une météo fic
 
   <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/panel-friend-dark.png"><img src="docs/screenshots/panel-friend.png" width="340" alt="Réglages des pauses communes"></picture>
 
-- **Météo.** Dans ⚙️ > **Météo**, choisis ta ville : quand le prochain cours est loin (12 h ou plus par défaut, réglable), la barre affiche `🌤️ 23°` à la place et la journée s'ouvre sur la météo du moment et des 5 jours. Données [Open-Meteo](https://open-meteo.com), sans clé ni compte. La recherche propose les villes françaises en premier. Elle se recharge toute seule au délai choisi (15 min à 3 h), ou seulement au bouton ↻ du menu si tu coupes l'actualisation automatique. Désactivée par défaut.
+- **Météo.** Dans ⚙️ > **Météo**, choisis ta ville : quand le prochain cours est loin (12 h ou plus par défaut, réglable), la barre affiche `🌤️ 23°` à la place et la journée s'ouvre sur la météo du moment et des 5 jours. Données [Open-Meteo](https://open-meteo.com), sans clé ni compte. La recherche propose les villes françaises en premier. Coche **Toujours en haut de la journée** pour garder la carte météo en haut du menu même en cours (la barre, elle, suit le seuil). Elle se recharge toute seule au délai choisi (15 min à 3 h), ou seulement au bouton ↻ du menu si tu coupes l'actualisation automatique. Désactivée par défaut.
 
   <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/bar-weather-dark.png"><img src="docs/screenshots/bar-weather.png" width="81" alt="Météo dans la barre"></picture>
 

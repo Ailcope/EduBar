@@ -200,16 +200,30 @@ final class AppModel {
         return Freshness.staleSince(store.lastUpdated, now: now)
     }
 
-    /// La ville dont la météo doit s'afficher maintenant : activée, ville choisie, prochain cours loin.
+    /// Prochain cours assez loin pour que la barre affiche la météo.
+    private var weatherApplies: Bool { Weather.applies(status, now: now, hours: weather.hours) }
+
+    /// La ville dont la météo doit s'afficher maintenant : activée, ville choisie, prochain cours loin
+    /// (ou carte toujours dans la journée).
     private var weatherPlaceWanted: WeatherPlace? {
         guard weather.enabled, let place = weather.place, feedURL != nil,
-              Weather.applies(status, now: now, hours: weather.hours) else { return nil }
+              weather.alwaysInDay || weatherApplies else { return nil }
         return place
     }
 
-    /// Météo à afficher à la place du prochain cours ; nil si elle ne s'applique pas ou n'est pas chargée.
+    /// Météo de la barre, à la place du prochain cours ; nil si elle ne s'applique pas ou n'est pas chargée.
     var shownWeather: (forecast: Forecast, city: String)? {
         if let snapshotWeather { return snapshotWeather }
+        return weatherApplies ? loadedWeather : nil
+    }
+
+    /// Carte météo de la journée : comme la barre, ou toujours si l'option est cochée.
+    var dayWeather: (forecast: Forecast, city: String)? {
+        if let snapshotWeather { return snapshotWeather }
+        return weather.alwaysInDay || weatherApplies ? loadedWeather : nil
+    }
+
+    private var loadedWeather: (forecast: Forecast, city: String)? {
         guard let place = weatherPlaceWanted, let forecast = weatherStore.forecast(for: place),
               Weather.isFresh(forecast, now: now, settings: weather) else { return nil }
         return (forecast, place.name)

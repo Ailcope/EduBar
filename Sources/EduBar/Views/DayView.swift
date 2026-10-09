@@ -43,7 +43,7 @@ struct DayView: View {
             } else if model.schedule.courses.isEmpty {
                 emptyState("Aucun cours", detail: "Le calendrier ne contient aucun cours.", button: nil)
             } else {
-                if let weather = model.shownWeather {
+                if let weather = model.dayWeather {
                     WeatherCard(model: model, forecast: weather.forecast, city: weather.city)
                 }
                 dayNavigation

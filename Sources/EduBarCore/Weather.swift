@@ -39,6 +39,8 @@ public struct WeatherSettings: Codable, Equatable, Sendable {
     public var rainMinutes = 30
     /// Probabilité de pluie (%) à partir de laquelle prévenir.
     public var rainThreshold = 50
+    /// Carte météo toujours en haut de la journée, même en cours. La barre garde la règle de `hours`.
+    public var alwaysInDay = false
     /// Ville du campus, si ce n'est pas `place` (chez soi, au travail) : c'est là qu'on sort de cours.
     public var campus: WeatherPlace?
 
@@ -69,6 +71,7 @@ public struct WeatherSettings: Codable, Equatable, Sendable {
         rainAlert = try c.decodeIfPresent(Bool.self, forKey: .rainAlert) ?? d.rainAlert
         rainMinutes = try c.decodeIfPresent(Int.self, forKey: .rainMinutes) ?? d.rainMinutes
         rainThreshold = try c.decodeIfPresent(Int.self, forKey: .rainThreshold) ?? d.rainThreshold
+        alwaysInDay = try c.decodeIfPresent(Bool.self, forKey: .alwaysInDay) ?? d.alwaysInDay
         campus = try c.decodeIfPresent(WeatherPlace.self, forKey: .campus)
     }
 }

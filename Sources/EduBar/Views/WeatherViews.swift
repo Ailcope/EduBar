@@ -86,6 +86,9 @@ struct WeatherEditor: View {
             if settings.enabled {
                 Stepper("Pas de cours avant \(settings.hours) h ou plus", value: binding(\.weather.hours), in: 1...72)
                     .font(.caption)
+                Toggle("Toujours en haut de la journée", isOn: binding(\.weather.alwaysInDay))
+                    .font(.caption)
+                    .help("Même en cours. La barre, elle, n'affiche la météo que quand le prochain cours est loin.")
                 Toggle("Actualiser automatiquement", isOn: binding(\.weather.autoRefresh))
                     .font(.caption)
                 if settings.autoRefresh {

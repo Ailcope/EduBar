@@ -159,8 +159,14 @@ import Testing
         #expect(!s.enabled)
         #expect(s.hours == 12)
         s.place = Self.reims
+        s.alwaysInDay = true
         let back = try JSONDecoder().decode(WeatherSettings.self, from: JSONEncoder().encode(s))
         #expect(back == s)
+    }
+
+    @Test func oldSettingsKeepTheDayCardTiedToTheRule() throws {
+        let old = Data(#"{"enabled":true,"hours":12,"autoRefresh":true,"refreshMinutes":30}"#.utf8)
+        #expect(try !JSONDecoder().decode(WeatherSettings.self, from: old).alwaysInDay)
     }
 }
 
