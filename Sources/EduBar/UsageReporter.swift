@@ -2,12 +2,12 @@ import EduBarCore
 import Foundation
 
 /// Envoie au plus un signal anonyme par jour à edu.mathys.cc : un identifiant tiré au hasard par le
-/// serveur (rangé au trousseau) et la version. Ni l'URL du calendrier ni rien d'autre ne part.
+/// serveur (fichier `installation`, 0600, comme l'URL : pas le Trousseau, perdu à chaque mise à jour ad-hoc) et la version. Ni l'URL du calendrier ni rien d'autre ne part.
 @MainActor
 final class UsageReporter {
     static let enabledKey = "usageEnabled"
     private static let lastDayKey = "usageLastDay"
-    private static let account = "installation"
+    private static let file = FeedFile(directory: FeedFile.standard.url.deletingLastPathComponent(), name: "installation")
 
     /// Version du bundle ; absente en `swift run`, donc rien n'est envoyé.
     private let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
@@ -25,12 +25,12 @@ final class UsageReporter {
         running = true
         defer { running = false }
 
-        var id = Keychain.get(Self.account).flatMap { Usage.isValidID($0) ? $0 : nil }
+        var id = Self.file.read().flatMap { Usage.isValidID($0) ? $0 : nil }
         if id == nil {
             guard let (status, body) = await Self.perform(Usage.registerRequest()),
                   let fresh = Usage.parseRegistration(status: status, body: body)
             else { return }
-            Keychain.set(fresh, for: Self.account)
+            guard (try? Self.file.write(fresh)) != nil else { return }
             id = fresh
         }
         guard let id, let (status, _) = await Self.perform(Usage.signalRequest(id: id, version: version)) else { return }
@@ -41,7 +41,7 @@ final class UsageReporter {
             // Le serveur ne connaît plus cet identifiant : on l'oublie, un nouveau sera demandé au prochain essai (une fois par lancement).
             guard !reRegistered else { return }
             reRegistered = true
-            Keychain.set(nil, for: Self.account)
+            Self.file.remove()
         case .retryLater:
             break
         }
