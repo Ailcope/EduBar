@@ -1,0 +1,31 @@
+# Worker edu-stats, servi sur https://edu.mathys.cc (compte Cloudflare de la zone mathys.cc).
+# Comptage anonyme des installations d'EduBar. Déploiement : docs/deploiement.md, section « Worker edu-stats ».
+name = "edu-stats"
+main = "worker.js"
+account_id = "47dff828140a5a6a34df8c6ed0c23ede"
+compatibility_date = "2026-09-01"
+workers_dev = false
+
+# Aucun journal : ni observabilité, ni logpush.
+[observability]
+enabled = false
+
+[[routes]]
+pattern = "edu.mathys.cc"
+custom_domain = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "edu-stats"
+database_id = "bddfcf9b-8158-40c8-8b7c-13b04d021c1f"
+
+# Anti-abus de POST /v1/installation : 5 par 60 s et par clé (empreinte de l'IP calculée en mémoire).
+[[unsafe.bindings]]
+name = "LIMITER"
+type = "ratelimit"
+namespace_id = "4201"
+simple = { limit = 5, period = 60 }
+
+# Rétention : agrège puis supprime les présences de plus de 35 jours.
+[triggers]
+crons = ["17 3 * * *"]
