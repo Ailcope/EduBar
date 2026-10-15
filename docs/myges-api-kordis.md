@@ -168,3 +168,13 @@ Signaux de changement ou de casse :
 - Le realm `ges-api` et la route `/me/profile` existent bien.
 
 Aucun identifiant n'a été essayé : le succès du flux complet (302 et fragment) n'est pas vérifié par moi, seulement par le code récent de Bot-Myges (oct. 2026).
+
+## 6. Forme réelle observée (15/10/2026, compte ESGI Reims, via `EduBar --myges-dump`)
+
+Le flux complet marche : 302 sur `/oauth/authorize` avec le jeton dans le fragment, puis les trois routes.
+
+- `/me/years` : `{"result": [2026, 2025]}`. Entiers, année de début de l'année scolaire (2026 = 2026-2027), la plus récente en premier.
+- `/me/agenda` (68 événements sur 9 semaines) : clés `author`, `classes`, `comment`, `create_date`, `discipline`, `end_date`, `is_electronic_signature`, `links`, `modality`, `name`, `prestation_type`, `promotion`, `reservation_id`, `rooms`, `start_date`, `state`, `teacher`, `type`. Valeurs vues : `type` = `Cours`, `modality` = `Présentiel`, `state` = `PUBLISHED`. `rooms[]` : `room_id`, `name` (« Quai 12 - 502 »), `floor` (« 5ème étage »), `campus` (« REIMS »), `color`, `latitude`, `longitude`, `links`. `discipline` : `name` (= `name` de l'événement, préfixé « T1 - »), `teacher`, `teacher_id`, `trimester` (« Semestre 1 »), `trimester_id` (120), `year` (2026), `student_group_name` (« 2ESGI ALT CLASSE 1 - T1 - REIMS »), `rc_id`, `school_id`, `student_group_id`, `nb_students`, `coef`/`ects`/`has_documents`/`has_grades`/`syllabus_id` à null. `create_date` peut être null.
+- `/me/2026/grades` (22 matières = 11 par semestre) : clés `absences` (int), `average` (nombre ou null), `bonus` (0.0), `ccaverage`, `code` (« »), `coef` (chaîne « 2.0 »), `course`, `ects` (chaîne « 2.0 »), `exam` (nombre ou null), `grades` (tableau de nombres, souvent vide), `lates` (int), `letter_mark` (« A » ou vide), `links`, `rc_id`, `teacher_civility`, `teacher_first_name`, `teacher_last_name`, `trimester` (**identifiant** de période : 120, 121), `trimester_name` (« Semestre 1 », « Semestre 2 »), `year` (2026). Le `trimester` de l'agenda (`discipline.trimester_id`) et celui des notes sont le même identifiant : il donne la période en cours.
+
+Sur le portail web, la liste « Afficher mes cours de » montre « 2026-2027 - ESGI-REIMS - BCH_SE2_000_ALT - Semestre 1 » : année scolaire, campus, code de classe, semestre. L'API ne renvoie pas le code de classe, seulement `student_group_name` dans l'agenda.
