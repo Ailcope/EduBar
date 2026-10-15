@@ -73,33 +73,199 @@ struct MyGESTests {
 
     // MARK: Notes
 
-    @Test func gradesAreDecodedLeniently() throws {
+    @Test func gradesAreDecodedFromRealShape() throws {
         let book = try GESGrades.gradeBook(from: jsonFixture("kordis-grades"))
-        #expect(book.subjects.count == 3)
-        let a = book.subjects[0], b = book.subjects[1], c = book.subjects[2]
-        #expect(a.grades.isEmpty && a.exam == nil && a.average == nil && a.ccAverage == nil)
-        #expect(b.grades == [12.5, 14, 9.5])
-        #expect(b.exam == 0)
-        #expect(b.ccAverage == 12)
-        #expect(c.grades == [15, 11.5, 8])
-        #expect(c.exam == 13.5)
-        #expect(c.average == nil)
-        #expect(c.ccAverage == nil)
-        #expect(c.coef == 2)
-        #expect(c.trimester == 1)
+        #expect(book.subjects.count == 4)
+        let a = book.subjects[0], b = book.subjects[1], c = book.subjects[2], d = book.subjects[3]
+        #expect(a.grades == [18] && a.exam == 17 && a.average == 17.5 && a.ccAverage == 18)
+        #expect(a.coef == 2 && a.ects == 2 && a.trimester == 120 && a.year == 2026)
+        #expect(a.trimesterName == "Semestre 1" && a.letterMark == "A" && a.rcID == 357696)
+        #expect(a.absences == 0 && a.lates == 0)
+        #expect(b.grades.isEmpty && b.exam == nil && b.average == nil && b.ccAverage == nil)
+        #expect(b.coef == nil && b.letterMark == nil && b.absences == 2 && b.lates == 1)
+        #expect(c.grades == [12.5, 14, 9.5] && c.exam == 13 && c.coef == 3 && c.letterMark == "C")
+        #expect(d.coef == nil && d.letterMark == nil && d.trimester == 121)
     }
 
     @Test func gradesTeacherIsConcatenated() throws {
         let book = try GESGrades.gradeBook(from: jsonFixture("kordis-grades"))
         #expect(book.subjects[0].teacher == "M. Prénom NOM")
-        #expect(book.subjects[1].teacher == nil)
-        #expect(book.subjects[2].teacher == "Mme Prénom NOM")
+        #expect(book.subjects[1].teacher == "Mme Autre NOM")
+        #expect(book.subjects[3].teacher == nil)
+    }
+
+    @Test func gradesLenientValuesStillWork() throws {
+        let json = #"[{"course":"X","grades":[12.5,"9,5",{"grade":15}],"exam":"13.5","average":"","ccaverage":0,"coef":"2","trimester":"3"}]"#
+        let s = try GESGrades.gradeBook(from: Data(json.utf8)).subjects[0]
+        #expect(s.grades == [12.5, 9.5, 15] && s.exam == 13.5 && s.average == nil && s.ccAverage == nil)
+        #expect(s.coef == 2 && s.trimester == 3)
     }
 
     @Test func gradesShortCourseAndBareArray() throws {
         let book = try GESGrades.gradeBook(from: Data(#"[{"course":"T2 - Droit","grades":[10]}]"#.utf8))
         #expect(book.subjects[0].shortCourse == "Droit")
-        #expect(book.subjects[0].id == "T2 - Droit#")
+        #expect(book.subjects[0].id == "0#0#T2 - Droit")
+    }
+
+    @Test func subjectIDIncludesYear() {
+        let a = GradeBook.Subject(course: "Maths", trimester: 120, year: 2025)
+        let b = GradeBook.Subject(course: "Maths", trimester: 120, year: 2026)
+        #expect(a.id == "2025#120#Maths" && a.id != b.id)
+    }
+
+    @Test func subjectDecodesOldArchiveAndRecomputesID() throws {
+        let old = #"{"id":"Maths#1","course":"Maths","grades":[10],"trimester":1,"year":2026}"#
+        let s = try JSONDecoder().decode(GradeBook.Subject.self, from: Data(old.utf8))
+        #expect(s.id == "2026#1#Maths" && s.trimesterName == nil && s.rcID == nil && s.absences == nil)
+    }
+
+    @Test func subjectRoundTrips() throws {
+        let s = GradeBook.Subject(course: "M", grades: [1], trimester: 120, year: 2026, trimesterName: "Semestre 1",
+                                  letterMark: "B", absences: 1, lates: 2, rcID: 9)
+        #expect(try JSONDecoder().decode(GradeBook.Subject.self, from: JSONEncoder().encode(s)) == s)
+    }
+
+    // MARK: Périodes
+
+    @Test func periodsSortedAndUnique() throws {
+        let book = GradeBook(subjects: [
+            .init(course: "a", trimester: 110, year: 2025, trimesterName: "Semestre 2"),
+            .init(course: "b", trimester: 120, year: 2026, trimesterName: "Semestre 1"),
+            .init(course: "c", trimester: 121, year: 2026, trimesterName: "Semestre 2"),
+            .init(course: "d", trimester: 121, year: 2026, trimesterName: "Semestre 2"),
+            .init(course: "e", trimester: 5),
+        ])
+        #expect(book.periods.map(\.id) == ["2026#121", "2026#120", "2025#110"])
+    }
+
+    @Test func periodTitles() {
+        let p = GradeBook.Period(year: 2026, trimester: 120, name: "Semestre 1")
+        #expect(p.id == "2026#120")
+        #expect(p.title == "2026-2027 · Semestre 1")
+        #expect(p.shortTitle == "S1 2026-27")
+        #expect(GradeBook.Period(year: 2099, trimester: 1, name: "Trimestre libre").shortTitle == "Trimestre libre")
+        #expect(GradeBook.Period(year: 2099, trimester: 1, name: "Semestre 2").shortTitle == "S2 2099-00")
+    }
+
+    @Test func subjectsInPeriodSortedByShortCourse() throws {
+        let book = try GESGrades.gradeBook(from: jsonFixture("kordis-grades"))
+        let s2 = GradeBook.Period(year: 2026, trimester: 121, name: "Semestre 2")
+        #expect(book.subjects(in: s2).map(\.shortCourse) == ["anglais", "Langage C avancé"])
+        let s1 = GradeBook.Period(year: 2026, trimester: 120, name: "Semestre 1")
+        #expect(book.subjects(in: s1).count == 2)
+        #expect(book.periods.map(\.shortTitle) == ["S2 2026-27", "S1 2026-27"])
+    }
+
+    @Test func weightedAverageByHand() {
+        let p = GradeBook.Period(year: 2026, trimester: 1, name: "Semestre 1")
+        let book = GradeBook(subjects: [
+            .init(course: "a", average: 12, coef: 3, trimester: 1, year: 2026),
+            .init(course: "b", average: 16, coef: 1, trimester: 1, year: 2026),
+            .init(course: "c", average: nil, coef: 5, trimester: 1, year: 2026),
+            .init(course: "d", average: 20, coef: 0, trimester: 1, year: 2026),
+            .init(course: "e", average: 20, coef: nil, trimester: 1, year: 2026),
+            .init(course: "f", average: 0, coef: 2, trimester: 2, year: 2026),
+        ])
+        // (12 x 3 + 16 x 1) / 4 = 13
+        #expect(book.weightedAverage(in: p) == 13)
+        #expect(book.weightedAverage(in: .init(year: 2026, trimester: 9, name: "x")) == nil)
+    }
+
+    @Test func weightedAverageFromFixture() throws {
+        let book = try GESGrades.gradeBook(from: jsonFixture("kordis-grades"))
+        #expect(book.weightedAverage(in: .init(year: 2026, trimester: 120, name: "Semestre 1")) == 17.5)
+        #expect(book.weightedAverage(in: .init(year: 2026, trimester: 121, name: "Semestre 2")) == 12)
+    }
+
+    @Test func maxCCCount() throws {
+        let book = try GESGrades.gradeBook(from: jsonFixture("kordis-grades"))
+        #expect(book.maxCCCount(in: .init(year: 2026, trimester: 121, name: "")) == 3)
+        #expect(book.maxCCCount(in: .init(year: 2026, trimester: 120, name: "")) == 1)
+        #expect(book.maxCCCount(in: .init(year: 1999, trimester: 1, name: "")) == 0)
+    }
+
+    @Test func mergingOtherWins() {
+        let a = GradeBook(subjects: [
+            .init(course: "x", grades: [1], trimester: 1, year: 2025), .init(course: "y", grades: [2], trimester: 1, year: 2025),
+        ])
+        let b = GradeBook(subjects: [
+            .init(course: "y", grades: [9], trimester: 1, year: 2025), .init(course: "z", grades: [3], trimester: 1, year: 2026),
+        ])
+        let m = a.merging(b)
+        #expect(m.subjects.map(\.course) == ["x", "y", "z"])
+        #expect(m.subjects[1].grades == [9])
+        #expect(m.periods.count == 2)
+    }
+
+    // MARK: Période courante
+
+    private func course(_ id: String, _ start: Double, _ end: Double, period: Int?) -> Course {
+        Course(id: id, title: id, start: Date(timeIntervalSince1970: start), end: Date(timeIntervalSince1970: end),
+               room: nil, periodID: period)
+    }
+
+    private var twoYearBook: GradeBook {
+        GradeBook(subjects: [
+            .init(course: "a", trimester: 110, year: 2025, trimesterName: "Semestre 2"),
+            .init(course: "b", trimester: 120, year: 2026, trimesterName: "Semestre 1"),
+            .init(course: "c", trimester: 121, year: 2026, trimesterName: "Semestre 2"),
+        ])
+    }
+
+    @Test func pickerUsesRunningCourse() {
+        let courses = [course("passé", 0, 100, period: 110), course("en cours", 500, 700, period: 120),
+                       course("futur", 900, 1000, period: 121)]
+        let p = PeriodPicker.current(book: twoYearBook, courses: courses, now: Date(timeIntervalSince1970: 600))
+        #expect(p?.id == "2026#120")
+    }
+
+    @Test func pickerFallsBackToNextThenLast() {
+        let courses = [course("passé", 0, 100, period: 110), course("futur", 900, 1000, period: 120)]
+        #expect(PeriodPicker.current(book: twoYearBook, courses: courses, now: Date(timeIntervalSince1970: 300))?.id == "2026#120")
+        #expect(PeriodPicker.current(book: twoYearBook, courses: courses, now: Date(timeIntervalSince1970: 5000))?.id == "2026#120")
+        let past = [course("passé", 0, 100, period: 110)]
+        #expect(PeriodPicker.current(book: twoYearBook, courses: past, now: Date(timeIntervalSince1970: 5000))?.id == "2025#110")
+    }
+
+    @Test func pickerNoCourseGivesMostRecent() {
+        #expect(PeriodPicker.current(book: twoYearBook, courses: [], now: Date())?.id == "2026#121")
+        #expect(PeriodPicker.current(book: GradeBook(subjects: []), courses: [], now: Date()) == nil)
+    }
+
+    @Test func pickerUnknownPeriodIDFallsBack() {
+        let courses = [course("inconnu", 500, 700, period: 999), course("sans", 500, 700, period: nil)]
+        #expect(PeriodPicker.current(book: twoYearBook, courses: courses, now: Date(timeIntervalSince1970: 600))?.id == "2026#121")
+    }
+
+    @Test func diffCarriesPeriod() {
+        let old = GradeBook(subjects: [.init(course: "A", grades: [10], trimester: 120, year: 2026, trimesterName: "Semestre 1")])
+        let new = GradeBook(subjects: [.init(course: "A", grades: [10, 14], trimester: 120, year: 2026, trimesterName: "Semestre 1")])
+        let d = GradeDiff.newGrades(old: old, new: new)
+        #expect(d.count == 1 && d[0].label == "CC2" && d[0].period == GradeBook.Period(year: 2026, trimester: 120, name: "Semestre 1"))
+    }
+
+    @Test func diffTreatsSameCourseOtherYearAsNewSubject() {
+        let old = GradeBook(subjects: [.init(course: "A", grades: [10], trimester: 120, year: 2025)])
+        let new = GradeBook(subjects: [.init(course: "A", grades: [10], trimester: 120, year: 2026)])
+        #expect(GradeDiff.newGrades(old: old, new: new).map(\.label) == ["CC1"])
+    }
+
+    // MARK: Agenda : périodes
+
+    @Test func agendaFillsPeriodID() throws {
+        let events = try GESAgenda.events(from: jsonFixture("kordis-agenda"))
+        #expect(events[0].discipline?.trimesterID == 120 && events[0].discipline?.year == 2026)
+        #expect(events[0].discipline?.trimester == "Semestre 1")
+        let courses = GESAgenda.courses(from: events)
+        #expect(courses.map(\.periodID) == [120, 120, nil])
+    }
+
+    @Test func courseDecodesWithoutPeriodID() throws {
+        let c = try JSONDecoder().decode(Course.self, from: Data(#"{"id":"a","title":"t","start":0,"end":60}"#.utf8))
+        #expect(c.periodID == nil)
+        let withID = Course(id: "a", title: "t", start: Date(timeIntervalSince1970: 0), end: Date(timeIntervalSince1970: 60),
+                            room: nil, periodID: 120)
+        #expect(try JSONDecoder().decode(Course.self, from: JSONEncoder().encode(withID)).periodID == 120)
     }
 
     // MARK: Différences

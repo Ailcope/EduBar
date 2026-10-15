@@ -17,12 +17,17 @@ public struct GESDiscipline: Decodable, Sendable, Equatable {
     public let name: String?
     public let teacher: String?
     public let trimester: String?
+    /// Identifiant numérique du semestre (`trimester_id`).
+    public let trimesterID: Int?
+    public let year: Int?
 
     public init(from decoder: any Decoder) throws {
         let c = try? decoder.container(keyedBy: AnyKey.self)
         name = c?.string("name")
         teacher = c?.string("teacher")
         trimester = c?.string("trimester")
+        trimesterID = c?.number("trimester_id").map { Int($0) }
+        year = c?.number("year").map { Int($0) }
     }
 }
 
@@ -77,7 +82,8 @@ public enum GESAgenda {
             return Course(
                 id: id, title: name ?? clean(e.discipline?.name) ?? "Cours", start: start, end: end,
                 room: rooms.isEmpty ? nil : rooms.joined(separator: " · "),
-                teacher: clean(e.teacher) ?? clean(e.discipline?.teacher), modality: clean(e.modality)
+                teacher: clean(e.teacher) ?? clean(e.discipline?.teacher), modality: clean(e.modality),
+                periodID: e.discipline?.trimesterID
             )
         }
         return courses.sorted { ($0.start, $0.id) < ($1.start, $1.id) }

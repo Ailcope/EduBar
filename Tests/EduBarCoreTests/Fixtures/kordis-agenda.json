@@ -12,7 +12,7 @@
         {"name": "Quai 12 - 506", "campus": "REIMS", "floor": "5"},
         {"name": "Quai 12 - 507", "campus": "REIMS", "floor": "5"}
       ],
-      "discipline": {"name": "T1 - Sécurité des réseaux", "teacher": "Prénom NOM", "trimester": "1"}
+      "discipline": {"name": "T1 - Sécurité des réseaux", "teacher": "Prénom NOM", "trimester": "Semestre 1", "trimester_id": 120, "year": 2026}
     },
     {
       "reservation_id": 4822,
@@ -23,7 +23,7 @@
       "end_date": 1790597700000,
       "teacher": null,
       "rooms": null,
-      "discipline": {"name": "T1 - Langage C avancé", "teacher": "Autre NOM", "trimester": "1"}
+      "discipline": {"name": "T1 - Langage C avancé", "teacher": "Autre NOM", "trimester": "Semestre 1", "trimester_id": 120, "year": 2026}
     },
     {
       "reservation_id": 4823,
