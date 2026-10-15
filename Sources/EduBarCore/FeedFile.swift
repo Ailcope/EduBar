@@ -31,6 +31,11 @@ public struct FeedFile: Sendable {
     }
 
     public func write(_ value: String) throws {
+        try writeExact(value.trimmingCharacters(in: .whitespacesAndNewlines))
+    }
+
+    /// Comme `write`, sans retirer les espaces (un mot de passe peut en porter au bord).
+    public func writeExact(_ value: String) throws {
         let fm = FileManager.default
         let dir = url.deletingLastPathComponent()
         try fm.createDirectory(at: dir, withIntermediateDirectories: true)
@@ -43,7 +48,7 @@ public struct FeedFile: Sendable {
         let handle = try FileHandle(forWritingTo: url)
         defer { try? handle.close() }
         try handle.truncate(atOffset: 0)
-        try handle.write(contentsOf: Data(value.trimmingCharacters(in: .whitespacesAndNewlines).utf8))
+        try handle.write(contentsOf: Data(value.utf8))
     }
 
     public func remove() {
