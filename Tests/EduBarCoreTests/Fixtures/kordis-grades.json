@@ -1,0 +1,46 @@
+{
+  "result": [
+    {
+      "course": "T1 - Sécurité des réseaux",
+      "grades": [],
+      "exam": null,
+      "average": null,
+      "ccaverage": null,
+      "coef": 3,
+      "ects": 4,
+      "trimester": 1,
+      "year": 2026,
+      "teacher_civility": "M.",
+      "teacher_first_name": "Prénom",
+      "teacher_last_name": "NOM"
+    },
+    {
+      "course": "T1 - Langage C avancé",
+      "grades": [12.5, 14, "9,5"],
+      "exam": 0,
+      "average": 12,
+      "ccaverage": 12.0,
+      "coef": 2.5,
+      "ects": 3,
+      "trimester": 1,
+      "year": 2026,
+      "teacher_civility": "",
+      "teacher_first_name": "",
+      "teacher_last_name": ""
+    },
+    {
+      "course": "T1 - Anglais",
+      "grades": [{"grade": 15}, {"grade": "11,5"}, {"value": 8}],
+      "exam": "13.5",
+      "average": "",
+      "ccaverage": 0,
+      "coef": "2",
+      "ects": "2",
+      "trimester": "1",
+      "year": 2026,
+      "teacher_civility": "Mme",
+      "teacher_first_name": " Prénom ",
+      "teacher_last_name": "NOM"
+    }
+  ]
+}

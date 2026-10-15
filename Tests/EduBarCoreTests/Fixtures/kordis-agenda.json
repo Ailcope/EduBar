@@ -1,0 +1,40 @@
+{
+  "result": [
+    {
+      "reservation_id": 4821,
+      "name": "T1 - Sécurité des réseaux",
+      "type": "Cours",
+      "modality": "Présentiel",
+      "start_date": 1790581500000,
+      "end_date": 1790586900000,
+      "teacher": "Prénom NOM",
+      "rooms": [
+        {"name": "Quai 12 - 506", "campus": "REIMS", "floor": "5"},
+        {"name": "Quai 12 - 507", "campus": "REIMS", "floor": "5"}
+      ],
+      "discipline": {"name": "T1 - Sécurité des réseaux", "teacher": "Prénom NOM", "trimester": "1"}
+    },
+    {
+      "reservation_id": 4822,
+      "name": "T1 - Langage C avancé",
+      "type": "Cours",
+      "modality": "Distanciel",
+      "start_date": 1790592300000,
+      "end_date": 1790597700000,
+      "teacher": null,
+      "rooms": null,
+      "discipline": {"name": "T1 - Langage C avancé", "teacher": "Autre NOM", "trimester": "1"}
+    },
+    {
+      "reservation_id": 4823,
+      "name": "T1 - Anglais",
+      "type": "Cours",
+      "modality": null,
+      "start_date": "1790665200000",
+      "end_date": "1790670600000",
+      "teacher": "Prénom NOM",
+      "rooms": [{"name": "Quai 12 - 501", "campus": "REIMS", "floor": null}],
+      "discipline": null
+    }
+  ]
+}
