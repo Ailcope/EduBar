@@ -6,13 +6,14 @@ import ServiceManagement
 
 /// Sections de la fenêtre de réglages, dans l'ordre de la barre latérale.
 enum SettingsPanel: CaseIterable, Identifiable {
-    case calendar, notifications, alternance, shortcuts, friend, weather, templates, app
+    case calendar, account, notifications, alternance, shortcuts, friend, weather, templates, app
 
     var id: Self { self }
 
     var title: String {
         switch self {
         case .calendar: "Calendrier"
+        case .account: "Compte myGES"
         case .notifications: "Notifications"
         case .alternance: "Alternance"
         case .shortcuts: "Raccourcis"
@@ -26,6 +27,7 @@ enum SettingsPanel: CaseIterable, Identifiable {
     var symbol: String {
         switch self {
         case .calendar: "calendar"
+        case .account: "person.crop.circle"
         case .notifications: "bell"
         case .alternance: "building.2"
         case .shortcuts: "square.stack.3d.up"
@@ -104,9 +106,15 @@ final class AppModel {
 
     /// Identifiants myGES, lus sur disque au démarrage. Le mot de passe ne sort jamais du modèle.
     private(set) var credentials: MyGESCredentials?
-    var hasCredentials: Bool { credentials != nil }
+    var hasCredentials: Bool { credentials != nil || snapshotHasCredentials }
     /// Login seul, pour l'affichage.
-    var mygesLogin: String { credentials?.login ?? "" }
+    var mygesLogin: String { credentials?.login ?? snapshotLogin ?? "" }
+    /// Faux compte du mode `--snapshot --demo` (jamais le vrai login dans une capture).
+    @ObservationIgnored var snapshotHasCredentials = false
+    @ObservationIgnored var snapshotLogin: String?
+    /// Notes factices du mode `--snapshot --demo`.
+    @ObservationIgnored var snapshotGrades: GradeBook?
+    @ObservationIgnored var snapshotNewGrades: [NewGrade]?
     /// Brouillons des réglages du compte myGES.
     var loginDraft = ""
     var passwordDraft = ""

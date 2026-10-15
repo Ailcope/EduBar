@@ -22,6 +22,12 @@ enum Snapshot {
         // `--demo` : mêmes horaires, matières et salles fictives (captures publiées).
         let demo = args.contains("--demo")
         if demo { model.snapshotCourses = anonymized(model.schedule.courses) }
+        if demo {
+            model.snapshotHasCredentials = true
+            model.snapshotLogin = "p.nom"
+            model.snapshotGrades = demoGrades
+            model.snapshotNewGrades = [NewGrade(course: "T1 - Bases de données", label: "CC1", value: 18)]
+        }
         model.tick()
         // Potes factices : tes cours, finis 30 min plus tôt, sans le dernier (ou le premier) de la journée.
         let savedNames = model.friendNames
@@ -69,6 +75,12 @@ enum Snapshot {
         print(model.diagnosticText())
         write(SettingsView(model: model, panelOnly: true), to: dir.appendingPathComponent("settings-closed.png"))
         write(StatsView(model: model), to: dir.appendingPathComponent("stats.png"))
+        if demo {
+            write(GradesView(model: model), to: dir.appendingPathComponent("grades.png"))
+            model.loginDraft = "p.nom"
+            model.panel = .account
+            write(SettingsView(model: model, panelOnly: true), to: dir.appendingPathComponent("panel-account.png"))
+        }
         model.openWeek()
         write(WeekView(model: model), to: dir.appendingPathComponent("week.png"))
         model.showingWeek = false
@@ -172,6 +184,22 @@ enum Snapshot {
             write(view, to: dir.appendingPathComponent("bar-\(name).png"))
         }
     }
+
+    /// Carnet de notes fictif des captures `--demo`.
+    private static let demoGrades = GradeBook(subjects: [
+        .init(course: "T1 - Réseaux et protocoles", grades: [12, 15.5], exam: 13, average: 13.6, ccAverage: 13.75,
+              coef: 2, ects: 3, teacher: "M. Martin", trimester: 1),
+        .init(course: "T1 - Algorithmique", grades: [16, 14], exam: 17, average: 16.2, ccAverage: 15,
+              coef: 3, ects: 4, teacher: "Mme Durand", trimester: 1),
+        .init(course: "T1 - Systèmes Linux", grades: [9.5], exam: nil, average: nil, ccAverage: 9.5,
+              coef: 2, ects: 3, teacher: "M. Petit", trimester: 1),
+        .init(course: "T1 - Anglais technique", grades: [14, 11, 15], exam: 12, average: 13, ccAverage: 13.33,
+              coef: 1, ects: 2, teacher: "Mme Leroy", trimester: 1),
+        .init(course: "T1 - Bases de données", grades: [18], exam: nil, average: nil, ccAverage: 18,
+              coef: 2, ects: 3, teacher: "M. Moreau", trimester: 1),
+        .init(course: "T1 - Cybersécurité", grades: [], exam: nil, average: nil, ccAverage: nil,
+              coef: 2, ects: 3, teacher: "M. Bernard", trimester: 1),
+    ])
 
     private static let demoSubjects = [
         "Réseaux et protocoles", "Algorithmique", "Systèmes Linux", "Anglais technique", "Bases de données",

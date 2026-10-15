@@ -83,6 +83,7 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
         model.dayOffset = 0
         model.showingStats = false
         model.showingWeek = false
+        model.showingGrades = false
         model.weekOffset = 0
         model.reportCopied = false
         popover.contentViewController = nil
@@ -119,7 +120,9 @@ struct MenuContent: View {
 
     var body: some View {
         Group {
-            if model.showingStats {
+            if model.showingGrades {
+                GradesView(model: model)
+            } else if model.showingStats {
                 StatsView(model: model)
             } else if model.showingWeek {
                 WeekView(model: model)
