@@ -115,6 +115,24 @@ actor MyGESClient {
         do { return try GESGrades.gradeBook(from: data) } catch { throw MyGESError.unexpectedResponse }
     }
 
+    /// Notes de toutes les années, fusionnées. Une année en erreur n'empêche pas les autres ;
+    /// si toutes échouent, l'erreur est relancée.
+    func gradesAllYears() async throws -> GradeBook {
+        var book = GradeBook(subjects: [])
+        var lastError: (any Error)?
+        var succeeded = false
+        for year in try await years().sorted() {
+            do {
+                book = book.merging(try await grades(year: year))
+                succeeded = true
+            } catch {
+                lastError = error
+            }
+        }
+        if !succeeded, let lastError { throw lastError }
+        return book
+    }
+
     func gradesCurrentYear() async throws -> GradeBook {
         let year = try await years().max() ?? KordisAPI.currentSchoolYear(now: Date(), calendar: .current)
         return try await grades(year: year)

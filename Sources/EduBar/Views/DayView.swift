@@ -330,7 +330,7 @@ struct DayView: View {
             Button(action: model.openWeek) { Image(systemName: "calendar") }
                 .disabled(model.schedule.courses.isEmpty)
                 .help("Semaine")
-            Button { model.showingGrades = true } label: { Image(systemName: "graduationcap") }
+            Button(action: model.openGrades) { Image(systemName: "graduationcap") }
                 .disabled(!model.hasCredentials)
                 .help("Notes")
             Button { model.showingStats = true } label: { Image(systemName: "chart.bar") }

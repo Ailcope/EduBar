@@ -172,8 +172,8 @@ final class AppModel {
     // État de l'UI (pas de @State : c'est une macro que les Command Line Tools ne savent pas développer avec le SDK macOS 27).
     var showingStats = false
     var showingWeek = false
-    /// Vue des notes myGES ; à remettre à faux avec `showingWeek` et `showingStats` (fermeture du popover).
-    var showingGrades = false
+    /// Période choisie dans la fenêtre Notes ; `nil` = automatique (période en cours).
+    var selectedPeriod: GradeBook.Period?
     /// Décalage en semaines de la vue semaine par rapport à celle du jour affiché.
     var weekOffset = 0
     var feedDraft = ""
@@ -182,6 +182,8 @@ final class AppModel {
     var panel: SettingsPanel = .calendar
     /// Ouvre la fenêtre de réglages ; posé par `MenuBarController`.
     @ObservationIgnored var presentSettings: () -> Void = {}
+    /// Ouvre la fenêtre Notes ; posé par `MenuBarController`.
+    @ObservationIgnored var presentGrades: () -> Void = {}
     /// Décalage en jours du jour affiché par rapport au jour par défaut (flèches ← →).
     var dayOffset = 0
     /// Raccourcis de l'app Raccourcis, lus à l'ouverture du volet.
@@ -211,6 +213,7 @@ final class AppModel {
         shortcuts = Self.load("shortcuts") ?? .defaults
         weather = Self.load("weather") ?? .defaults
         notifyNewGrades = defaults.object(forKey: "notifyNewGrades") as? Bool ?? true
+        MyGESCredentialsFile.migrateFromFeedFile()
         calendarSource = defaults.string(forKey: "calendarSource").flatMap(CalendarSource.init)
             ?? (MyGESCredentialsFile.standard.read() != nil ? .myges
                 : FeedFile.standard.read() != nil ? .ical : .myges)
@@ -542,7 +545,7 @@ final class AppModel {
         }
         if credentials != nil, frozenNow == nil {
             let client = client
-            let fresh = await grades.refresh(using: { try await client.gradesCurrentYear() })
+            let fresh = await grades.refresh(using: { try await client.gradesAllYears() })
             if announceChanges, notifyNewGrades {
                 for n in GradeDiff.notifications(fresh) { notifier.send(n) }
             }
@@ -563,6 +566,8 @@ final class AppModel {
     /// L'URL enregistrée. Jusqu'à la v0.3.2 elle était dans le Trousseau : on l'y reprend une fois
     /// et on la déplace dans le fichier, qui survit aux mises à jour sans redemander d'accès.
     nonisolated static func loadFeed() -> String? {
+        // Première 1.0.0 : les identifiants myGES avaient pris la place de l'URL dans `feed-url`.
+        MyGESCredentialsFile.migrateFromFeedFile()
         let file = FeedFile.standard
         if let value = file.read() { return value }
         guard let old = Keychain.get("feedURL") else { return nil }
@@ -774,7 +779,18 @@ final class AppModel {
         let base = calendar.startOfDay(for: baseDay)
         dayOffset = calendar.dateComponents([.day], from: base, to: calendar.startOfDay(for: day)).day ?? 0
         showingWeek = false
-        showingGrades = false
+    }
+
+    /// Ouvre la fenêtre Notes (le popover se referme, comme pour les réglages).
+    func openGrades() {
+        presentGrades()
+    }
+
+    /// Période affichée : le choix de l'utilisateur s'il existe encore dans le carnet, sinon la période en cours.
+    var currentPeriod: GradeBook.Period? {
+        guard let book = snapshotGrades ?? grades.book else { return nil }
+        if let selectedPeriod, book.periods.contains(selectedPeriod) { return selectedPeriod }
+        return PeriodPicker.current(book: book, courses: store.courses, now: now)
     }
 
     func openSettings() {

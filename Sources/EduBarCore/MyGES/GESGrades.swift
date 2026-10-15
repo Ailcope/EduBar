@@ -246,7 +246,18 @@ public enum PeriodPicker {
             // Plusieurs années peuvent partager un id de semestre : on prend la plus récente.
             if let p = periods.first(where: { $0.trimester == id }) { return p }
         }
-        return periods.first
+        return fallback(periods: periods, now: now)
+    }
+
+    /// Sans agenda exploitable : dans l'année la plus récente, le semestre que la date suggère
+    /// (septembre à janvier : « Semestre 1 », février à août : « Semestre 2 »), sinon la période
+    /// la plus récente.
+    static func fallback(periods: [GradeBook.Period], now: Date, calendar: Calendar = .current) -> GradeBook.Period? {
+        guard let latest = periods.first else { return nil }
+        let month = calendar.component(.month, from: now)
+        let wanted = (month >= 9 || month == 1) ? "1" : "2"
+        let sameYear = periods.filter { $0.year == latest.year }
+        return sameYear.first { $0.name.range(of: #"\b\#(wanted)\b"#, options: .regularExpression) != nil } ?? latest
     }
 }
 

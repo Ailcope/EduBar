@@ -50,7 +50,10 @@ final class SettingsWindow: NSObject, NSWindowDelegate {
     }
 
     func windowWillClose(_ notification: Notification) {
-        // Plus aucune fenêtre : retour à l'app de barre des menus (ni Dock, ni Cmd-Tab).
-        NSApp.setActivationPolicy(.accessory)
+        // Plus aucune autre fenêtre : retour à l'app de barre des menus (ni Dock, ni Cmd-Tab).
+        let closing = notification.object as? NSWindow
+        if !NSApp.windows.contains(where: { $0.isVisible && $0 !== closing && $0.styleMask.contains(.titled) }) {
+            NSApp.setActivationPolicy(.accessory)
+        }
     }
 }

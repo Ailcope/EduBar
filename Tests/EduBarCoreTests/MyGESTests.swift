@@ -227,14 +227,20 @@ struct MyGESTests {
         #expect(PeriodPicker.current(book: twoYearBook, courses: past, now: Date(timeIntervalSince1970: 5000))?.id == "2025#110")
     }
 
-    @Test func pickerNoCourseGivesMostRecent() {
-        #expect(PeriodPicker.current(book: twoYearBook, courses: [], now: Date())?.id == "2026#121")
+    @Test func pickerNoCourseFollowsTheMonth() {
+        // Octobre : Semestre 1 de l'année la plus récente ; mars : Semestre 2.
+        #expect(PeriodPicker.current(book: twoYearBook, courses: [], now: at("2026-10-15 10:00"))?.id == "2026#120")
+        #expect(PeriodPicker.current(book: twoYearBook, courses: [], now: at("2027-01-10 10:00"))?.id == "2026#120")
+        #expect(PeriodPicker.current(book: twoYearBook, courses: [], now: at("2027-03-10 10:00"))?.id == "2026#121")
         #expect(PeriodPicker.current(book: GradeBook(subjects: []), courses: [], now: Date()) == nil)
+        // Noms sans numéro de semestre : la période la plus récente.
+        let named = GradeBook(subjects: [.init(course: "a", trimester: 7, year: 2026, trimesterName: "Année")])
+        #expect(PeriodPicker.current(book: named, courses: [], now: at("2026-10-15 10:00"))?.id == "2026#7")
     }
 
     @Test func pickerUnknownPeriodIDFallsBack() {
         let courses = [course("inconnu", 500, 700, period: 999), course("sans", 500, 700, period: nil)]
-        #expect(PeriodPicker.current(book: twoYearBook, courses: courses, now: Date(timeIntervalSince1970: 600))?.id == "2026#121")
+        #expect(PeriodPicker.current(book: twoYearBook, courses: courses, now: at("2027-03-10 10:00"))?.id == "2026#121")
     }
 
     @Test func diffCarriesPeriod() {
