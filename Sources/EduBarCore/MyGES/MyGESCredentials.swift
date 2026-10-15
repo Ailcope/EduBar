@@ -18,7 +18,18 @@ public enum MyGESCredentialsFile {
         FeedFile(directory: FeedFile.standard.url.deletingLastPathComponent(), name: "myges-credentials")
     }
 
-    public static func read(_ file: FeedFile = .standard) -> MyGESCredentials? {
+    /// Jusqu'à la première 1.0.0, `.standard` ici désignait `FeedFile.standard` (le fichier `feed-url`) :
+    /// les identifiants y étaient écrits à la place de l'URL iCal. On les déplace une fois.
+    /// Renvoie vrai si une migration a eu lieu.
+    @discardableResult
+    public static func migrateFromFeedFile(feed: FeedFile = FeedFile.standard, to file: FeedFile = MyGESCredentialsFile.standard) -> Bool {
+        guard read(file) == nil, let creds = read(feed), !creds.login.contains("://") else { return false }
+        guard (try? write(creds, to: file)) != nil else { return false }
+        feed.remove()
+        return true
+    }
+
+    public static func read(_ file: FeedFile = MyGESCredentialsFile.standard) -> MyGESCredentials? {
         guard let raw = try? String(contentsOf: file.url, encoding: .utf8) else { return nil }
         let lines = raw.split(separator: "\n", maxSplits: 1, omittingEmptySubsequences: false)
         guard lines.count == 2 else { return nil }
@@ -30,7 +41,7 @@ public enum MyGESCredentialsFile {
     }
 
     /// Un saut de ligne dans le login ou le mot de passe casserait le format : refusé.
-    public static func write(_ creds: MyGESCredentials, to file: FeedFile = .standard) throws {
+    public static func write(_ creds: MyGESCredentials, to file: FeedFile = MyGESCredentialsFile.standard) throws {
         let login = creds.login.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !login.isEmpty, !creds.password.isEmpty,
               !login.contains("\n"), !creds.password.contains("\n"), !creds.password.contains("\r")
@@ -38,7 +49,7 @@ public enum MyGESCredentialsFile {
         try file.writeExact(login + "\n" + creds.password)
     }
 
-    public static func remove(from file: FeedFile = .standard) {
+    public static func remove(from file: FeedFile = MyGESCredentialsFile.standard) {
         file.remove()
     }
 }

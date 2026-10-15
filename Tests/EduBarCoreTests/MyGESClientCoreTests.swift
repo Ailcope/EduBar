@@ -15,6 +15,21 @@ import Testing
         #expect((attrs[.posixPermissions] as? Int) == 0o600)
         MyGESCredentialsFile.remove(from: file)
         #expect(MyGESCredentialsFile.read(file) == nil)
+    }
+
+    /// Première 1.0.0 : les identifiants étaient écrits dans `feed-url`. On les déplace une fois.
+    @Test func migratesCredentialsWrittenInFeedFile() throws {
+        let feed = FeedFile(directory: dir, name: "feed-url")
+        let file = FeedFile(directory: dir, name: "myges-credentials")
+        try feed.writeExact("jdupont\nsecret")
+        #expect(MyGESCredentialsFile.migrateFromFeedFile(feed: feed, to: file))
+        #expect(MyGESCredentialsFile.read(file) == MyGESCredentials(login: "jdupont", password: "secret"))
+        #expect(feed.read() == nil)
+        // Une vraie URL reste en place, et rien ne bouge si les identifiants existent déjà.
+        try feed.write("https://example.org/cal.ics")
+        #expect(!MyGESCredentialsFile.migrateFromFeedFile(feed: feed, to: file))
+        #expect(feed.read() == "https://example.org/cal.ics")
+        #expect(!MyGESCredentialsFile.migrateFromFeedFile(feed: feed, to: file))
         try? FileManager.default.removeItem(at: dir)
     }
 
