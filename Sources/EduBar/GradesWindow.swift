@@ -5,8 +5,8 @@ import SwiftUI
 /// Même principe que `SettingsWindow` : au premier plan avec une icône au Dock tant qu'elle est ouverte.
 @MainActor
 final class GradesWindow: NSObject, NSWindowDelegate {
-    static let startSize = NSSize(width: 1100, height: 600)
-    static let minSize = NSSize(width: 760, height: 400)
+    static let startSize = NSSize(width: 1100, height: 760)
+    static let minSize = NSSize(width: 820, height: 520)
     static let autosaveName = "FenetreNotesEduBar"
 
     private let model: AppModel

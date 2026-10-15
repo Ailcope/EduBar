@@ -174,6 +174,8 @@ final class AppModel {
     var showingWeek = false
     /// Période choisie dans la fenêtre Notes ; `nil` = automatique (période en cours).
     var selectedPeriod: GradeBook.Period?
+    /// Largeur disponible pour le tableau des notes, mesurée par la vue.
+    var gradesTableWidth: CGFloat = 1000
     /// Décalage en semaines de la vue semaine par rapport à celle du jour affiché.
     var weekOffset = 0
     var feedDraft = ""
@@ -786,11 +788,24 @@ final class AppModel {
         presentGrades()
     }
 
-    /// Période affichée : le choix de l'utilisateur s'il existe encore dans le carnet, sinon la période en cours.
+    /// Période affichée : le choix de l'utilisateur s'il existe encore dans le carnet ; sinon la période
+    /// en cours, ou la plus récente qui a des notes si la période en cours n'en a pas encore.
     var currentPeriod: GradeBook.Period? {
         guard let book = snapshotGrades ?? grades.book else { return nil }
         if let selectedPeriod, book.periods.contains(selectedPeriod) { return selectedPeriod }
+        return PeriodPicker.withMarks(book: book, current: agendaPeriod)
+    }
+
+    /// Période de l'agenda, avant la bascule sur un semestre qui a des notes.
+    private var agendaPeriod: GradeBook.Period? {
+        guard let book = snapshotGrades ?? grades.book else { return nil }
         return PeriodPicker.current(book: book, courses: store.courses, now: now)
+    }
+
+    /// Vrai si le mode automatique affiche un autre semestre que celui de l'agenda.
+    var automaticPeriodDiffers: Bool {
+        guard let book = snapshotGrades ?? grades.book else { return false }
+        return PeriodPicker.withMarks(book: book, current: agendaPeriod) != agendaPeriod
     }
 
     func openSettings() {
