@@ -7,9 +7,9 @@
 [![macOS 14+](https://img.shields.io/badge/macOS-14+-000000?logo=apple&logoColor=white)](https://www.apple.com/macos/)
 [![License: PolyForm NC](https://img.shields.io/badge/License-PolyForm%20NC-orange.svg?logo=opensourceinitiative&logoColor=white)](./LICENSE.md)
 
-**Ton emploi du temps Edusign dans la barre des menus macOS, en Swift natif, sans Xcode.**
+**Ton emploi du temps et tes notes myGES dans la barre des menus macOS, en Swift natif, sans Xcode.**
 
-Marche avec **Edusign** &bull; **SwiftUI** &bull; **Notifications macOS**
+Marche avec **myGES** (ou un flux iCal Edusign) &bull; **SwiftUI** &bull; **Notifications macOS**
 
 **🇫🇷 FR** &bull; [🇬🇧 EN](README.en.md)
 
@@ -22,7 +22,7 @@ Marche avec **Edusign** &bull; **SwiftUI** &bull; **Notifications macOS**
 - [Aperçu](#aperçu)
 - [Fonctionnalités](#fonctionnalités)
 - [Installation](#installation)
-- [Obtenir l'URL du calendrier](#obtenir-lurl-du-calendrier)
+- [Connecter myGES](#connecter-myges)
 - [Personnaliser les textes](#personnaliser-les-textes)
 - [Notifications](#notifications)
 - [Confidentialité](#confidentialité)
@@ -31,7 +31,7 @@ Marche avec **Edusign** &bull; **SwiftUI** &bull; **Notifications macOS**
 
 ## Aperçu
 
-**EduBar** est une petite app pour la barre des menus macOS qui lit ton emploi du temps Edusign et te dit d'un coup d'œil combien de temps avant la prochaine pause ou le prochain cours, et dans quelle salle aller. Un clic affiche la journée complète, avec les salles et les pauses. Elle prévient 15 minutes avant la fin d'un cours quand le suivant est dans une autre salle, et envoie des notifications de fin de cours, de début de cours et de changement de salle. Elle est livrée sans calendrier : tu colles ton URL au premier lancement, et elle reste sur ton Mac.
+**EduBar** est une petite app pour la barre des menus macOS qui lit ton emploi du temps myGES et te dit d'un coup d'œil combien de temps avant la prochaine pause ou le prochain cours, et dans quelle salle aller. Un clic affiche la journée complète, avec les salles et les pauses ; un autre tes notes, matière par matière, avec une notification dès qu'une nouvelle tombe. Elle prévient 15 minutes avant la fin d'un cours quand le suivant est dans une autre salle, et envoie des notifications de fin de cours, de début de cours et de changement de salle. Elle est livrée sans compte : tu saisis tes identifiants myGES au premier lancement (ou l'URL d'un flux iCal Edusign), et ils restent sur ton Mac.
 
 ## Fonctionnalités
 
@@ -57,7 +57,10 @@ Les captures montrent des matières, des salles, des prénoms et une météo fic
 
   <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/panel-notifications-dark.png"><img src="docs/screenshots/panel-notifications.png" width="340" alt="Réglages des notifications"></picture>
 
-- **Changements d'emploi du temps.** Un cours annulé, déplacé, ajouté ou changé de salle dans les deux semaines à venir envoie une notification : `❌ Cours annulé · demain 14h`, `🔁 Cours déplacé · …`, `📍 Salle changée · 501`.
+- **Changements d'emploi du temps.** Un cours annulé, déplacé, ajouté ou changé de salle dans les deux semaines à venir envoie une notification : `❌ Cours annulé · demain 14h`, `🔁 Cours déplacé · …`, `📍 Salle changée · 501`. Avec myGES, l'emploi du temps est celui du planning officiel, relu toutes les 15 min, 8 semaines à l'avance.
+- **Notes.** Le bouton 🎓 du menu liste tes matières de l'année : moyenne, chaque contrôle continu, examen, coefficient et ECTS, les nouveautés surlignées. Dès qu'une note apparaît sur myGES, une notification : `Nouvelle note : Sécurité des réseaux` · `CC2 : 15,5/20`. Désactivable dans ⚙️ > **Notifications**.
+
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/grades-dark.png"><img src="docs/screenshots/grades.png" width="340" alt="Notes par matière"></picture>
 - **Jours suivants.** Les flèches ‹ › du menu passent d'un jour à l'autre (les week-ends vides sont sautés), **Revenir** ramène à aujourd'hui.
 
   <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/day-dark.png"><img src="docs/screenshots/day.png" width="340" alt="La journée"></picture>
@@ -106,18 +109,18 @@ Les captures montrent des matières, des salles, des prénoms et une météo fic
   <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/panel-weather-dark.png"><img src="docs/screenshots/panel-weather.png" width="340" alt="Réglages de la météo, des deux villes et de l'alerte pluie"></picture>
 
 - **Raccourci clavier.** ⌥⌘E ouvre et referme le menu depuis n'importe quelle app, sans autorisation d'accessibilité. Modifiable ou désactivable dans ⚙️.
-- **Copier le diagnostic.** En bas des réglages, un bouton copie la version, l'emplacement de l'app, l'état de la quarantaine et du calendrier, pour un rapport de bug. Jamais l'URL.
-- **Ajouter à Calendrier.** Un bouton abonne l'app Calendrier au flux Edusign : les cours y apparaissent et restent à jour.
+- **Copier le diagnostic.** En bas des réglages, un bouton copie la version, l'emplacement de l'app, l'état de la quarantaine, de la source et du calendrier, pour un rapport de bug. Jamais l'URL ni les identifiants.
+- **Ajouter à Calendrier.** Avec la source iCal, un bouton abonne l'app Calendrier au flux Edusign : les cours y apparaissent et restent à jour.
 - **Textes personnalisables.** Chaque texte de la barre et ses émojis se réécrivent, avec les variables `{temps}`, `{salle}` et `{jour}`.
 
   <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/panel-templates-dark.png"><img src="docs/screenshots/panel-templates.png" width="340" alt="Textes personnalisables"></picture>
 
 - **Hors ligne.** Le calendrier est mis en cache dans `~/Library/Caches/EduBar/`, l'app marche sans réseau.
-- **Flux figé.** Si le calendrier n'a pas pu être mis à jour depuis plus de 24 h, la barre affiche `⚠︎` et la journée dit depuis quand. Un flux Edusign vide alors que des cours sont prévus est ignoré : les cours connus restent.
+- **Source figée.** Si le calendrier n'a pas pu être mis à jour depuis plus de 24 h, la barre affiche `⚠︎` et la journée dit depuis quand. Une réponse vide alors que des cours sont prévus est ignorée : les cours connus restent.
 
   <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/bar-stale-dark.png"><img src="docs/screenshots/bar-stale.png" width="136" alt="Planning peut-être périmé"></picture>
 
-- **Journées passées gardées.** Edusign retire la veille du flux : EduBar archive chaque journée passée (400 jours, `~/Library/Application Support/EduBar/`, 0600), la navigation et les stats restent complètes.
+- **Journées passées gardées.** myGES n'est relu que sur quelques semaines et Edusign retire la veille du flux : EduBar archive chaque journée passée (400 jours, `~/Library/Application Support/EduBar/`, 0600), la navigation et les stats restent complètes.
 - **Mises à jour.** EduBar regarde toutes les 6 h s'il existe une nouvelle release et l'installe toute seule : téléchargement vérifié (empreinte SHA-256 publiée par GitHub, identifiant, version et signature), remplacement de l'app, relance. Les réglages sont conservés. Un clic sur la notification « EduBar mis à jour » ouvre les nouveautés. Lancée depuis le `.dmg`, elle propose **Installer** : copie, relance depuis Applications et éjection de l'image disque. Si elle ne peut pas se remplacer, une notification annonce la nouvelle version et mène au téléchargement.
 
 ## Installation
@@ -132,7 +135,19 @@ Les captures montrent des matières, des salles, des prénoms et une météo fic
 
 macOS 14 ou plus récent, Apple Silicon ou Intel.
 
-## Obtenir l'URL du calendrier
+## Connecter myGES
+
+1. Clique sur EduBar, puis ⚙️ > **Compte myGES**.
+2. Saisis ton identifiant myGES (de la forme `p.nom`) et ton mot de passe, puis **Se connecter**. EduBar vérifie les identifiants auprès de myGES, charge l'emploi du temps des 8 prochaines semaines et tes notes de l'année.
+3. C'est tout : la source **Compte myGES** est sélectionnée dans ⚙️ > **Calendrier**. **Oublier ce compte** efface les identifiants et les notes de ce Mac.
+
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/panel-account-dark.png"><img src="docs/screenshots/panel-account.png" width="340" alt="Réglages du compte myGES"></picture>
+
+Pour un diagnostic, `EduBar --myges-dump` (depuis `/Applications/EduBar.app/Contents/MacOS/`) imprime les réponses brutes de myGES (années, agenda, notes), sans jamais afficher le jeton ni les identifiants.
+
+### Ou un flux iCal (Edusign)
+
+Sans compte myGES, choisis **Flux iCal (Edusign)** dans ⚙️ > **Calendrier** :
 
 1. Connecte-toi sur Edusign dans ton navigateur.
 2. Ouvre la console (Cmd+Option+J sur Chrome/Brave, Cmd+Option+C sur Safari).
@@ -159,19 +174,24 @@ Exemple : `🏃 Go {salle} dans {temps}`. Un champ vide reprend le texte par dé
 
 ## Notifications
 
-Dans ⚙️ > **Notifications**, trois notifications, chacune activable, avec son délai (0 à 60 min avant), son titre et son texte :
+Dans ⚙️ > **Notifications**, trois notifications de cours, chacune activable, avec son délai (0 à 60 min avant), son titre et son texte, plus **Nouvelle note** (compte myGES) :
 
 | Notification | Quand (par défaut) | Exemple |
 |---|---|---|
 | Fin de cours | 5 min avant la fin d'une suite de cours | `Fin du cours dans 5 min` · `Langage C avancé se termine à 13h. Ensuite : déjeuner.` |
 | Début de cours | 5 min avant le premier cours ou la reprise | `Cours dans 5 min · 501` |
 | Changement de salle | 15 min avant la fin, si le cours suivant est ailleurs | `⚠️ Changement de salle : 501` |
+| Nouvelle note | dès qu'une note apparaît sur myGES (vérifié toutes les 15 min) | `Nouvelle note : Sécurité des réseaux` · `CC2 : 15,5/20` |
 
 Variables : `{cours}`, `{heure}`, `{temps}`, `{salle}`, `{pause}` (`pause de 15 min`, `déjeuner` ou `fin de journée`). Le délai du changement de salle règle aussi l'alerte dans la barre. Le bouton **Tester** envoie un exemple tout de suite. Si rien ne s'affiche, autorise EduBar dans Réglages Système > Notifications.
 
 ## Confidentialité
 
-L'URL suffit à lire ton emploi du temps : elle ne contient que ton identifiant d'école et d'élève, sans mot de passe. Ne la partage pas. EduBar la garde dans `~/Library/Application Support/EduBar/feed-url`, lisible par ta session seulement (0600), ne l'écrit jamais dans les logs et ne parle qu'à `api.edusign.fr` (ou à l'hôte que tu donnes), à `api.github.com` pour les mises à jour (sans rien envoyer d'autre que sa version) et à `edu.mathys.cc` pour le signal anonyme décrit plus bas. Avec **Ajouter à Calendrier**, c'est l'app Calendrier qui lit ensuite l'URL elle-même.
+**Compte myGES.** Tes identifiants servent uniquement à obtenir un jeton auprès de myGES (`authentication.kordis.fr`, la même API que l'application mobile officielle), puis le jeton lit ton agenda et tes notes sur `api.kordis.fr`. Ils sont gardés dans `~/Library/Application Support/EduBar/myges-credentials`, lisible par ta session seulement (0600), jamais écrits dans les logs ni envoyés ailleurs ; le jeton ne reste qu'en mémoire. Les notes sont mises en cache dans le même dossier (`grades.json`, 0600). **Oublier ce compte** efface le tout. L'app est signée ad hoc : c'est pour cela qu'elle n'utilise pas le Trousseau, qui redemanderait l'accès à chaque mise à jour.
+
+**Flux iCal.** L'URL suffit à lire ton emploi du temps : elle ne contient que ton identifiant d'école et d'élève, sans mot de passe. Ne la partage pas. EduBar la garde dans `~/Library/Application Support/EduBar/feed-url` (0600), ne l'écrit jamais dans les logs et ne parle qu'à `api.edusign.fr` (ou à l'hôte que tu donnes). Avec **Ajouter à Calendrier**, c'est l'app Calendrier qui lit ensuite l'URL elle-même.
+
+Dans les deux cas, EduBar parle aussi à `api.github.com` pour les mises à jour (sans rien envoyer d'autre que sa version) et à `edu.mathys.cc` pour le signal anonyme décrit plus bas.
 
 **Signal anonyme d'utilisation.** Une fois par jour au plus, EduBar envoie à `edu.mathys.cc` un identifiant tiré au hasard par le serveur (rangé dans `~/Library/Application Support/EduBar/installation`, 0600, sans lien avec toi) et son numéro de version. Rien d'autre : ni l'URL, ni le calendrier, ni ton nom. Le serveur ne garde que l'empreinte de l'identifiant, le jour et la version ; les présences sont effacées après 35 jours et aucune adresse IP n'est conservée. Cela sert seulement à savoir combien de personnes utilisent EduBar. Pour le couper : **Réglages › Application › Compter cette installation (anonyme)**, décoche, plus rien n'est envoyé.
 
