@@ -6,13 +6,14 @@ import ServiceManagement
 
 /// Sections de la fenêtre de réglages, dans l'ordre de la barre latérale.
 enum SettingsPanel: CaseIterable, Identifiable {
-    case calendar, notifications, alternance, shortcuts, friend, weather, templates, app
+    case calendar, account, notifications, alternance, shortcuts, friend, weather, templates, app
 
     var id: Self { self }
 
     var title: String {
         switch self {
         case .calendar: "Calendrier"
+        case .account: "Compte myGES"
         case .notifications: "Notifications"
         case .alternance: "Alternance"
         case .shortcuts: "Raccourcis"
@@ -26,6 +27,7 @@ enum SettingsPanel: CaseIterable, Identifiable {
     var symbol: String {
         switch self {
         case .calendar: "calendar"
+        case .account: "person.crop.circle"
         case .notifications: "bell"
         case .alternance: "building.2"
         case .shortcuts: "square.stack.3d.up"
@@ -37,11 +39,26 @@ enum SettingsPanel: CaseIterable, Identifiable {
     }
 }
 
+/// D'où viennent les cours du compte principal.
+enum CalendarSource: String, Codable, CaseIterable, Identifiable {
+    case ical, myges
+
+    var id: Self { self }
+
+    var title: String {
+        switch self {
+        case .ical: "Flux iCal (Edusign)"
+        case .myges: "Compte myGES"
+        }
+    }
+}
+
 @MainActor @Observable
 final class AppModel {
     private(set) var now = Date()
     private(set) var feedURL: URL?
     let store = CalendarStore()
+    let grades = GradesStore()
     let updates = UpdateChecker()
     let calendar = Calendar.autoupdatingCurrent
 
@@ -82,6 +99,45 @@ final class AppModel {
         didSet { UserDefaults.standard.set(notifyScheduleChanges, forKey: "notifyScheduleChanges") }
     }
 
+    /// Source du calendrier principal (les calendriers des potes restent en iCal).
+    var calendarSource: CalendarSource {
+        didSet { UserDefaults.standard.set(calendarSource.rawValue, forKey: "calendarSource") }
+    }
+
+    /// Identifiants myGES, lus sur disque au démarrage. Le mot de passe ne sort jamais du modèle.
+    private(set) var credentials: MyGESCredentials?
+    var hasCredentials: Bool { credentials != nil || snapshotHasCredentials }
+    /// Login seul, pour l'affichage.
+    var mygesLogin: String { credentials?.login ?? snapshotLogin ?? "" }
+    /// Faux compte du mode `--snapshot --demo` (jamais le vrai login dans une capture).
+    @ObservationIgnored var snapshotHasCredentials = false
+    @ObservationIgnored var snapshotLogin: String?
+    /// Notes factices du mode `--snapshot --demo`.
+    @ObservationIgnored var snapshotGrades: GradeBook?
+    @ObservationIgnored var snapshotNewGrades: [NewGrade]?
+    /// Brouillons des réglages du compte myGES.
+    var loginDraft = ""
+    var passwordDraft = ""
+    var accountResult: (ok: Bool, message: String)?
+    var accountSaving = false
+
+    /// Prévenir à chaque nouvelle note.
+    var notifyNewGrades: Bool {
+        didSet { UserDefaults.standard.set(notifyNewGrades, forKey: "notifyNewGrades") }
+    }
+
+    /// Une source de cours est configurée : l'URL pour iCal, les identifiants pour myGES.
+    var hasSource: Bool {
+        switch calendarSource {
+        case .ical: feedURL != nil
+        case .myges: credentials != nil
+        }
+    }
+
+    /// Client réseau myGES ; il relit les identifiants à chaque connexion.
+    @ObservationIgnored private let credentialBox = CredentialBox()
+    @ObservationIgnored private lazy var client = MyGESClient { [credentialBox] in credentialBox.value }
+
     /// Signal anonyme quotidien vers edu.mathys.cc (activé par défaut).
     var usageEnabled: Bool {
         didSet { UserDefaults.standard.set(usageEnabled, forKey: UsageReporter.enabledKey) }
@@ -116,6 +172,10 @@ final class AppModel {
     // État de l'UI (pas de @State : c'est une macro que les Command Line Tools ne savent pas développer avec le SDK macOS 27).
     var showingStats = false
     var showingWeek = false
+    /// Période choisie dans la fenêtre Notes ; `nil` = automatique (période en cours).
+    var selectedPeriod: GradeBook.Period?
+    /// Largeur disponible pour le tableau des notes, mesurée par la vue.
+    var gradesTableWidth: CGFloat = 1000
     /// Décalage en semaines de la vue semaine par rapport à celle du jour affiché.
     var weekOffset = 0
     var feedDraft = ""
@@ -124,6 +184,8 @@ final class AppModel {
     var panel: SettingsPanel = .calendar
     /// Ouvre la fenêtre de réglages ; posé par `MenuBarController`.
     @ObservationIgnored var presentSettings: () -> Void = {}
+    /// Ouvre la fenêtre Notes ; posé par `MenuBarController`.
+    @ObservationIgnored var presentGrades: () -> Void = {}
     /// Décalage en jours du jour affiché par rapport au jour par défaut (flèches ← →).
     var dayOffset = 0
     /// Raccourcis de l'app Raccourcis, lus à l'ouverture du volet.
@@ -152,6 +214,11 @@ final class AppModel {
         alternance = Self.load("alternance") ?? .defaults
         shortcuts = Self.load("shortcuts") ?? .defaults
         weather = Self.load("weather") ?? .defaults
+        notifyNewGrades = defaults.object(forKey: "notifyNewGrades") as? Bool ?? true
+        MyGESCredentialsFile.migrateFromFeedFile()
+        calendarSource = defaults.string(forKey: "calendarSource").flatMap(CalendarSource.init)
+            ?? (MyGESCredentialsFile.standard.read() != nil ? .myges
+                : FeedFile.standard.read() != nil ? .ical : .myges)
         announceWeekend = defaults.object(forKey: "announceWeekend") as? Bool ?? true
         notifyScheduleChanges = defaults.object(forKey: "notifyScheduleChanges") as? Bool ?? true
         usageEnabled = defaults.object(forKey: UsageReporter.enabledKey) as? Bool ?? true
@@ -160,6 +227,8 @@ final class AppModel {
         friendURLs = (0..<FeedFile.friendSlots).map { FeedFile.friend($0).read().flatMap(FeedURL.normalize) }
         if readKeychainNow {
             feedURL = Self.loadFeed().flatMap(FeedURL.normalize)
+            credentials = MyGESCredentialsFile.read()
+            credentialBox.value = credentials
             feedLoaded = true
         }
     }
@@ -183,7 +252,7 @@ final class AppModel {
         RoomChange.alert(for: status, at: now, lead: TimeInterval(max(0, notifications.roomChange.minutes) * 60))
     }
     var barText: String {
-        guard feedURL != nil else { return "" }
+        guard hasSource else { return "" }
         let text = Display.barText(
             status: status, alert: alert, now: now, calendar: calendar, templates: templates,
             companyToday: isCompanyDay(now), weather: shownWeather,
@@ -196,7 +265,7 @@ final class AppModel {
 
     /// « 26 h » : durée depuis le dernier chargement réussi du flux, s'il date de plus d'un jour.
     var staleSince: String? {
-        guard feedURL != nil, frozenNow == nil else { return nil }
+        guard hasSource, frozenNow == nil else { return nil }
         return Freshness.staleSince(store.lastUpdated, now: now)
     }
 
@@ -206,7 +275,7 @@ final class AppModel {
     /// La ville dont la météo doit s'afficher maintenant : activée, ville choisie, prochain cours loin
     /// (ou carte toujours dans la journée).
     private var weatherPlaceWanted: WeatherPlace? {
-        guard weather.enabled, let place = weather.place, feedURL != nil,
+        guard weather.enabled, let place = weather.place, hasSource,
               weather.alwaysInDay || weatherApplies else { return nil }
         return place
     }
@@ -364,8 +433,9 @@ final class AppModel {
 
         // Hors du fil principal : une demande d'accès au Trousseau (migration) ne doit pas figer la barre.
         Task {
-            let raw = await Task.detached { Self.loadFeed() }.value
+            let (raw, creds) = await Task.detached { (Self.loadFeed(), MyGESCredentialsFile.read()) }.value
             feedURL = raw.flatMap(FeedURL.normalize)
+            setCredentials(creds)
             feedLoaded = true
             await refresh()
         }
@@ -456,7 +526,18 @@ final class AppModel {
     func refresh(announceChanges: Bool = true) async {
         let before = store.courses
         let stamp = store.lastUpdated
-        await store.refresh(from: feedURL)
+        switch calendarSource {
+        case .ical:
+            await store.refresh(from: feedURL)
+        case .myges:
+            if credentials != nil {
+                let client = client, calendar = calendar
+                await store.refresh(using: {
+                    let range = KordisAPI.agendaRange(now: Date(), calendar: calendar)
+                    return try await client.agenda(from: range.from, to: range.to)
+                })
+            }
+        }
         if frozenNow == nil {
             for (i, friend) in friendStores.enumerated() { await friend.refresh(from: friendURLs[i]) }
         }
@@ -464,7 +545,22 @@ final class AppModel {
             let changes = ScheduleDiff.changes(from: before, to: store.courses, now: Date())
             for n in ScheduleDiff.notifications(changes, now: Date(), calendar: calendar) { notifier.send(n) }
         }
+        if credentials != nil, frozenNow == nil {
+            let client = client
+            let fresh = await grades.refresh(using: { try await client.gradesAllYears() })
+            if announceChanges, notifyNewGrades {
+                for n in GradeDiff.notifications(fresh) { notifier.send(n) }
+            }
+        }
         tick()
+    }
+
+    /// Notification d'exemple pour les réglages.
+    func testNewGrade() {
+        notifier.send(PendingNotification(
+            id: "grade-test-\(Date().timeIntervalSince1970)", title: "Nouvelle note : Sécurité des réseaux",
+            body: "CC2 : 15,5/20"
+        ))
     }
 
     // MARK: - Réglages
@@ -472,6 +568,8 @@ final class AppModel {
     /// L'URL enregistrée. Jusqu'à la v0.3.2 elle était dans le Trousseau : on l'y reprend une fois
     /// et on la déplace dans le fichier, qui survit aux mises à jour sans redemander d'accès.
     nonisolated static func loadFeed() -> String? {
+        // Première 1.0.0 : les identifiants myGES avaient pris la place de l'URL dans `feed-url`.
+        MyGESCredentialsFile.migrateFromFeedFile()
         let file = FeedFile.standard
         if let value = file.read() { return value }
         guard let old = Keychain.get("feedURL") else { return nil }
@@ -485,7 +583,7 @@ final class AppModel {
             FeedFile.standard.remove()
             Keychain.set(nil, for: "feedURL")
             feedURL = nil
-            store.clear()
+            if calendarSource == .ical { store.clear() }
             return (true, "URL supprimée.")
         }
         guard let url = FeedURL.normalize(raw) else {
@@ -499,11 +597,67 @@ final class AppModel {
             // Ni son cache ni ses journées archivées ne se mélangent au nouveau.
             if changed { store.clear() }
             feedURL = url
-            await refresh(announceChanges: !changed)
+            // Venir de myGES : les cours en cache sont ceux d'une autre source.
+            let switched = calendarSource != .ical
+            if switched { store.clear() }
+            calendarSource = .ical
+            await refresh(announceChanges: !changed && !switched)
             return (true, "\(courses.count) cours trouvés.")
         } catch {
             return (false, error.localizedDescription)
         }
+    }
+
+    /// Met à jour les identifiants en mémoire et pour le client réseau.
+    private func setCredentials(_ creds: MyGESCredentials?) {
+        credentials = creds
+        credentialBox.value = creds
+    }
+
+    /// Teste les identifiants du brouillon, puis les enregistre et charge cours et notes.
+    func saveCredentials() async {
+        let creds = MyGESCredentials(
+            login: loginDraft.trimmingCharacters(in: .whitespacesAndNewlines), password: passwordDraft
+        )
+        guard !creds.login.isEmpty, !creds.password.isEmpty else {
+            accountResult = (false, "Renseigne l'identifiant et le mot de passe.")
+            return
+        }
+        accountSaving = true
+        accountResult = nil
+        defer { accountSaving = false }
+        do {
+            _ = try await client.authenticate(creds)
+            try MyGESCredentialsFile.write(creds)
+            let changed = creds.login != credentials?.login || calendarSource != .myges
+            setCredentials(creds)
+            calendarSource = .myges
+            passwordDraft = ""
+            if changed {
+                store.clear()
+                grades.clear()
+            }
+            await refresh(announceChanges: false)
+            let rated = grades.book?.subjects.filter { !$0.grades.isEmpty || $0.exam != nil }.count ?? 0
+            if let error = store.lastError ?? grades.lastError {
+                accountResult = (true, "Connecté, mais le chargement a échoué : \(error)")
+            } else {
+                accountResult = (true, "Connecté : \(store.courses.count) cours sur 8 semaines, \(rated) matières notées.")
+            }
+        } catch {
+            accountResult = (false, error.localizedDescription)
+        }
+    }
+
+    /// Supprime les identifiants et les notes ; les cours myGES aussi si c'était la source.
+    func forgetCredentials() {
+        MyGESCredentialsFile.remove()
+        setCredentials(nil)
+        grades.clear()
+        loginDraft = ""
+        passwordDraft = ""
+        accountResult = (true, "Compte myGES oublié.")
+        if calendarSource == .myges { store.clear() }
     }
 
     /// Pote affiché dans les réglages : son URL remplace le champ.
@@ -564,7 +718,9 @@ final class AppModel {
             ("Depuis le .dmg", UpdateInstaller.diskImageVolume == nil ? "non" : "oui"),
             ("Quarantaine", quarantine ? "oui" : "non"),
             ("Mise à jour sur place", UpdateInstaller.canReplaceSelf ? "possible" : "impossible"),
-            ("Calendrier", feedURL == nil ? "non configuré" : "configuré"),
+            ("Source", calendarSource == .myges ? "myGES" : "iCal"),
+            ("Calendrier", !hasSource ? "non configuré" : "configuré"),
+            ("Notes", grades.lastError.map { "erreur : \($0)" } ?? "\(grades.book?.subjects.count ?? 0) matières"),
             ("Cours", "\(store.courses.count)"),
             ("Dernière mise à jour", store.lastUpdated.map { $0.formatted(.iso8601) } ?? "jamais"),
             ("Erreur", store.lastError ?? "aucune"),
@@ -627,8 +783,36 @@ final class AppModel {
         showingWeek = false
     }
 
+    /// Ouvre la fenêtre Notes (le popover se referme, comme pour les réglages).
+    func openGrades() {
+        presentGrades()
+    }
+
+    /// Période affichée : le choix de l'utilisateur s'il existe encore dans le carnet ; sinon la période
+    /// en cours, ou la plus récente qui a des notes si la période en cours n'en a pas encore.
+    var currentPeriod: GradeBook.Period? {
+        guard let book = snapshotGrades ?? grades.book else { return nil }
+        if let selectedPeriod, book.periods.contains(selectedPeriod) { return selectedPeriod }
+        return PeriodPicker.withMarks(book: book, current: agendaPeriod)
+    }
+
+    /// Période de l'agenda, avant la bascule sur un semestre qui a des notes.
+    private var agendaPeriod: GradeBook.Period? {
+        guard let book = snapshotGrades ?? grades.book else { return nil }
+        return PeriodPicker.current(book: book, courses: store.courses, now: now)
+    }
+
+    /// Vrai si le mode automatique affiche un autre semestre que celui de l'agenda.
+    var automaticPeriodDiffers: Bool {
+        guard let book = snapshotGrades ?? grades.book else { return false }
+        return PeriodPicker.withMarks(book: book, current: agendaPeriod) != agendaPeriod
+    }
+
     func openSettings() {
         feedDraft = feedURL?.absoluteString ?? ""
+        loginDraft = credentials?.login ?? ""
+        passwordDraft = ""
+        accountResult = nil
         friendDraft = friendURLs[friendSlot]?.absoluteString ?? ""
         saveResult = nil
         friendResult = nil
@@ -637,7 +821,7 @@ final class AppModel {
         weatherMessage = nil
         diagnosticCopied = false
         // Sans calendrier, rien d'autre ne sert : on ouvre directement sur l'URL.
-        if feedURL == nil { panel = .calendar }
+        if !hasSource { panel = .calendar }
         presentSettings()
     }
 
@@ -662,5 +846,15 @@ final class AppModel {
                 NSLog("EduBar: lancement au démarrage impossible: \(error.localizedDescription)")
             }
         }
+    }
+}
+
+/// Identifiants lisibles depuis le client réseau (hors du fil principal).
+final class CredentialBox: @unchecked Sendable {
+    private let lock = NSLock()
+    private var stored: MyGESCredentials?
+    var value: MyGESCredentials? {
+        get { lock.withLock { stored } }
+        set { lock.withLock { stored = newValue } }
     }
 }

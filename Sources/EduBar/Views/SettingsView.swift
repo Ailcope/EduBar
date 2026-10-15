@@ -42,6 +42,7 @@ struct SettingsView: View {
     private func content(_ panel: SettingsPanel) -> some View {
         switch panel {
         case .calendar: calendarEditor
+        case .account: accountEditor
         case .notifications: notificationsEditor
         case .alternance: alternanceEditor
         case .shortcuts: shortcutsEditor
@@ -55,8 +56,25 @@ struct SettingsView: View {
     // MARK: - Calendrier
 
     private var calendarEditor: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Picker("Source", selection: binding(\.calendarSource)) {
+                ForEach(CalendarSource.allCases) { Text($0.title).tag($0) }
+            }
+            .pickerStyle(.segmented)
+            if model.calendarSource == .myges {
+                caption("L'emploi du temps vient de ton compte myGES (section Compte myGES). Rafraîchi toutes les 15 min, 8 semaines à l'avance.")
+                if !model.hasCredentials {
+                    Button("Configurer le compte") { model.panel = .account }
+                }
+            } else {
+                icalEditor
+            }
+        }
+    }
+
+    private var icalEditor: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("URL du calendrier Edusign").font(.callout.weight(.semibold))
+            Text("URL du calendrier iCal (Edusign)").font(.callout.weight(.semibold))
             TextField("webcal://api.edusign.fr/student/account/ical?…", text: binding(\.feedDraft))
                 .textFieldStyle(.roundedBorder)
                 .onSubmit(model.saveDraft)
@@ -78,6 +96,46 @@ struct SettingsView: View {
             }
             .disabled(model.feedURL == nil)
             .help("Abonne l'app Calendrier à ce flux : tes cours y apparaissent et restent à jour.")
+        }
+    }
+
+    // MARK: - Compte myGES
+
+    private var accountEditor: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Identifiants myGES").font(.callout.weight(.semibold))
+            TextField("Identifiant (p.nom)", text: binding(\.loginDraft))
+                .textFieldStyle(.roundedBorder)
+                .textContentType(.username)
+            SecureField("Mot de passe", text: binding(\.passwordDraft))
+                .textFieldStyle(.roundedBorder)
+                .onSubmit { Task { await model.saveCredentials() } }
+            caption("Les mêmes que sur myges.fr. Ils restent sur ce Mac, dans un fichier lisible par ta session seulement (0600), et ne servent qu'à obtenir un jeton auprès de myGES.")
+            HStack {
+                Button("Se connecter") { Task { await model.saveCredentials() } }
+                    .disabled(model.accountSaving || model.loginDraft.isEmpty || model.passwordDraft.isEmpty)
+                    .keyboardShortcut(.defaultAction)
+                if model.accountSaving { ProgressView().controlSize(.small) }
+                if let result = model.accountResult {
+                    Label(result.message, systemImage: result.ok ? "checkmark.circle" : "xmark.circle")
+                        .font(.caption)
+                        .foregroundStyle(result.ok ? .green : .red)
+                        .lineLimit(3)
+                }
+            }
+            if model.hasCredentials {
+                Divider()
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Connecté : \(model.mygesLogin)").font(.callout.weight(.medium))
+                    if let error = model.grades.lastError {
+                        Label(error, systemImage: "exclamationmark.triangle")
+                            .font(.caption).foregroundStyle(.orange).lineLimit(3)
+                    } else if let updated = model.grades.lastUpdated {
+                        caption("Notes rafraîchies à \(Display.time(updated, calendar: model.calendar))")
+                    }
+                }
+                Button("Oublier ce compte", role: .destructive, action: model.forgetCredentials)
+            }
         }
     }
 
@@ -218,6 +276,17 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            VStack(alignment: .leading, spacing: 2) {
+                HStack {
+                    Toggle("Nouvelle note", isOn: binding(\.notifyNewGrades))
+                        .font(.callout.weight(.medium))
+                    Spacer()
+                    Button("Tester", action: model.testNewGrade)
+                        .font(.caption)
+                }
+                caption("Dès qu'une note apparaît sur myGES (vérifié toutes les 15 min). Nécessite un compte myGES.")
+            }
+            .disabled(!model.hasCredentials)
             Button("Rétablir les notifications par défaut") { model.notifications = .defaults }
                 .font(.caption)
                 .disabled(model.notifications == .defaults)

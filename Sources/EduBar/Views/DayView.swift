@@ -34,10 +34,10 @@ struct DayView: View {
                     detail: "Si macOS le demande, autorise EduBar à lire son ancien élément du Trousseau : c'est la dernière fois.",
                     button: nil
                 )
-            } else if model.feedURL == nil {
+            } else if !model.hasSource {
                 emptyState(
                     "Aucun calendrier configuré",
-                    detail: "Colle l'URL webcal de ton calendrier Edusign dans les réglages.",
+                    detail: "Ajoute ton compte myGES ou l'URL de ton calendrier dans les réglages.",
                     button: "Configurer"
                 )
             } else if model.schedule.courses.isEmpty {
@@ -309,7 +309,7 @@ struct DayView: View {
                     Label("Pas mis à jour depuis \(stale)" + (model.store.lastError.map { " · \($0)" } ?? ""),
                           systemImage: "exclamationmark.triangle")
                         .foregroundStyle(.orange)
-                        .help("Le planning affiché peut être périmé : Edusign ne répond plus ou renvoie une erreur.")
+                        .help("Le planning affiché peut être périmé : la source ne répond plus ou renvoie une erreur.")
                 } else if let error = model.store.lastError {
                     Label(error, systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
                 } else if let updated = model.store.lastUpdated {
@@ -325,11 +325,14 @@ struct DayView: View {
             } label: {
                 Image(systemName: "arrow.clockwise")
             }
-            .disabled(model.store.isLoading || model.feedURL == nil)
+            .disabled(model.store.isLoading || !model.hasSource)
             .help("Rafraîchir")
             Button(action: model.openWeek) { Image(systemName: "calendar") }
                 .disabled(model.schedule.courses.isEmpty)
                 .help("Semaine")
+            Button(action: model.openGrades) { Image(systemName: "graduationcap") }
+                .disabled(!model.hasCredentials)
+                .help("Notes")
             Button { model.showingStats = true } label: { Image(systemName: "chart.bar") }
                 .disabled(model.schedule.courses.isEmpty)
                 .help("Statistiques")

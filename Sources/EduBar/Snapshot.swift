@@ -22,6 +22,13 @@ enum Snapshot {
         // `--demo` : mêmes horaires, matières et salles fictives (captures publiées).
         let demo = args.contains("--demo")
         if demo { model.snapshotCourses = anonymized(model.schedule.courses) }
+        if demo {
+            model.snapshotHasCredentials = true
+            model.snapshotLogin = "p.nom"
+            model.snapshotGrades = demoGrades
+            model.snapshotNewGrades = [NewGrade(course: "S1 - Bases de données", label: "CC1", value: 18, period: demoPeriod)]
+            model.selectedPeriod = demoPeriod
+        }
         model.tick()
         // Potes factices : tes cours, finis 30 min plus tôt, sans le dernier (ou le premier) de la journée.
         let savedNames = model.friendNames
@@ -69,6 +76,12 @@ enum Snapshot {
         print(model.diagnosticText())
         write(SettingsView(model: model, panelOnly: true), to: dir.appendingPathComponent("settings-closed.png"))
         write(StatsView(model: model), to: dir.appendingPathComponent("stats.png"))
+        if demo {
+            write(GradesTableView(model: model).frame(width: 1100, height: 760), to: dir.appendingPathComponent("grades.png"))
+            model.loginDraft = "p.nom"
+            model.panel = .account
+            write(SettingsView(model: model, panelOnly: true), to: dir.appendingPathComponent("panel-account.png"))
+        }
         model.openWeek()
         write(WeekView(model: model), to: dir.appendingPathComponent("week.png"))
         model.showingWeek = false
@@ -172,6 +185,35 @@ enum Snapshot {
             write(view, to: dir.appendingPathComponent("bar-\(name).png"))
         }
     }
+
+    /// Carnet de notes fictif des captures `--demo`.
+    private static let demoGrades = GradeBook(subjects: [
+        .init(course: "S1 - Réseaux et protocoles", grades: [12, 15.5], exam: 13, average: 13.6, ccAverage: 13.75,
+              coef: 2, ects: 3, teacher: "M. MARTIN", trimester: 120, year: 2026, trimesterName: "Semestre 1", letterMark: "C"),
+        .init(course: "S1 - Algorithmique", grades: [16, 14], exam: 17, average: 16.2, ccAverage: 15,
+              coef: 3, ects: 4, teacher: "Mme DURAND", trimester: 120, year: 2026, trimesterName: "Semestre 1", letterMark: "A"),
+        .init(course: "S1 - Systèmes Linux", grades: [9.5, 7], exam: nil, average: 8.25, ccAverage: 8.25,
+              coef: 2, ects: 3, teacher: "M. PETIT", trimester: 120, year: 2026, trimesterName: "Semestre 1", letterMark: "E",
+              absences: 3, lates: 1),
+        .init(course: "S1 - Anglais technique", grades: [14, 11, 15], exam: 10, average: 12.5, ccAverage: 13.33,
+              coef: 1, ects: 2, teacher: "Mme LEROY", trimester: 120, year: 2026, trimesterName: "Semestre 1", letterMark: "C",
+              lates: 1),
+        .init(course: "S1 - Bases de données", grades: [18], exam: nil, average: 18, ccAverage: 18,
+              coef: 2, ects: 3, teacher: "M. MOREAU", trimester: 120, year: 2026, trimesterName: "Semestre 1", letterMark: "A"),
+        .init(course: "S1 - Mathématiques", grades: [10, 12], exam: 10, average: 10.5, ccAverage: 11,
+              coef: 2, ects: 3, teacher: "Mme GARCIA", trimester: 120, year: 2026, trimesterName: "Semestre 1", letterMark: "D"),
+        .init(course: "S1 - Cloud et virtualisation", grades: [10], exam: nil, average: 10, ccAverage: 10,
+              coef: 1, ects: 2, teacher: "M. ROBERT", trimester: 120, year: 2026, trimesterName: "Semestre 1", letterMark: "D"),
+        .init(course: "S1 - Cybersécurité", grades: [], exam: nil, average: nil, ccAverage: nil,
+              coef: 2, ects: 3, teacher: "M. BERNARD", trimester: 120, year: 2026, trimesterName: "Semestre 1",
+              absences: 2),
+        .init(course: "S2 - Développement web", grades: [13], exam: 14.5, average: 13.9, ccAverage: 13,
+              coef: 3, ects: 4, teacher: "Mme ROUX", trimester: 121, year: 2026, trimesterName: "Semestre 2", letterMark: "B"),
+        .init(course: "S2 - Gestion de projet", grades: [], exam: nil, average: nil, ccAverage: nil,
+              coef: nil, ects: nil, teacher: nil, trimester: 121, year: 2026, trimesterName: "Semestre 2"),
+    ])
+
+    private static let demoPeriod = GradeBook.Period(year: 2026, trimester: 120, name: "Semestre 1")
 
     private static let demoSubjects = [
         "Réseaux et protocoles", "Algorithmique", "Systèmes Linux", "Anglais technique", "Bases de données",

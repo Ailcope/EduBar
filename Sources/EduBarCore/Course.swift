@@ -8,13 +8,38 @@ public struct Course: Identifiable, Hashable, Codable, Sendable {
     public let end: Date
     /// Salle, ou `nil` si le flux ne la donne pas.
     public let room: String?
+    /// Enseignant (MyGES), `nil` pour un flux ICS.
+    public let teacher: String?
+    /// Modalité (présentiel, distanciel…), `nil` si inconnue.
+    public let modality: String?
+    /// Identifiant de période (semestre myGES), `nil` si inconnu.
+    public let periodID: Int?
 
-    public init(id: String, title: String, start: Date, end: Date, room: String?) {
+    public init(
+        id: String, title: String, start: Date, end: Date, room: String?,
+        teacher: String? = nil, modality: String? = nil, periodID: Int? = nil
+    ) {
         self.id = id
         self.title = title
         self.start = start
         self.end = end
         self.room = room
+        self.teacher = teacher
+        self.modality = modality
+        self.periodID = periodID
+    }
+
+    /// Les archives d'une ancienne version n'ont pas `teacher`, `modality` ni `periodID`.
+    public init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        title = try c.decode(String.self, forKey: .title)
+        start = try c.decode(Date.self, forKey: .start)
+        end = try c.decode(Date.self, forKey: .end)
+        room = try c.decodeIfPresent(String.self, forKey: .room)
+        teacher = try c.decodeIfPresent(String.self, forKey: .teacher)
+        modality = try c.decodeIfPresent(String.self, forKey: .modality)
+        periodID = try c.decodeIfPresent(Int.self, forKey: .periodID)
     }
 
     /// Titre sans le préfixe de période Edusign (« T1 - »).

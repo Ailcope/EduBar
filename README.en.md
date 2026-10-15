@@ -7,9 +7,9 @@
 [![macOS 14+](https://img.shields.io/badge/macOS-14+-000000?logo=apple&logoColor=white)](https://www.apple.com/macos/)
 [![License: PolyForm NC](https://img.shields.io/badge/License-PolyForm%20NC-orange.svg?logo=opensourceinitiative&logoColor=white)](./LICENSE.md)
 
-**Your Edusign timetable in the macOS menu bar, native Swift, no Xcode.**
+**Your myGES timetable and grades in the macOS menu bar, native Swift, no Xcode.**
 
-Works with **Edusign** &bull; **SwiftUI** &bull; **macOS Notifications**
+Works with **myGES** (or an Edusign iCal feed) &bull; **SwiftUI** &bull; **macOS Notifications**
 
 [🇫🇷 FR](README.md) &bull; **🇬🇧 EN**
 
@@ -22,7 +22,7 @@ Works with **Edusign** &bull; **SwiftUI** &bull; **macOS Notifications**
 - [Overview](#overview)
 - [Features](#features)
 - [Install](#install)
-- [Calendar URL](#calendar-url)
+- [Connect myGES](#connect-myges)
 - [Configuration](#configuration)
 - [Privacy](#privacy)
 - [Build](#build)
@@ -30,7 +30,7 @@ Works with **Edusign** &bull; **SwiftUI** &bull; **macOS Notifications**
 
 ## Overview
 
-**EduBar** is a small macOS menu bar app that reads your Edusign timetable and tells you, at a glance, how long until the next break or class and which room to go to. Click it for the full day, with rooms and breaks. It warns you 15 minutes before a class ends when the next one is in a different room, and sends notifications for class end, class start and room changes. It ships without any calendar URL: you paste yours on first launch, and it stays on your Mac.
+**EduBar** is a small macOS menu bar app that reads your myGES timetable and tells you, at a glance, how long until the next break or class and which room to go to. Click it for the full day, with rooms and breaks; another click shows your grades, subject by subject, with a notification as soon as a new one lands. It warns you 15 minutes before a class ends when the next one is in a different room, and sends notifications for class end, class start and room changes. It ships without any account: you enter your myGES credentials on first launch (or an Edusign iCal URL), and they stay on your Mac.
 
 ## Features
 
@@ -106,17 +106,21 @@ Screenshots show made-up subjects, rooms, names and weather (`EduBar --snapshot 
 
 - **Keyboard shortcut.** ⌥⌘E opens and closes the menu from any app, no Accessibility permission needed. Change or disable it in ⚙️.
 - **Copy diagnostics.** A button at the bottom of the settings copies the version, app location, quarantine and calendar state for a bug report. Never the URL.
-- **Add to Calendar.** One button subscribes the Calendar app to the Edusign feed.
+- **Grades.** The 🎓 button opens a window that mirrors the myGES table, in the spirit of [MyPrettyGradES](https://github.com/Ailcope/MyPrettyGradES): colored marks (green above 10, yellow at 10, red below), average and letter per subject, stat tiles (weighted average, plain average, min, max, standard deviation, absences and lates) and a bar chart of the averages per subject with the weighted-average marker. A picker selects the school year and semester; by default, the one of the classes currently in the agenda, or the latest semester that has marks. New marks are highlighted, and as soon as a grade appears on myGES, a notification: `Nouvelle note : Sécurité des réseaux` · `CC2 : 15,5/20`. Can be turned off in ⚙️ > **Notifications**.
+
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/grades-dark.png"><img src="docs/screenshots/grades.png" width="680" alt="Grades window, table per semester"></picture>
+
+- **Add to Calendar.** With the iCal source, one button subscribes the Calendar app to the Edusign feed.
 - **Custom texts.** Every menu bar text and emoji can be rewritten, with `{temps}`, `{salle}` and `{jour}` placeholders.
 
   <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/panel-templates-dark.png"><img src="docs/screenshots/panel-templates.png" width="340" alt="Custom texts"></picture>
 
 - **Offline.** The timetable is cached locally, so the app keeps working without network.
-- **Stale feed.** If the timetable could not be refreshed for more than 24 h, the menu bar shows `⚠︎` and the day view says since when. An empty Edusign feed while courses are still planned is ignored: known courses stay.
+- **Stale source.** If the timetable could not be refreshed for more than 24 h, the menu bar shows `⚠︎` and the day view says since when. An empty answer while courses are still planned is ignored: known courses stay.
 
   <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/bar-stale-dark.png"><img src="docs/screenshots/bar-stale.png" width="136" alt="Timetable may be stale"></picture>
 
-- **Past days kept.** Edusign drops yesterday from the feed: EduBar archives every past day locally (400 days, 0600), so browsing back and stats stay complete.
+- **Past days kept.** myGES is only read a few weeks around today and Edusign drops yesterday from the feed: EduBar archives every past day locally (400 days, 0600), so browsing back and stats stay complete.
 - **Updates.** Checks GitHub every 6 hours and installs new releases by itself: verified download (GitHub's SHA-256 digest, bundle id, version and signature), in-place replacement, relaunch. Settings are kept. Clicking the "updated" notification opens the release notes. When run from the `.dmg`, it offers **Installer**: copy, relaunch from Applications and eject the disk image. If it cannot replace itself, a notification announces the new version and links to the download.
 
 ## Install
@@ -131,7 +135,19 @@ Screenshots show made-up subjects, rooms, names and weather (`EduBar --snapshot 
 
 Requires macOS 14 or later, Apple Silicon or Intel.
 
-## Calendar URL
+## Connect myGES
+
+1. Click EduBar, then ⚙️ > **Compte myGES**.
+2. Enter your myGES username (`f.lastname`) and password, then **Se connecter**. EduBar checks them against myGES, loads the next 8 weeks of timetable and the grades of all your years.
+3. Done: the **Compte myGES** source is selected in ⚙️ > **Calendrier**. **Oublier ce compte** wipes the credentials and grades from this Mac.
+
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/panel-account-dark.png"><img src="docs/screenshots/panel-account.png" width="340" alt="myGES account settings"></picture>
+
+For diagnostics, `EduBar --myges-dump` (from `/Applications/EduBar.app/Contents/MacOS/`) prints the raw myGES answers (years, agenda, grades), never the token or the credentials.
+
+### Or an iCal feed (Edusign)
+
+Without a myGES account, pick **Flux iCal (Edusign)** in ⚙️ > **Calendrier**:
 
 1. Log in to Edusign in your browser.
 2. Open the console (Cmd+Option+J on Chrome/Brave, Cmd+Option+C on Safari).
@@ -155,12 +171,17 @@ Everything lives in ⚙️:
 | Class end | 5 min before a run of classes ends | `Fin du cours dans 5 min` · `Langage C avancé se termine à 13h. Ensuite : déjeuner.` |
 | Class start | 5 min before the first class or after a break | `Cours dans 5 min · 501` |
 | Room change | 15 min before the end, if the next class is elsewhere | `⚠️ Changement de salle : 501` |
+| New grade | as soon as a grade appears on myGES (checked every 15 min) | `Nouvelle note : Sécurité des réseaux` · `CC2 : 15,5/20` |
 
 Notification placeholders: `{cours}`, `{heure}`, `{temps}`, `{salle}`, `{pause}`. An empty field falls back to the default text. If nothing shows up, allow EduBar in System Settings > Notifications.
 
 ## Privacy
 
-The URL is enough to read your timetable: it only holds your school and student IDs, no password. Keep it private. EduBar stores it in `~/Library/Application Support/EduBar/feed-url`, readable by your user only (0600), never writes it to logs, and only talks to `api.edusign.fr` (or the host you give it), to `api.github.com` for updates (sending nothing but its version) and to `edu.mathys.cc` for the anonymous signal described below. With **Add to Calendar**, the Calendar app then reads the URL itself.
+**myGES account.** Your credentials are only used to get a token from myGES (`authentication.kordis.fr`, the same API as the official mobile app); the token then reads your agenda and grades on `api.kordis.fr`. They are stored in `~/Library/Application Support/EduBar/myges-credentials`, readable by your user only (0600), never written to logs nor sent anywhere else; the token only lives in memory. Grades are cached in the same folder (`grades.json`, 0600). **Oublier ce compte** wipes it all. The app is ad-hoc signed, which is why it does not use the Keychain: it would ask for access again after every update.
+
+**iCal feed.** The URL is enough to read your timetable: it only holds your school and student IDs, no password. Keep it private. EduBar stores it in `~/Library/Application Support/EduBar/feed-url` (0600), never writes it to logs, and only talks to `api.edusign.fr` (or the host you give it). With **Add to Calendar**, the Calendar app then reads the URL itself.
+
+In both cases, EduBar also talks to `api.github.com` for updates (sending nothing but its version) and to `edu.mathys.cc` for the anonymous signal described below.
 
 **Anonymous usage signal.** At most once a day, EduBar sends `edu.mathys.cc` a random identifier generated by the server (kept in `~/Library/Application Support/EduBar/installation`, 0600, unrelated to you) and its version number. Nothing else: no URL, no calendar, no name. The server only keeps a hash of the identifier, the day and the version; presence records are deleted after 35 days and no IP address is stored. It only serves to know how many people use EduBar. To turn it off: **Réglages › Application › Compter cette installation (anonyme)** (the app is in French), untick it, and nothing is sent anymore.
 

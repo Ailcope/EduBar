@@ -12,14 +12,20 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     private let popover = NSPopover()
     private var anchorWindow: NSWindow?
     private let settingsWindow: SettingsWindow
+    private let gradesWindow: GradesWindow
 
     init(model: AppModel) {
         self.model = model
         settingsWindow = SettingsWindow(model: model)
+        gradesWindow = GradesWindow(model: model)
         super.init()
         model.presentSettings = { [weak self] in
             self?.popover.performClose(nil)
             self?.settingsWindow.show()
+        }
+        model.presentGrades = { [weak self] in
+            self?.popover.performClose(nil)
+            self?.gradesWindow.show()
         }
         popover.behavior = .transient
         popover.animates = false
@@ -33,6 +39,8 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
         #if DEBUG
         // Vérif visuelle : `EDUBAR_SETTINGS=1 .build/debug/EduBar` ouvre la fenêtre au lancement.
         if ProcessInfo.processInfo.environment["EDUBAR_SETTINGS"] != nil { model.openSettings() }
+        // Idem pour la fenêtre Notes : `EDUBAR_GRADES=1`.
+        if ProcessInfo.processInfo.environment["EDUBAR_GRADES"] != nil { model.openGrades() }
         #endif
     }
 
@@ -109,6 +117,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @MainActor private var controller: MenuBarController?
 
     @MainActor func applicationDidFinishLaunching(_ notification: Notification) {
+        MainMenu.install()
         controller = MenuBarController(model: AppModel())
     }
 }

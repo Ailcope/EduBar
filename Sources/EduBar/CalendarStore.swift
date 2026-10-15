@@ -11,7 +11,7 @@ enum FetchError: LocalizedError {
         switch self {
         case let .http(code): "Le serveur a répondu \(code)."
         case .notACalendar: "La réponse n'est pas un calendrier iCal."
-        case .emptyFeed: "Edusign a renvoyé un calendrier vide, les cours déjà connus sont gardés."
+        case .emptyFeed: "La source a renvoyé un calendrier vide, les cours déjà connus sont gardés."
         }
     }
 }
@@ -26,12 +26,15 @@ final class CalendarStore {
     private(set) var isLoading = false
 
     private let cacheURL: URL
+    /// Cours de la source myGES (JSON). Seul le calendrier principal en a un.
+    private let jsonCacheURL: URL?
     private let historyURL: URL
     private var archived: [Course] = []
 
     /// `cacheName` : fichier du cache disque (un par calendrier).
     init(cacheName: String = "calendar.ics") {
         cacheURL = Self.cacheDirectory.appendingPathComponent(cacheName)
+        jsonCacheURL = cacheName == "calendar.ics" ? Self.cacheDirectory.appendingPathComponent("calendar-myges.json") : nil
         // Hors de Caches, que macOS peut vider : ces cours-là ne se retéléchargent pas.
         historyURL = FeedFile.standard.url.deletingLastPathComponent()
             .appendingPathComponent("history-" + (cacheName as NSString).deletingPathExtension + ".json")
@@ -41,7 +44,11 @@ final class CalendarStore {
         courses = archived
         if let text = try? String(contentsOf: cacheURL, encoding: .utf8) {
             courses = History.merge(archived: archived, fresh: ICSParser.parse(text), now: Date(), calendar: .current)
-            lastUpdated = (try? cacheURL.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
+            lastUpdated = Self.modified(cacheURL)
+        } else if let jsonCacheURL, let data = try? Data(contentsOf: jsonCacheURL),
+                  let saved = try? JSONDecoder().decode([Course].self, from: data) {
+            courses = History.merge(archived: archived, fresh: saved, now: Date(), calendar: .current)
+            lastUpdated = Self.modified(jsonCacheURL)
         }
     }
 
@@ -53,21 +60,50 @@ final class CalendarStore {
     }()
 
     func refresh(from url: URL?) async {
-        guard let url, !isLoading else { return }
+        guard let url else { return }
+        await refresh {
+            let (text, parsed) = try await Self.fetch(url)
+            return (parsed, { [cacheURL, jsonCacheURL] in
+                try? text.write(to: cacheURL, atomically: true, encoding: .utf8)
+                if let jsonCacheURL { try? FileManager.default.removeItem(at: jsonCacheURL) }
+            })
+        }
+    }
+
+    /// Source myGES : les cours viennent de l'API, le cache est un JSON.
+    func refresh(using fetch: @Sendable () async throws -> [Course]) async {
+        await refresh {
+            let parsed = try await fetch()
+            return (parsed, { [cacheURL, jsonCacheURL] in
+                guard let jsonCacheURL, let data = try? JSONEncoder().encode(parsed) else { return }
+                try? data.write(to: jsonCacheURL, options: .atomic)
+                // Le cache iCal d'une ancienne source ne doit plus l'emporter au prochain lancement.
+                try? FileManager.default.removeItem(at: cacheURL)
+            })
+        }
+    }
+
+    /// Logique commune : garde anti-flux vide, fusion avec l'historique, archive, cache.
+    private func refresh(_ load: () async throws -> (courses: [Course], persist: () -> Void)) async {
+        guard !isLoading else { return }
         isLoading = true
         defer { isLoading = false }
         do {
-            let (text, parsed) = try await Self.fetch(url)
+            let (parsed, persist) = try await load()
             let now = Date()
             if Freshness.suspiciousEmpty(fresh: parsed, previous: courses, now: now) { throw FetchError.emptyFeed }
             courses = History.merge(archived: archived, fresh: parsed, now: now, calendar: .current)
             archive(History.archivable(courses, now: now, calendar: .current))
             lastUpdated = now
             lastError = nil
-            try? text.write(to: cacheURL, atomically: true, encoding: .utf8)
+            persist()
         } catch {
             lastError = error.localizedDescription
         }
+    }
+
+    private static func modified(_ url: URL) -> Date? {
+        (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
     }
 
     /// Oublie tout (URL supprimée).
@@ -76,6 +112,7 @@ final class CalendarStore {
         lastUpdated = nil
         lastError = nil
         try? FileManager.default.removeItem(at: cacheURL)
+        if let jsonCacheURL { try? FileManager.default.removeItem(at: jsonCacheURL) }
         archived = []
         try? FileManager.default.removeItem(at: historyURL)
     }
