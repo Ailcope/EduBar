@@ -110,6 +110,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @MainActor private var controller: MenuBarController?
 
     @MainActor func applicationDidFinishLaunching(_ notification: Notification) {
+        MainMenu.install()
         controller = MenuBarController(model: AppModel())
     }
 }
