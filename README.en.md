@@ -106,9 +106,9 @@ Screenshots show made-up subjects, rooms, names and weather (`EduBar --snapshot 
 
 - **Keyboard shortcut.** ⌥⌘E opens and closes the menu from any app, no Accessibility permission needed. Change or disable it in ⚙️.
 - **Copy diagnostics.** A button at the bottom of the settings copies the version, app location, quarantine and calendar state for a bug report. Never the URL.
-- **Grades.** The 🎓 button lists this year's subjects: average, every continuous-assessment mark, exam, coefficient and ECTS, with new marks highlighted. As soon as a grade appears on myGES, a notification: `Nouvelle note : Sécurité des réseaux` · `CC2 : 15,5/20`. Can be turned off in ⚙️ > **Notifications**.
+- **Grades.** The 🎓 button opens a window that mirrors the myGES table: subject, teacher, coefficient, ECTS, every continuous-assessment mark, exam, plus the average and the letter. A picker selects the school year and semester; by default, the one of the classes currently in the agenda. The footer shows the weighted average of the semester. New marks are highlighted, and as soon as a grade appears on myGES, a notification: `Nouvelle note : Sécurité des réseaux` · `CC2 : 15,5/20`. Can be turned off in ⚙️ > **Notifications**.
 
-  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/grades-dark.png"><img src="docs/screenshots/grades.png" width="340" alt="Grades by subject"></picture>
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/grades-dark.png"><img src="docs/screenshots/grades.png" width="680" alt="Grades window, table per semester"></picture>
 
 - **Add to Calendar.** With the iCal source, one button subscribes the Calendar app to the Edusign feed.
 - **Custom texts.** Every menu bar text and emoji can be rewritten, with `{temps}`, `{salle}` and `{jour}` placeholders.
@@ -138,7 +138,7 @@ Requires macOS 14 or later, Apple Silicon or Intel.
 ## Connect myGES
 
 1. Click EduBar, then ⚙️ > **Compte myGES**.
-2. Enter your myGES username (`f.lastname`) and password, then **Se connecter**. EduBar checks them against myGES, loads the next 8 weeks of timetable and this year's grades.
+2. Enter your myGES username (`f.lastname`) and password, then **Se connecter**. EduBar checks them against myGES, loads the next 8 weeks of timetable and the grades of all your years.
 3. Done: the **Compte myGES** source is selected in ⚙️ > **Calendrier**. **Oublier ce compte** wipes the credentials and grades from this Mac.
 
   <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/panel-account-dark.png"><img src="docs/screenshots/panel-account.png" width="340" alt="myGES account settings"></picture>

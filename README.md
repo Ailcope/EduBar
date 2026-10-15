@@ -58,9 +58,9 @@ Les captures montrent des matières, des salles, des prénoms et une météo fic
   <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/panel-notifications-dark.png"><img src="docs/screenshots/panel-notifications.png" width="340" alt="Réglages des notifications"></picture>
 
 - **Changements d'emploi du temps.** Un cours annulé, déplacé, ajouté ou changé de salle dans les deux semaines à venir envoie une notification : `❌ Cours annulé · demain 14h`, `🔁 Cours déplacé · …`, `📍 Salle changée · 501`. Avec myGES, l'emploi du temps est celui du planning officiel, relu toutes les 15 min, 8 semaines à l'avance.
-- **Notes.** Le bouton 🎓 du menu liste tes matières de l'année : moyenne, chaque contrôle continu, examen, coefficient et ECTS, les nouveautés surlignées. Dès qu'une note apparaît sur myGES, une notification : `Nouvelle note : Sécurité des réseaux` · `CC2 : 15,5/20`. Désactivable dans ⚙️ > **Notifications**.
+- **Notes.** Le bouton 🎓 du menu ouvre une fenêtre qui reprend le tableau de myGES : matière, intervenant, coefficient, ECTS, chaque contrôle continu, examen, plus la moyenne et la lettre. Un sélecteur choisit l'année scolaire et le semestre ; par défaut, celui des cours en cours dans l'agenda. En pied, la moyenne pondérée du semestre. Les nouvelles notes sont surlignées, et dès qu'une apparaît sur myGES, une notification : `Nouvelle note : Sécurité des réseaux` · `CC2 : 15,5/20`. Désactivable dans ⚙️ > **Notifications**.
 
-  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/grades-dark.png"><img src="docs/screenshots/grades.png" width="340" alt="Notes par matière"></picture>
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/grades-dark.png"><img src="docs/screenshots/grades.png" width="680" alt="Fenêtre des notes, tableau par semestre"></picture>
 - **Jours suivants.** Les flèches ‹ › du menu passent d'un jour à l'autre (les week-ends vides sont sautés), **Revenir** ramène à aujourd'hui.
 
   <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/day-dark.png"><img src="docs/screenshots/day.png" width="340" alt="La journée"></picture>
@@ -138,7 +138,7 @@ macOS 14 ou plus récent, Apple Silicon ou Intel.
 ## Connecter myGES
 
 1. Clique sur EduBar, puis ⚙️ > **Compte myGES**.
-2. Saisis ton identifiant myGES (de la forme `p.nom`) et ton mot de passe, puis **Se connecter**. EduBar vérifie les identifiants auprès de myGES, charge l'emploi du temps des 8 prochaines semaines et tes notes de l'année.
+2. Saisis ton identifiant myGES (de la forme `p.nom`) et ton mot de passe, puis **Se connecter**. EduBar vérifie les identifiants auprès de myGES, charge l'emploi du temps des 8 prochaines semaines et tes notes de toutes tes années.
 3. C'est tout : la source **Compte myGES** est sélectionnée dans ⚙️ > **Calendrier**. **Oublier ce compte** efface les identifiants et les notes de ce Mac.
 
   <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/panel-account-dark.png"><img src="docs/screenshots/panel-account.png" width="340" alt="Réglages du compte myGES"></picture>
