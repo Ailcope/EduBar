@@ -340,3 +340,58 @@ struct MyGESTests {
         #expect(try JSONDecoder().decode(Course.self, from: JSONEncoder().encode(c)) == c)
     }
 }
+
+struct GradeStatsTests {
+    private let s1 = GradeBook.Period(year: 2026, trimester: 120, name: "Semestre 1")
+    private let s2 = GradeBook.Period(year: 2026, trimester: 121, name: "Semestre 2")
+
+    private var book: GradeBook {
+        GradeBook(subjects: [
+            .init(course: "a", grades: [12, 16], exam: 14, average: 14, coef: 2, trimester: 120, year: 2026,
+                  trimesterName: "Semestre 1", absences: 1, lates: 2),
+            .init(course: "b", grades: [8], exam: nil, average: nil, coef: 1, trimester: 120, year: 2026,
+                  trimesterName: "Semestre 1", absences: 2, lates: 0),
+            .init(course: "c", grades: [], exam: nil, average: nil, coef: 1, trimester: 121, year: 2026,
+                  trimesterName: "Semestre 2"),
+        ])
+    }
+
+    @Test func marksAndStats() {
+        #expect(book.marks(in: s1) == [12, 16, 14, 8])
+        let st = book.stats(in: s1)
+        #expect(st.weighted == 14)
+        #expect(st.simple == 12.5)
+        #expect(st.min == 8)
+        #expect(st.max == 16)
+        // Écart-type population de 12, 16, 14, 8 : racine de ((0,25 + 12,25 + 2,25 + 20,25) / 4) = racine de 8,75.
+        #expect(abs((st.standardDeviation ?? 0) - 8.75.squareRoot()) < 1e-9)
+        #expect(st.markCount == 4 && st.subjectCount == 2 && st.gradedSubjectCount == 2)
+        #expect(st.absences == 3 && st.lates == 2)
+    }
+
+    @Test func emptyPeriodStats() {
+        let st = book.stats(in: s2)
+        #expect(st.simple == nil && st.min == nil && st.standardDeviation == nil && st.markCount == 0)
+        #expect(!book.hasMarks(in: s2) && book.hasMarks(in: s1))
+    }
+
+    @Test func singleMarkHasNoDeviation() {
+        let one = GradeBook(subjects: [.init(course: "a", grades: [13], trimester: 120, year: 2026, trimesterName: "Semestre 1")])
+        #expect(one.stats(in: s1).standardDeviation == nil)
+        #expect(one.stats(in: s1).simple == 13)
+    }
+
+    @Test func markTone() {
+        #expect(MarkTone(15) == .good)
+        #expect(MarkTone(10) == .neutral)
+        #expect(MarkTone(9.75) == .bad)
+    }
+
+    @Test func pickerPrefersPeriodWithMarks() {
+        #expect(PeriodPicker.withMarks(book: book, current: s2) == s1)
+        #expect(PeriodPicker.withMarks(book: book, current: s1) == s1)
+        #expect(PeriodPicker.withMarks(book: book, current: nil) == nil)
+        let empty = GradeBook(subjects: [.init(course: "c", trimester: 121, year: 2026, trimesterName: "Semestre 2")])
+        #expect(PeriodPicker.withMarks(book: empty, current: s2) == s2)
+    }
+}

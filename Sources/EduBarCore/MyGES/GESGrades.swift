@@ -230,6 +230,57 @@ public struct GradeBook: Codable, Sendable, Equatable {
     public func maxCCCount(in period: Period) -> Int {
         subjects(in: period).map(\.grades.count).max() ?? 0
     }
+
+    /// Toutes les notes saisies dans la période (CC puis examen, matière par matière).
+    public func marks(in period: Period) -> [Double] {
+        subjects(in: period).flatMap { $0.grades + ($0.exam.map { [$0] } ?? []) }
+    }
+
+    /// Vrai si au moins une note est saisie dans la période.
+    public func hasMarks(in period: Period) -> Bool { !marks(in: period).isEmpty }
+
+    /// Statistiques du semestre, comme le panneau de MyPrettyGradES.
+    public struct Stats: Equatable, Sendable {
+        /// Moyenne pondérée des matières (coef), nil sans moyenne de matière.
+        public let weighted: Double?
+        /// Moyenne simple de toutes les notes saisies.
+        public let simple: Double?
+        public let min: Double?
+        public let max: Double?
+        /// Écart-type (population) des notes saisies ; nil avec moins de deux notes.
+        public let standardDeviation: Double?
+        public let markCount: Int
+        public let subjectCount: Int
+        /// Matières avec au moins une note.
+        public let gradedSubjectCount: Int
+        public let absences: Int
+        public let lates: Int
+    }
+
+    public func stats(in period: Period) -> Stats {
+        let list = subjects(in: period)
+        let marks = marks(in: period)
+        let simple = marks.isEmpty ? nil : marks.reduce(0, +) / Double(marks.count)
+        var sd: Double?
+        if marks.count >= 2, let m = simple {
+            sd = (marks.map { ($0 - m) * ($0 - m) }.reduce(0, +) / Double(marks.count)).squareRoot()
+        }
+        return Stats(
+            weighted: weightedAverage(in: period), simple: simple, min: marks.min(), max: marks.max(),
+            standardDeviation: sd, markCount: marks.count, subjectCount: list.count,
+            gradedSubjectCount: list.filter { !$0.grades.isEmpty || $0.exam != nil }.count,
+            absences: list.compactMap(\.absences).reduce(0, +), lates: list.compactMap(\.lates).reduce(0, +)
+        )
+    }
+}
+
+/// Couleur d'une note, comme MyPrettyGradES : vert au-dessus de 10, jaune à 10, rouge en dessous.
+public enum MarkTone: Sendable, Equatable {
+    case good, neutral, bad
+
+    public init(_ value: Double) {
+        self = value > 10 ? .good : value < 10 ? .bad : .neutral
+    }
 }
 
 /// Choix de la période affichée par défaut.
@@ -247,6 +298,14 @@ public enum PeriodPicker {
             if let p = periods.first(where: { $0.trimester == id }) { return p }
         }
         return fallback(periods: periods, now: now)
+    }
+
+    /// Comme MyPrettyGradES : si la période courante n'a encore aucune note, la période la plus
+    /// récente qui en a (sinon la courante). `current` : résultat de `current(book:courses:now:)`.
+    public static func withMarks(book: GradeBook, current: GradeBook.Period?) -> GradeBook.Period? {
+        guard let current else { return nil }
+        if book.hasMarks(in: current) { return current }
+        return book.periods.first { book.hasMarks(in: $0) } ?? current
     }
 
     /// Sans agenda exploitable : dans l'année la plus récente, le semestre que la date suggère
