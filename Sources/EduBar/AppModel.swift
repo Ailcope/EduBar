@@ -12,15 +12,15 @@ enum SettingsPanel: CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .calendar: "Calendrier"
-        case .account: "Compte myGES"
+        case .calendar: L10n.tr("Calendrier", "Calendar")
+        case .account: L10n.tr("Compte myGES", "myGES account")
         case .notifications: "Notifications"
-        case .alternance: "Alternance"
-        case .shortcuts: "Raccourcis"
-        case .friend: "Pauses communes"
-        case .weather: "Météo"
-        case .templates: "Textes de la barre"
-        case .app: "Application"
+        case .alternance: L10n.tr("Alternance", "Work-study")
+        case .shortcuts: L10n.tr("Raccourcis", "Shortcuts")
+        case .friend: L10n.tr("Pauses communes", "Shared breaks")
+        case .weather: L10n.tr("Météo", "Weather")
+        case .templates: L10n.tr("Textes de la barre", "Menu bar text")
+        case .app: L10n.tr("Application", "App")
         }
     }
 
@@ -47,8 +47,21 @@ enum CalendarSource: String, Codable, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .ical: "Flux iCal (Edusign)"
-        case .myges: "Compte myGES"
+        case .ical: L10n.tr("Flux iCal (Edusign)", "iCal feed (Edusign)")
+        case .myges: L10n.tr("Compte myGES", "myGES account")
+        }
+    }
+}
+
+extension AppLanguage: Identifiable {
+    public var id: String { rawValue }
+
+    /// Libellé dans le sélecteur : les deux langues restent écrites dans leur propre langue.
+    var label: String {
+        switch self {
+        case .system: L10n.tr("Automatique (langue du système)", "Automatic (system language)")
+        case .fr: "Français"
+        case .en: "English"
         }
     }
 }
@@ -61,6 +74,24 @@ final class AppModel {
     let grades = GradesStore()
     let updates = UpdateChecker()
     let calendar = Calendar.autoupdatingCurrent
+
+    /// Langue choisie (Réglages > Application). Le changement s'applique à chaud : `L10n` est mis à jour ici,
+    /// et les fenêtres lisent `language` (suivi par `@Observable`) pour se reconstruire.
+    var language: AppLanguage {
+        didSet {
+            UserDefaults.standard.set(language.rawValue, forKey: Self.languageKey)
+            applyLanguage()
+        }
+    }
+    static let languageKey = "appLanguage"
+
+    /// Pose la langue résolue et ramène les textes par défaut déjà enregistrés dans cette langue.
+    private func applyLanguage() {
+        let lang = language.resolved()
+        L10n.set(lang)
+        templates = templates.localized(to: lang)
+        notifications = notifications.localized(to: lang)
+    }
 
     /// Notifications personnalisées dans les réglages.
     var notifications: NotificationRules { didSet { Self.persist(notifications, "notificationRules") } }
@@ -217,15 +248,22 @@ final class AppModel {
     /// `readKeychainNow` : lecture synchrone, pour le mode `--snapshot` seulement.
     init(readKeychainNow: Bool = false) {
         let defaults = UserDefaults.standard
+        // La langue d'abord : les textes par défaut en dépendent. `EDUBAR_LANG` (fr, en) force la langue sans la
+        // mémoriser (vérif visuelle).
+        let chosen = ProcessInfo.processInfo.environment["EDUBAR_LANG"].flatMap(AppLanguage.init)
+            ?? defaults.string(forKey: Self.languageKey).flatMap(AppLanguage.init) ?? .system
+        language = chosen
+        let lang = chosen.resolved()
+        L10n.set(lang)
         if let rules: NotificationRules = Self.load("notificationRules") {
-            notifications = rules
+            notifications = rules.localized(to: lang)
         } else {
             // Réglage de la v0.2 : seulement l'alerte de changement de salle.
             var rules = NotificationRules.defaults
             rules.roomChange.enabled = defaults.object(forKey: "notifyRoomChanges") as? Bool ?? true
             notifications = rules
         }
-        templates = Self.load("barTemplates") ?? .defaults
+        templates = (Self.load("barTemplates") ?? BarTemplates.defaults).localized(to: lang)
         alternance = Self.load("alternance") ?? .defaults
         shortcuts = Self.load("shortcuts") ?? .defaults
         weather = Self.load("weather") ?? .defaults
@@ -269,6 +307,7 @@ final class AppModel {
     }
     var barText: String {
         guard hasSource else { return "" }
+        _ = language  // dépendance : la barre se redessine quand la langue change
         let text = Display.barText(
             status: status, alert: alert, now: now, calendar: calendar, templates: templates,
             companyToday: isCompanyDay(now), weather: shownWeather,
@@ -359,7 +398,7 @@ final class AppModel {
         Task {
             do {
                 weatherResults = try await WeatherStore.search(query)
-                weatherMessage = weatherResults.isEmpty ? "Aucune ville trouvée." : nil
+                weatherMessage = weatherResults.isEmpty ? L10n.tr("Aucune ville trouvée.", "No city found.") : nil
             } catch {
                 weatherResults = []
                 weatherMessage = error.localizedDescription
@@ -408,7 +447,7 @@ final class AppModel {
 
     func friendLabel(_ slot: Int) -> String {
         let name = friendNames[slot].trimmingCharacters(in: .whitespaces)
-        return name.isEmpty ? "Pote \(slot + 1)" : name
+        return name.isEmpty ? L10n.tr("Pote \(slot + 1)", "Friend \(slot + 1)") : name
     }
 
     /// Jour affiché par défaut : aujourd'hui s'il reste des cours, sinon le prochain jour de cours.
@@ -442,8 +481,13 @@ final class AppModel {
         GlobalHotKey.register(hotKey)
         updates.onFound = { [weak self] r in
             self?.notifier.send(PendingNotification(
-                id: "available-\(r.version)", title: "EduBar \(r.version) disponible",
-                body: "Clique pour la télécharger, ou ouvre le menu d'EduBar.", url: r.dmg ?? r.page
+                id: "available-\(r.version)",
+                title: L10n.tr("EduBar \(r.version) disponible", "EduBar \(r.version) is available"),
+                body: L10n.tr(
+                    "Clique pour la télécharger, ou ouvre le menu d'EduBar.",
+                    "Click to download it, or open the EduBar menu."
+                ),
+                url: r.dmg ?? r.page
             ))
         }
 
@@ -515,8 +559,11 @@ final class AppModel {
         defaults.removeObject(forKey: UpdateChecker.updatedFromKey)
         let version = updates.current ?? "?"
         notifier.send(PendingNotification(
-            id: "updated-\(version)", title: "EduBar est à jour",
-            body: "Version \(version) installée, tes réglages sont conservés. Clique pour voir les nouveautés.",
+            id: "updated-\(version)", title: L10n.tr("EduBar est à jour", "EduBar is up to date"),
+            body: L10n.tr(
+                "Version \(version) installée, tes réglages sont conservés. Clique pour voir les nouveautés.",
+                "Version \(version) installed, your settings are kept. Click to see what's new."
+            ),
             url: URL(string: "https://github.com/Ailcope/EduBar/releases/tag/v\(version)")
         ))
     }
@@ -530,7 +577,7 @@ final class AppModel {
         let start = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: Date()))!
             .addingTimeInterval(14 * 3600)
         let sample = Course(
-            id: "test-\(Date().timeIntervalSince1970)", title: "Langage C avancé",
+            id: "test-\(Date().timeIntervalSince1970)", title: L10n.tr("Langage C avancé", "Advanced C Programming"),
             start: start, end: start.addingTimeInterval(90 * 60), room: "501"
         )
         for n in ScheduleDiff.notifications([.cancelled(sample)], now: Date(), calendar: calendar) {
@@ -578,8 +625,8 @@ final class AppModel {
     /// Notification d'exemple pour les réglages.
     func testNewGrade() {
         notifier.send(PendingNotification(
-            id: "grade-test-\(Date().timeIntervalSince1970)", title: "Nouvelle note : Sécurité des réseaux",
-            body: "CC2 : 15,5/20"
+            id: "grade-test-\(Date().timeIntervalSince1970)", title: L10n.tr("Nouvelle note : Sécurité des réseaux", "New grade: Network Security"),
+            body: L10n.tr("CC2 : 15,5/20", "CC2: 15.5/20")
         ))
     }
 
@@ -604,10 +651,13 @@ final class AppModel {
             Keychain.set(nil, for: "feedURL")
             feedURL = nil
             if calendarSource == .ical { store.clear() }
-            return (true, "URL supprimée.")
+            return (true, L10n.tr("URL supprimée.", "URL removed."))
         }
         guard let url = FeedURL.normalize(raw) else {
-            return (false, "URL invalide : elle doit commencer par webcal:// ou https://.")
+            return (false, L10n.tr(
+                "URL invalide : elle doit commencer par webcal:// ou https://.",
+                "Invalid URL: it must start with webcal:// or https://."
+            ))
         }
         do {
             let (_, courses) = try await CalendarStore.fetch(url)
@@ -622,7 +672,7 @@ final class AppModel {
             if switched { store.clear() }
             calendarSource = .ical
             await refresh(announceChanges: !changed && !switched)
-            return (true, "\(courses.count) cours trouvés.")
+            return (true, L10n.tr("\(courses.count) cours trouvés.", "\(courses.count) classes found."))
         } catch {
             return (false, error.localizedDescription)
         }
@@ -640,7 +690,7 @@ final class AppModel {
             login: loginDraft.trimmingCharacters(in: .whitespacesAndNewlines), password: passwordDraft
         )
         guard !creds.login.isEmpty, !creds.password.isEmpty else {
-            accountResult = (false, "Renseigne l'identifiant et le mot de passe.")
+            accountResult = (false, L10n.tr("Renseigne l'identifiant et le mot de passe.", "Enter your username and password."))
             return
         }
         accountSaving = true
@@ -660,9 +710,15 @@ final class AppModel {
             await refresh(announceChanges: false)
             let rated = grades.book?.subjects.filter { !$0.grades.isEmpty || $0.exam != nil }.count ?? 0
             if let error = store.lastError ?? grades.lastError {
-                accountResult = (true, "Connecté, mais le chargement a échoué : \(error)")
+                accountResult = (true, L10n.tr(
+                    "Connecté, mais le chargement a échoué : \(error)",
+                    "Signed in, but loading failed: \(error)"
+                ))
             } else {
-                accountResult = (true, "Connecté : \(store.courses.count) cours sur 8 semaines, \(rated) matières notées.")
+                accountResult = (true, L10n.tr(
+                    "Connecté : \(store.courses.count) cours sur 8 semaines, \(rated) matières notées.",
+                    "Signed in: \(store.courses.count) classes over 8 weeks, \(rated) graded subjects."
+                ))
             }
         } catch {
             accountResult = (false, error.localizedDescription)
@@ -676,7 +732,7 @@ final class AppModel {
         grades.clear()
         loginDraft = ""
         passwordDraft = ""
-        accountResult = (true, "Compte myGES oublié.")
+        accountResult = (true, L10n.tr("Compte myGES oublié.", "myGES account forgotten."))
         if calendarSource == .myges { store.clear() }
     }
 
@@ -697,11 +753,14 @@ final class AppModel {
                 file.remove()
                 friendURLs[slot] = nil
                 store.clear()
-                friendResult = (true, "Calendrier retiré.")
+                friendResult = (true, L10n.tr("Calendrier retiré.", "Calendar removed."))
                 return
             }
             guard let url = FeedURL.normalize(raw) else {
-                friendResult = (false, "URL invalide : elle doit commencer par webcal:// ou https://.")
+                friendResult = (false, L10n.tr(
+                    "URL invalide : elle doit commencer par webcal:// ou https://.",
+                    "Invalid URL: it must start with webcal:// or https://."
+                ))
                 return
             }
             do {
@@ -710,7 +769,7 @@ final class AppModel {
                 if url != friendURLs[slot] { store.clear() }
                 friendURLs[slot] = url
                 await store.refresh(from: url)
-                friendResult = (true, "\(courses.count) cours trouvés.")
+                friendResult = (true, L10n.tr("\(courses.count) cours trouvés.", "\(courses.count) classes found."))
             } catch {
                 friendResult = (false, error.localizedDescription)
             }
@@ -776,7 +835,10 @@ final class AppModel {
             let installed = try UpdateInstaller.copyToApplications()
             UpdateInstaller.relaunch(at: installed, ejecting: UpdateInstaller.diskImageVolume)
         } catch {
-            installMessage = "Installation impossible : \(error.localizedDescription) Glisse EduBar dans Applications."
+            installMessage = L10n.tr(
+                "Installation impossible : \(error.localizedDescription) Glisse EduBar dans Applications.",
+                "Installation failed: \(error.localizedDescription) Drag EduBar into Applications."
+            )
         }
     }
 

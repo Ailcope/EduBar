@@ -25,8 +25,11 @@ struct GradesTableView: View {
         VStack(spacing: 0) {
             if !model.hasCredentials {
                 empty {
-                    Text("Ajoute ton compte myGES dans les réglages pour voir tes notes.").font(.callout)
-                    Button("Réglages") {
+                    Text(L10n.tr(
+                        "Ajoute ton compte myGES dans les réglages pour voir tes notes.",
+                        "Add your myGES account in Settings to see your grades."
+                    )).font(.callout)
+                    Button(L10n.tr("Réglages", "Settings")) {
                         model.panel = .account
                         model.openSettings()
                     }
@@ -38,7 +41,7 @@ struct GradesTableView: View {
                 footer(book: book, period: period)
             } else {
                 empty {
-                    Text("Aucune note pour l'instant.").font(.callout).foregroundStyle(.secondary)
+                    Text(L10n.tr("Aucune note pour l'instant.", "No grades yet.")).font(.callout).foregroundStyle(.secondary)
                     if model.grades.isLoading { ProgressView().controlSize(.small) }
                     if let error = model.grades.lastError, model.snapshotGrades == nil {
                         Text(error).font(.caption).foregroundStyle(.orange)
@@ -48,6 +51,8 @@ struct GradesTableView: View {
         }
         .frame(minWidth: 820, minHeight: 520)
         .background(Color(nsColor: .windowBackgroundColor))
+        // Changement de langue à chaud : lire `language` abonne la vue, l'identité neuve reconstruit tout.
+        .id(model.language)
     }
 
     private func empty<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
@@ -101,16 +106,19 @@ struct GradesTableView: View {
         let switched = model.selectedPeriod == nil && model.automaticPeriodDiffers
         return HStack(alignment: .center, spacing: 16) {
             VStack(alignment: .leading, spacing: 6) {
-                Text("Notes").font(.system(size: 26, weight: .bold))
-                Picker("Période", selection: binding) {
-                    Text("Automatique" + (model.currentPeriod.map { " (\($0.title))" } ?? "")).tag(GradeBook.Period?.none)
+                Text(L10n.tr("Notes", "Grades")).font(.system(size: 26, weight: .bold))
+                Picker(L10n.tr("Période", "Period"), selection: binding) {
+                    Text(L10n.tr("Automatique", "Automatic") + (model.currentPeriod.map { " (\($0.title))" } ?? "")).tag(GradeBook.Period?.none)
                     Divider()
                     ForEach(book.periods) { Text($0.title).tag(GradeBook.Period?.some($0)) }
                 }
                 .labelsHidden()
                 .fixedSize()
                 if switched {
-                    Text("Le semestre en cours n'a pas encore de note : affichage de \(period.title).")
+                    Text(L10n.tr(
+                        "Le semestre en cours n'a pas encore de note : affichage de \(period.title).",
+                        "The current semester has no grades yet: showing \(period.title)."
+                    ))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(2)
@@ -120,9 +128,9 @@ struct GradesTableView: View {
             Spacer(minLength: 8)
             HStack(spacing: 10) {
                 weightedTile(stats.weighted)
-                tile("Moyenne simple", stats.simple.map(Self.format) ?? "·", color: stats.simple.map(Self.toneText))
+                tile(L10n.tr("Moyenne simple", "Simple average"), stats.simple.map(Self.format) ?? "·", color: stats.simple.map(Self.toneText))
                 tile("Min · Max", "\(stats.min.map(Self.format) ?? "·") · \(stats.max.map(Self.format) ?? "·")")
-                tile("Écart-type", stats.standardDeviation.map(Self.format) ?? "·")
+                tile(L10n.tr("Écart-type", "Std. deviation"), stats.standardDeviation.map(Self.format) ?? "·")
                 absenceTile(stats)
             }
         }
@@ -134,7 +142,7 @@ struct GradesTableView: View {
     private func weightedTile(_ value: Double?) -> some View {
         let accent = value.map(Self.tone) ?? Color.secondary
         return VStack(alignment: .leading, spacing: 2) {
-            Text("Moyenne pondérée").font(.system(size: 11, weight: .medium)).foregroundStyle(.secondary)
+            Text(L10n.tr("Moyenne pondérée", "Weighted average")).font(.system(size: 11, weight: .medium)).foregroundStyle(.secondary)
             Text(value.map(Self.format) ?? "·")
                 .font(.system(size: 34, weight: .bold).monospacedDigit())
                 .foregroundStyle(value.map(Self.toneText) ?? Color.secondary)
@@ -161,8 +169,8 @@ struct GradesTableView: View {
     private func absenceTile(_ stats: GradeBook.Stats) -> some View {
         let alert = stats.absences > 0 || stats.lates > 0
         return VStack(alignment: .leading, spacing: 4) {
-            Text("Absences · retards").font(.system(size: 11, weight: .medium)).foregroundStyle(.secondary).lineLimit(1)
-            Text("\(stats.absences) abs · \(stats.lates) ret")
+            Text(L10n.tr("Absences · retards", "Absences · lates")).font(.system(size: 11, weight: .medium)).foregroundStyle(.secondary).lineLimit(1)
+            Text(L10n.tr("\(stats.absences) abs · \(stats.lates) ret", "\(stats.absences) abs · \(stats.lates) late"))
                 .font(.system(size: 20, weight: .semibold).monospacedDigit())
                 .foregroundStyle(alert ? Color.orange : Color.primary)
                 .lineLimit(1)
@@ -204,14 +212,14 @@ struct GradesTableView: View {
             ScrollView(.horizontal) {
                 Grid(alignment: .center, horizontalSpacing: 0, verticalSpacing: 0) {
                     GridRow {
-                        headerCell("Matière", fill: Self.mygesBlue, alignment: .leading, subject: true)
-                        headerCell("Intervenant", fill: Self.headerDark, alignment: .leading, width: Self.teacherWidth)
+                        headerCell(L10n.tr("Matière", "Subject"), fill: Self.mygesBlue, alignment: .leading, subject: true)
+                        headerCell(L10n.tr("Intervenant", "Instructor"), fill: Self.headerDark, alignment: .leading, width: Self.teacherWidth)
                         headerCell("Coef.", fill: Self.headerDark)
                         headerCell("ECTS", fill: Self.headerDark)
                         ForEach(0..<ccCount, id: \.self) { headerCell("CC\($0 + 1)", fill: Self.headerDark) }
                         headerCell("Exam", fill: Self.headerDark)
-                        headerCell("Moyenne", fill: Self.headerDark, width: Self.averageWidth)
-                        headerCell("Lettre", fill: Self.headerDark)
+                        headerCell(L10n.tr("Moyenne", "Average"), fill: Self.headerDark, width: Self.averageWidth)
+                        headerCell(L10n.tr("Lettre", "Letter"), fill: Self.headerDark)
                     }
                     ForEach(Array(subjects.enumerated()), id: \.element.id) { index, s in
                         let fill = index % 2 == 0 ? Color.clear : Color.primary.opacity(0.045)
@@ -297,9 +305,9 @@ struct GradesTableView: View {
         let items = book.subjects(in: period).compactMap { s in s.average.map { (s, $0) } }
         let weighted = book.weightedAverage(in: period)
         return VStack(alignment: .leading, spacing: 6) {
-            Text("Moyennes par matière").font(.system(size: 13, weight: .semibold))
+            Text(L10n.tr("Moyennes par matière", "Averages by subject")).font(.system(size: 13, weight: .semibold))
             if items.isEmpty {
-                Text("Aucune moyenne disponible").font(.callout).foregroundStyle(.secondary)
+                Text(L10n.tr("Aucune moyenne disponible", "No average available")).font(.callout).foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, minHeight: 100)
             } else {
                 barChart(items: items, weighted: weighted).frame(height: 140)
@@ -365,7 +373,7 @@ struct GradesTableView: View {
                         p.addLine(to: CGPoint(x: size.width, y: y(weighted)))
                     }
                     .stroke(Color.primary.opacity(0.75), style: StrokeStyle(lineWidth: 1.4, dash: [5, 4]))
-                    Text("moy. \(Self.format(weighted))")
+                    Text(L10n.tr("moy. \(Self.format(weighted))", "avg. \(Self.format(weighted))"))
                         .font(.system(size: 10, weight: .semibold).monospacedDigit())
                         .padding(.horizontal, 5).padding(.vertical, 1)
                         .background(Capsule().fill(Color(nsColor: .windowBackgroundColor)))
@@ -386,14 +394,20 @@ struct GradesTableView: View {
     private func footer(book: GradeBook, period: GradeBook.Period) -> some View {
         let stats = book.stats(in: period)
         return HStack(spacing: 14) {
-            Text("\(stats.subjectCount) matière\(stats.subjectCount > 1 ? "s" : "") · \(stats.gradedSubjectCount) notée\(stats.gradedSubjectCount > 1 ? "s" : "")")
+            Text(L10n.tr(
+                "\(stats.subjectCount) matière\(stats.subjectCount > 1 ? "s" : "") · \(stats.gradedSubjectCount) notée\(stats.gradedSubjectCount > 1 ? "s" : "")",
+                "\(stats.subjectCount) subject\(stats.subjectCount > 1 ? "s" : "") · \(stats.gradedSubjectCount) graded"
+            ))
                 .foregroundStyle(.secondary)
             if model.grades.isLoading { ProgressView().controlSize(.small) }
             Spacer()
             if let error = model.grades.lastError, model.snapshotGrades == nil {
                 Label(error, systemImage: "exclamationmark.triangle").foregroundStyle(.orange).lineLimit(1)
             } else if let updated = model.snapshotGrades == nil ? model.grades.lastUpdated : model.now {
-                Text("Mis à jour à \(Display.time(updated, calendar: model.calendar))").foregroundStyle(.secondary)
+                Text(L10n.tr(
+                    "Mis à jour à \(Display.time(updated, calendar: model.calendar))",
+                    "Updated at \(Display.time(updated, calendar: model.calendar))"
+                )).foregroundStyle(.secondary)
             }
             Button {
                 Task { await model.refreshNow() }
@@ -402,8 +416,8 @@ struct GradesTableView: View {
             }
             .buttonStyle(.borderless)
             .disabled(model.grades.isLoading)
-            .help("Rafraîchir")
-            Button("Ouvrir myGES") {
+            .help(L10n.tr("Rafraîchir", "Refresh"))
+            Button(L10n.tr("Ouvrir myGES", "Open myGES")) {
                 if let url = URL(string: "https://myges.fr/student/marks") { NSWorkspace.shared.open(url) }
             }
         }
@@ -416,20 +430,20 @@ struct GradesTableView: View {
 
     private static let formatter: NumberFormatter = {
         let f = NumberFormatter()
-        f.locale = Locale(identifier: "fr_FR")
         f.minimumFractionDigits = 0
         f.maximumFractionDigits = 2
         return f
     }()
 
-    /// « 15,5 », virgule française, 2 décimales au plus.
+    /// « 15,5 » (virgule en français), « 15.5 » en anglais, 2 décimales au plus.
     private static func format(_ value: Double) -> String {
-        formatter.string(from: NSNumber(value: value)) ?? ""
+        formatter.locale = L10n.locale
+        return formatter.string(from: NSNumber(value: value)) ?? ""
     }
 
-    /// « 2.00 » comme sur myGES, « N.C » si non communiqué.
+    /// « 2.00 » comme sur myGES, « N.C » (« N/A ») si non communiqué.
     private static func coefText(_ value: Double?) -> String {
-        value.map { String(format: "%.2f", $0) } ?? "N.C"
+        value.map { String(format: "%.2f", $0) } ?? L10n.tr("N.C", "N/A")
     }
 }
 

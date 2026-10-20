@@ -58,7 +58,7 @@ final class UpdateChecker {
     private func installInPlace() async {
         guard let r = available, !installing else { return }
         installing = true
-        message = "Installation de la version \(r.version)…"
+        message = L10n.tr("Installation de la version \(r.version)…", "Installing version \(r.version)…")
         do {
             try await UpdateInstaller.install(r)
             NSLog("EduBar: version \(r.version) installée, relance")
@@ -66,31 +66,38 @@ final class UpdateChecker {
             UpdateInstaller.relaunch()
         } catch {
             NSLog("EduBar: mise à jour impossible : \(error.localizedDescription)")
-            message = "Mise à jour impossible : \(error.localizedDescription)"
+            message = L10n.tr("Mise à jour impossible : \(error.localizedDescription)", "Update failed: \(error.localizedDescription)")
             installing = false
         }
     }
 
     private func check() async -> String {
-        guard Version(current ?? "") != nil else { return "Version inconnue (app lancée hors du .app)." }
+        guard Version(current ?? "") != nil else {
+            return L10n.tr("Version inconnue (app lancée hors du .app).", "Unknown version (app launched outside its .app).")
+        }
         checking = true
         defer { checking = false }
         do {
             let release = try await Self.fetchLatest(current: current)
             lastCheck = Date()
             available = Update.available(release, current: current)
-            let result = available.map { "Version \($0.version) disponible." } ?? "EduBar est à jour."
+            let result = available.map { L10n.tr("Version \($0.version) disponible.", "Version \($0.version) available.") }
+                ?? L10n.tr("EduBar est à jour.", "EduBar is up to date.")
             NSLog("EduBar: mises à jour (\(current ?? "?") installée, \(release.version) publiée) : \(result)")
             return result
         } catch {
             NSLog("EduBar: vérification des mises à jour impossible : \(error.localizedDescription)")
-            return "Vérification impossible : \(error.localizedDescription)"
+            return L10n.tr("Vérification impossible : \(error.localizedDescription)", "Check failed: \(error.localizedDescription)")
         }
     }
 
     private struct HTTPStatus: LocalizedError {
         let code: Int
-        var errorDescription: String? { code == 404 ? "aucune release publique trouvée." : "erreur HTTP \(code)." }
+        var errorDescription: String? {
+            code == 404
+                ? L10n.tr("aucune release publique trouvée.", "no public release found.")
+                : L10n.tr("erreur HTTP \(code).", "HTTP error \(code).")
+        }
     }
 
     nonisolated private static func fetchLatest(current: String?) async throws -> Release {

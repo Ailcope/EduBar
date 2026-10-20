@@ -33,7 +33,7 @@ public enum Report {
 
     /// Tableau séparé par des tabulations : collé dans Excel ou Numbers, il remplit les colonnes.
     public static func table(_ months: [MonthHours], calendar: Calendar) -> String {
-        var lines = ["Mois\tMatière\tHeures"]
+        var lines = [L10n.tr("Mois\tMatière\tHeures", "Month\tSubject\tHours")]
         for m in months {
             let name = monthName(m.month, calendar: calendar)
             lines += m.subjects.map { "\(name)\t\($0.title)\t\(decimal($0.hours))" }
@@ -47,15 +47,15 @@ public enum Report {
         let f = DateFormatter()
         f.calendar = calendar
         f.timeZone = calendar.timeZone
-        f.locale = Locale(identifier: "fr_FR")
+        f.locale = L10n.locale
         f.dateFormat = "LLLL yyyy"
         return f.string(from: date)
     }
 
-    /// Heures décimales à la française, au centième : « 1,5 », « 12,25 ».
+    /// Heures décimales au centième : « 1,5 », « 12,25 » (en anglais « 1.5 », « 12.25 »).
     static func decimal(_ seconds: TimeInterval) -> String {
         let f = NumberFormatter()
-        f.locale = Locale(identifier: "fr_FR")
+        f.locale = L10n.locale
         f.minimumFractionDigits = 0
         f.maximumFractionDigits = 2
         return f.string(from: NSNumber(value: (seconds / 36).rounded() / 100)) ?? "0"

@@ -1,4 +1,6 @@
 import AppKit
+import EduBarCore
+import Observation
 import SwiftUI
 
 /// Icône de la barre des menus et son popover. Remplace `MenuBarExtra`, qu'aucune API ne sait
@@ -35,12 +37,20 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
         item.autosaveName = "EduBar"
         Self.shared = self
         observeLabel()
+        observeLanguage()
         model.start()
         #if DEBUG
         // Vérif visuelle : `EDUBAR_SETTINGS=1 .build/debug/EduBar` ouvre la fenêtre au lancement.
         if ProcessInfo.processInfo.environment["EDUBAR_SETTINGS"] != nil { model.openSettings() }
         // Idem pour la fenêtre Notes : `EDUBAR_GRADES=1`.
         if ProcessInfo.processInfo.environment["EDUBAR_GRADES"] != nil { model.openGrades() }
+        // Langue forcée au lancement : `EDUBAR_LANG=en`. Puis, 6 s plus tard, bascule à chaud : `EDUBAR_LANG_SWITCH=fr`.
+        if let next = ProcessInfo.processInfo.environment["EDUBAR_LANG_SWITCH"].flatMap(AppLanguage.init) {
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(6))
+                self.model.language = next
+            }
+        }
         #endif
     }
 
@@ -97,6 +107,19 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
         anchorWindow?.orderOut(nil)
     }
 
+    /// Changement de langue à chaud : menu principal et titres de fenêtres. Le contenu des fenêtres et du
+    /// popover se reconstruit seul (`.id(model.language)` sur leur racine), la barre via `observeLabel`.
+    private func observeLanguage() {
+        withObservationTracking { _ = model.language } onChange: { [weak self] in
+            Task { @MainActor in
+                guard let self else { return }
+                MainMenu.install()
+                self.gradesWindow.retitle()
+                self.observeLanguage()
+            }
+        }
+    }
+
     /// Titre de l'icône, redessiné dès que `barText` change.
     private func observeLabel() {
         let text = withObservationTracking { model.barText } onChange: { [weak self] in
@@ -136,6 +159,7 @@ struct MenuContent: View {
                 DayView(model: model, openSettings: model.openSettings)
             }
         }
+        .id(model.language)
         .fixedSize()
         .onAppear { model.tick() }
     }

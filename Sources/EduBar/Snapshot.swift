@@ -47,7 +47,7 @@ enum Snapshot {
             (names[1], fake { $0.dropFirst($0.count > 1 ? 1 : 0) }),
         ]
 
-        let bar = Text(model.barText.isEmpty ? "(icône seule)" : model.barText).padding(6)
+        let bar = Text(model.barText.isEmpty ? L10n.tr("(icône seule)", "(icon only)") : model.barText).padding(6)
         write(bar, to: dir.appendingPathComponent("bar.png"))
         write(DayView(model: model, openSettings: {}), to: dir.appendingPathComponent("day.png"))
         model.openSettings()
@@ -137,7 +137,7 @@ enum Snapshot {
     /// Textes de la barre dans chaque situation, sur un emploi du temps inventé (mardi 22/09/2026).
     private static func writeBars(to dir: URL, weather: Forecast) {
         var cal = Calendar(identifier: .gregorian)
-        cal.locale = Locale(identifier: "fr_FR")
+        cal.locale = L10n.locale
         let at = { (day: Int, h: Int, m: Int) in
             cal.date(from: DateComponents(year: 2026, month: 9, day: day, hour: h, minute: m))!
         }
@@ -226,8 +226,10 @@ enum Snapshot {
         let rooms = Array(Set(courses.compactMap(\.room))).sorted()
         return courses.map { c in
             let i = subjects.firstIndex(of: c.subjectKey) ?? 0
-            let title = demoSubjects[i % demoSubjects.count] + (c.isExam ? " · examen" : "")
-            let room = c.room.flatMap { rooms.firstIndex(of: $0) }.map { "Salle \(101 + 100 * ($0 % 4) + $0 / 4)" }
+            let title = demoSubjects[i % demoSubjects.count] + (c.isExam ? " · " + L10n.tr("examen", "exam") : "")
+            let room = c.room.flatMap { rooms.firstIndex(of: $0) }.map {
+                L10n.tr("Salle", "Room") + " \(101 + 100 * ($0 % 4) + $0 / 4)"
+            }
             return Course(id: "demo-\(c.id)", title: title, start: c.start, end: c.end, room: room)
         }
     }

@@ -54,23 +54,65 @@ public struct NotificationRules: Codable, Equatable, Sendable {
     public var classStart: NotificationRule
     public var roomChange: NotificationRule
 
-    public static let defaults = NotificationRules(
-        classEnd: NotificationRule(
-            enabled: true, minutes: 5,
-            title: "Fin du cours dans {temps}",
-            body: "{cours} se termine à {heure}. Ensuite : {pause}."
-        ),
-        classStart: NotificationRule(
-            enabled: true, minutes: 5,
-            title: "Cours dans {temps} · {salle}",
-            body: "{cours} à {heure} · {salle}"
-        ),
-        roomChange: NotificationRule(
-            enabled: true, minutes: 15,
-            title: "⚠️ Changement de salle : {salle}",
-            body: "Après ce cours, {cours} à {heure} en {salle}."
-        )
-    )
+    /// Règles par défaut, dans la langue courante.
+    public static var defaults: NotificationRules { defaults(for: L10n.current) }
+
+    public static func defaults(for lang: Lang) -> NotificationRules {
+        switch lang {
+        case .fr:
+            NotificationRules(
+                classEnd: NotificationRule(
+                    enabled: true, minutes: 5,
+                    title: "Fin du cours dans {temps}",
+                    body: "{cours} se termine à {heure}. Ensuite : {pause}."
+                ),
+                classStart: NotificationRule(
+                    enabled: true, minutes: 5,
+                    title: "Cours dans {temps} · {salle}",
+                    body: "{cours} à {heure} · {salle}"
+                ),
+                roomChange: NotificationRule(
+                    enabled: true, minutes: 15,
+                    title: "⚠️ Changement de salle : {salle}",
+                    body: "Après ce cours, {cours} à {heure} en {salle}."
+                )
+            )
+        case .en:
+            NotificationRules(
+                classEnd: NotificationRule(
+                    enabled: true, minutes: 5,
+                    title: "Class ends in {temps}",
+                    body: "{cours} ends at {heure}. Next: {pause}."
+                ),
+                classStart: NotificationRule(
+                    enabled: true, minutes: 5,
+                    title: "Class in {temps} · {salle}",
+                    body: "{cours} at {heure} · {salle}"
+                ),
+                roomChange: NotificationRule(
+                    enabled: true, minutes: 15,
+                    title: "⚠️ Room change: {salle}",
+                    body: "After this class, {cours} at {heure} in {salle}."
+                )
+            )
+        }
+    }
+
+    /// Les textes encore au défaut de l'autre langue passent à celui de `lang`
+    /// (un texte personnalisé, l'activation et les minutes ne sont jamais touchés).
+    public func localized(to lang: Lang) -> NotificationRules {
+        let other = Self.defaults(for: lang == .fr ? .en : .fr), target = Self.defaults(for: lang)
+        var copy = self
+        for kind in NotificationKind.allCases {
+            let p = kind.path
+            if copy[keyPath: p].title == other[keyPath: p].title { copy[keyPath: p].title = target[keyPath: p].title }
+            if copy[keyPath: p].body == other[keyPath: p].body { copy[keyPath: p].body = target[keyPath: p].body }
+        }
+        return copy
+    }
+
+    /// Réglages d'origine (au texte près, dans l'une ou l'autre langue).
+    public var isDefault: Bool { localized(to: L10n.current) == Self.defaults }
 
     public init(classEnd: NotificationRule, classStart: NotificationRule, roomChange: NotificationRule) {
         self.classEnd = classEnd
@@ -97,8 +139,9 @@ public struct NotificationRules: Codable, Equatable, Sendable {
             let next = i + 1 < blocks.count ? blocks[i + 1].first : nil
             let pause = next.map {
                 Display.isLunch(from: b.last.end, to: $0.start, calendar: calendar)
-                    ? "déjeuner" : "pause de " + Display.duration($0.start.timeIntervalSince(b.last.end))
-            } ?? "fin de journée"
+                    ? L10n.tr("déjeuner", "lunch")
+                    : L10n.tr("pause de ", "a break of ") + Display.duration($0.start.timeIntervalSince(b.last.end))
+            } ?? L10n.tr("fin de journée", "end of day")
             events.append((.classEnd, b.last, b.last.end, [
                 "cours": b.last.displayTitle, "heure": Display.time(b.last.end, calendar: calendar),
                 "temps": Display.duration(b.last.end.timeIntervalSince(now)),
@@ -136,9 +179,9 @@ public struct NotificationRules: Codable, Equatable, Sendable {
         let rule = self[keyPath: kind.path]
         let lead = Double(max(0, rule.minutes)) * 60
         return render(kind, [
-            "cours": "Langage C avancé", "heure": Display.time(now.addingTimeInterval(lead), calendar: calendar),
+            "cours": L10n.tr("Langage C avancé", "Advanced C Programming"), "heure": Display.time(now.addingTimeInterval(lead), calendar: calendar),
             "temps": Display.duration(lead),
-            "salle": "501", "pause": kind == .classEnd ? "déjeuner" : nil,
+            "salle": "501", "pause": kind == .classEnd ? L10n.tr("déjeuner", "lunch") : nil,
         ], id: "test-\(kind.rawValue)-\(Date().timeIntervalSince1970)")
     }
 

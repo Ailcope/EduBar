@@ -46,9 +46,12 @@ public enum Vacations {
         if v.start <= today {
             let wd = Display.weekdays[calendar.component(.weekday, from: v.end) - 1].lowercased()
             let d = calendar.dateComponents([.day, .month], from: v.end)
-            return "Vacances · reprise \(wd) " + String(format: "%02d/%02d", d.day ?? 0, d.month ?? 0)
+            let date = L10n.current == .fr
+                ? String(format: "%02d/%02d", d.day ?? 0, d.month ?? 0)
+                : String(format: "%02d/%02d", d.month ?? 0, d.day ?? 0)
+            return L10n.tr("Vacances · reprise \(wd) ", "Break · back \(wd) ") + date
         }
         let n = calendar.dateComponents([.day], from: today, to: v.start).day ?? 0
-        return n == 1 ? "Vacances demain" : "Vacances dans \(n) jours"
+        return n == 1 ? L10n.tr("Vacances demain", "Break starts tomorrow") : L10n.tr("Vacances dans \(n) jours", "Break in \(n) days")
     }
 }

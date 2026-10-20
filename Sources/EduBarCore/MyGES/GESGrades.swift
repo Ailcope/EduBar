@@ -155,7 +155,7 @@ public struct GradeBook: Codable, Sendable, Equatable {
         /// La période de la matière, ou `nil` si l'année ou le semestre manque.
         public var period: Period? {
             guard let year, let trimester else { return nil }
-            return Period(year: year, trimester: trimester, name: trimesterName ?? "Semestre")
+            return Period(year: year, trimester: trimester, name: trimesterName ?? L10n.tr("Semestre", "Semester"))
         }
     }
 
@@ -329,6 +329,15 @@ public struct NewGrade: Sendable, Equatable {
     /// Période de la matière, pour surligner dans le bon onglet.
     public let period: GradeBook.Period?
 
+    /// `label` (clé stable, sert aux identifiants) dans la langue d'affichage.
+    public var displayLabel: String {
+        switch label {
+        case "Examen": L10n.tr("Examen", "Exam")
+        case "Moyenne": L10n.tr("Moyenne", "Average")
+        default: label
+        }
+    }
+
     public init(course: String, label: String, value: Double, period: GradeBook.Period? = nil) {
         self.course = course
         self.label = label
@@ -413,15 +422,16 @@ public enum GradeDiff {
             let courses = grades.map(\.shortCourse).filter { seen.insert($0).inserted }
             let key = grades.map { "\($0.course)-\($0.label)-\(format($0.value))" }.joined(separator: "|")
             return [PendingNotification(
-                id: "grades-\(key)", title: "\(grades.count) nouvelles notes",
+                id: "grades-\(key)", title: L10n.tr("\(grades.count) nouvelles notes", "\(grades.count) new grades"),
                 body: courses.joined(separator: ", "), url: nil
             )]
         }
         return grades.map {
             PendingNotification(
                 id: "grade-\($0.course)-\($0.label)-\(format($0.value))",
-                title: "Nouvelle note : \($0.shortCourse)",
-                body: "\($0.label) : \(format($0.value))/20", url: nil
+                title: L10n.tr("Nouvelle note : \($0.shortCourse)", "New grade: \($0.shortCourse)"),
+                body: L10n.tr("\($0.displayLabel) : \(format($0.value))/20", "\($0.displayLabel): \(format($0.value))/20"),
+                url: nil
             )
         }
     }

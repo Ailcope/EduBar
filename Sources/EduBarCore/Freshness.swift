@@ -12,7 +12,7 @@ public enum Freshness {
         let age = now.timeIntervalSince(lastUpdated)
         guard age > staleAfter else { return nil }
         let hours = Int(age / 3600)
-        return hours < 48 ? "\(hours) h" : "\(hours / 24) jours"
+        return hours < 48 ? "\(hours) h" : L10n.tr("\(hours / 24) jours", "\(hours / 24) days")
     }
 
     /// Flux valide mais vide alors qu'on connaissait des cours à venir : panne côté Edusign plutôt
