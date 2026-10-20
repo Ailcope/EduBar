@@ -67,12 +67,37 @@ public enum GESAgenda {
         return try decoder.decode([GESEvent].self, from: data)
     }
 
-    /// Cours exploitables, triés par (début, id). Les événements sans dates valides sont ignorés.
+    private static func clean(_ s: String?) -> String? {
+        let t = s?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return (t?.isEmpty ?? true) ? nil : t
+    }
+
+    /// Vrai cours : type « Cours » (casse et espaces ignorés) ou type absent ou vide (on ne masque
+    /// jamais un cours si le champ manque). Tout autre type est un évènement de l'école.
+    public static func isCourse(_ event: GESEvent) -> Bool {
+        guard let type = clean(event.type) else { return true }
+        return type.caseInsensitiveCompare("Cours") == .orderedSame
+    }
+
+    /// Séries d'évènements de l'école (noms nettoyés, uniques, triés).
+    public static func schoolEventSeries(from events: [GESEvent]) -> [String] {
+        let names = Set(events.filter { !isCourse($0) }.compactMap { clean($0.name) })
+        return names.sorted { $0.localizedStandardCompare($1) == .orderedAscending }
+    }
+
+    /// Cours exploitables, triés par (début, id). Garde tous les évènements, école comprise.
     public static func courses(from events: [GESEvent]) -> [Course] {
-        func clean(_ s: String?) -> String? {
-            let t = s?.trimmingCharacters(in: .whitespacesAndNewlines)
-            return (t?.isEmpty ?? true) ? nil : t
-        }
+        build(events)
+    }
+
+    /// Tous les cours, plus les évènements de l'école dont le nom est dans `schoolSeries`.
+    public static func courses(from events: [GESEvent], schoolSeries: Set<String>) -> [Course] {
+        build(events.filter { e in
+            isCourse(e) || clean(e.name).map(schoolSeries.contains) == true
+        })
+    }
+
+    private static func build(_ events: [GESEvent]) -> [Course] {
         let courses: [Course] = events.compactMap { e in
             guard let start = e.startDate, let end = e.endDate, end > start else { return nil }
             let name = clean(e.name)
