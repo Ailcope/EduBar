@@ -2,7 +2,8 @@ import Foundation
 
 /// Choix de langue de l'utilisateur (Réglages > Application).
 public enum AppLanguage: String, CaseIterable, Sendable {
-    /// Langue du système : français si la 1re langue préférée est le français, sinon anglais.
+    /// Langue du système : français si le français figure parmi les langues préférées (beaucoup
+    /// d'étudiants ont un macOS en anglais), sinon anglais.
     case system
     case fr
     case en
@@ -12,7 +13,7 @@ public enum AppLanguage: String, CaseIterable, Sendable {
         switch self {
         case .fr: .fr
         case .en: .en
-        case .system: preferred.first.map { $0.lowercased().hasPrefix("fr") } == true ? .fr : .en
+        case .system: preferred.contains { $0.lowercased().hasPrefix("fr") } ? .fr : .en
         }
     }
 }

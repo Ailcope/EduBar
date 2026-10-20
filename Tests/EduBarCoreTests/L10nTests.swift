@@ -10,14 +10,17 @@ import Testing
         #expect(AppLanguage.en.resolved(preferred: ["fr-FR"]) == .en)
     }
 
-    @Test func systemFollowsFirstPreferredLanguage() {
+    @Test func systemPicksFrenchWhenAnyPreferredLanguageIsFrench() {
+        // Étudiants d'une école française au macOS en anglais : garder le français.
         #expect(AppLanguage.system.resolved(preferred: ["fr-FR", "en-US"]) == .fr)
         #expect(AppLanguage.system.resolved(preferred: ["fr"]) == .fr)
-        #expect(AppLanguage.system.resolved(preferred: ["en-GB", "fr-FR"]) == .en)
+        #expect(AppLanguage.system.resolved(preferred: ["en-US", "fr-US"]) == .fr)
+        #expect(AppLanguage.system.resolved(preferred: ["de-DE", "fr-FR"]) == .fr)
     }
 
-    @Test func systemFallsBackToEnglishForOtherLanguages() {
-        #expect(AppLanguage.system.resolved(preferred: ["de-DE", "fr-FR"]) == .en)
+    @Test func systemFallsBackToEnglishWithoutFrench() {
+        #expect(AppLanguage.system.resolved(preferred: ["en-GB"]) == .en)
+        #expect(AppLanguage.system.resolved(preferred: ["de-DE", "es-ES"]) == .en)
         #expect(AppLanguage.system.resolved(preferred: []) == .en)
     }
 

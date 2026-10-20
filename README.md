@@ -110,7 +110,7 @@ Les captures montrent des matières, des salles, des prénoms et une météo fic
   <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/panel-weather-dark.png"><img src="docs/screenshots/panel-weather.png" width="340" alt="Réglages de la météo, des deux villes et de l'alerte pluie"></picture>
 
 - **Raccourci clavier.** ⌥⌘E ouvre et referme le menu depuis n'importe quelle app, sans autorisation d'accessibilité. Modifiable ou désactivable dans ⚙️.
-- **Langue.** Dans ⚙️ > **Application** > **Langue** : Automatique (langue du système), Français ou English. Le changement s'applique tout de suite, sans relancer l'app : menu, barre, notifications, dates. Les noms de cours, salles et intervenants viennent de myGES et ne sont pas traduits.
+- **Langue.** Dans ⚙️ > **Application** > **Langue** : Automatique (français si le français fait partie des langues du Mac, sinon anglais), Français ou English. Le changement s'applique tout de suite, sans relancer l'app : menu, barre, notifications, dates. Les noms de cours, salles et intervenants viennent de myGES et ne sont pas traduits.
 - **Copier le diagnostic.** En bas des réglages, un bouton copie la version, l'emplacement de l'app, l'état de la quarantaine, de la source et du calendrier, pour un rapport de bug. Jamais l'URL ni les identifiants.
 - **Ajouter à Calendrier.** Avec la source iCal, un bouton abonne l'app Calendrier au flux Edusign : les cours y apparaissent et restent à jour.
 - **Textes personnalisables.** Chaque texte de la barre et ses émojis se réécrivent, avec les variables `{temps}`, `{salle}` et `{jour}`.
