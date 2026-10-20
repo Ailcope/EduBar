@@ -196,9 +196,13 @@ public enum Weather {
 
     private static func rainNotification(risk: Int, end: Date, city: String?, calendar: Calendar, id: String) -> PendingNotification {
         PendingNotification(
-            id: id, title: "🌧️ Pluie probable à la sortie",
-            body: "\(risk) % de risque de pluie" + (city.map { " à \($0)" } ?? "")
-                + " après \(Display.time(end, calendar: calendar)). Pense au parapluie."
+            id: id, title: L10n.tr("🌧️ Pluie probable à la sortie", "🌧️ Rain likely when you leave"),
+            body: L10n.tr(
+                "\(risk) % de risque de pluie" + (city.map { " à \($0)" } ?? "")
+                    + " après \(Display.time(end, calendar: calendar)). Pense au parapluie.",
+                "\(risk)% chance of rain" + (city.map { " in \($0)" } ?? "")
+                    + " after \(Display.time(end, calendar: calendar)). Take an umbrella."
+            )
         )
     }
 
@@ -257,7 +261,7 @@ public enum Weather {
             URLQueryItem(name: "name", value: name),
             // Plus large que la liste affichée : les villes françaises remontent ensuite en tête.
             URLQueryItem(name: "count", value: "20"),
-            URLQueryItem(name: "language", value: "fr"),
+            URLQueryItem(name: "language", value: L10n.current.rawValue),
             URLQueryItem(name: "format", value: "json"),
         ]
         return c.url
@@ -328,23 +332,23 @@ public enum Weather {
 
     /// Code météo WMO vers un libellé, un émoji et un SF Symbol.
     public static func condition(_ code: Int, isDay: Bool) -> WeatherCondition {
-        func c(_ label: String, _ emoji: String, _ symbol: String) -> WeatherCondition {
-            WeatherCondition(label: label, emoji: emoji, symbol: symbol)
+        func c(_ fr: String, _ en: String, _ emoji: String, _ symbol: String) -> WeatherCondition {
+            WeatherCondition(label: L10n.tr(fr, en), emoji: emoji, symbol: symbol)
         }
         switch code {
-        case 0: return isDay ? c("Ciel dégagé", "☀️", "sun.max.fill") : c("Ciel dégagé", "🌙", "moon.stars.fill")
-        case 1: return isDay ? c("Plutôt dégagé", "🌤️", "sun.max.fill") : c("Plutôt dégagé", "🌙", "moon.fill")
-        case 2: return c("Partiellement nuageux", "⛅", isDay ? "cloud.sun.fill" : "cloud.moon.fill")
-        case 3: return c("Couvert", "☁️", "cloud.fill")
-        case 45, 48: return c("Brouillard", "🌫️", "cloud.fog.fill")
-        case 51, 53, 55, 56, 57: return c("Bruine", "🌦️", "cloud.drizzle.fill")
-        case 61, 63, 65: return c("Pluie", "🌧️", "cloud.rain.fill")
-        case 66, 67: return c("Pluie verglaçante", "🌧️", "cloud.sleet.fill")
-        case 71, 73, 75, 77: return c("Neige", "🌨️", "cloud.snow.fill")
-        case 80, 81, 82: return c("Averses", "🌧️", "cloud.heavyrain.fill")
-        case 85, 86: return c("Averses de neige", "🌨️", "cloud.snow.fill")
-        case 95, 96, 99: return c("Orage", "⛈️", "cloud.bolt.rain.fill")
-        default: return c("Météo", "🌡️", "thermometer.medium")
+        case 0: return isDay ? c("Ciel dégagé", "Clear sky", "☀️", "sun.max.fill") : c("Ciel dégagé", "Clear sky", "🌙", "moon.stars.fill")
+        case 1: return isDay ? c("Plutôt dégagé", "Mostly clear", "🌤️", "sun.max.fill") : c("Plutôt dégagé", "Mostly clear", "🌙", "moon.fill")
+        case 2: return c("Partiellement nuageux", "Partly cloudy", "⛅", isDay ? "cloud.sun.fill" : "cloud.moon.fill")
+        case 3: return c("Couvert", "Overcast", "☁️", "cloud.fill")
+        case 45, 48: return c("Brouillard", "Fog", "🌫️", "cloud.fog.fill")
+        case 51, 53, 55, 56, 57: return c("Bruine", "Drizzle", "🌦️", "cloud.drizzle.fill")
+        case 61, 63, 65: return c("Pluie", "Rain", "🌧️", "cloud.rain.fill")
+        case 66, 67: return c("Pluie verglaçante", "Freezing rain", "🌧️", "cloud.sleet.fill")
+        case 71, 73, 75, 77: return c("Neige", "Snow", "🌨️", "cloud.snow.fill")
+        case 80, 81, 82: return c("Averses", "Showers", "🌧️", "cloud.heavyrain.fill")
+        case 85, 86: return c("Averses de neige", "Snow showers", "🌨️", "cloud.snow.fill")
+        case 95, 96, 99: return c("Orage", "Thunderstorm", "⛈️", "cloud.bolt.rain.fill")
+        default: return c("Météo", "Weather", "🌡️", "thermometer.medium")
         }
     }
 

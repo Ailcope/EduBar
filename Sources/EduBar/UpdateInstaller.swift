@@ -11,12 +11,21 @@ enum UpdateInstaller {
 
         var errorDescription: String? {
             switch self {
-            case .noArchive: "la release n'a pas d'archive vérifiable."
-            case .notReplaceable: "l'app ne peut pas se remplacer ici (glisse-la dans Applications)."
-            case .http(let code): "téléchargement impossible (HTTP \(code))."
-            case .digestMismatch: "l'archive téléchargée ne correspond pas à l'empreinte publiée."
-            case .badBundle: "l'archive ne contient pas la bonne version d'EduBar."
-            case .tool(let name): "échec de \(name)."
+            case .noArchive: L10n.tr("la release n'a pas d'archive vérifiable.", "the release has no verifiable archive.")
+            case .notReplaceable:
+                L10n.tr(
+                    "l'app ne peut pas se remplacer ici (glisse-la dans Applications).",
+                    "the app cannot replace itself here (drag it into Applications)."
+                )
+            case .http(let code): L10n.tr("téléchargement impossible (HTTP \(code)).", "download failed (HTTP \(code)).")
+            case .digestMismatch:
+                L10n.tr(
+                    "l'archive téléchargée ne correspond pas à l'empreinte publiée.",
+                    "the downloaded archive does not match the published checksum."
+                )
+            case .badBundle:
+                L10n.tr("l'archive ne contient pas la bonne version d'EduBar.", "the archive does not contain the right EduBar version.")
+            case .tool(let name): L10n.tr("échec de \(name).", "\(name) failed.")
             }
         }
     }

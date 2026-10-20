@@ -1,6 +1,6 @@
 import Foundation
 
-/// Textes affichés (français).
+/// Textes affichés (français ou anglais selon `L10n.current`).
 public enum Display {
     /// Arrondi à la minute supérieure : « 23 min », « 1 h », « 1 h 05 ».
     public static func duration(_ seconds: TimeInterval) -> String {
@@ -10,10 +10,15 @@ public enum Display {
         return m == 0 ? "\(h) h" : "\(h) h " + String(format: "%02d", m)
     }
 
-    /// « 8h45 », « 14h ».
+    /// « 8h45 », « 14h » ; en anglais « 8:45 AM », « 2 PM ».
     public static func time(_ date: Date, calendar: Calendar) -> String {
         let c = calendar.dateComponents([.hour, .minute], from: date)
         let h = c.hour ?? 0, m = c.minute ?? 0
+        if L10n.current == .en {
+            let h12 = h % 12 == 0 ? 12 : h % 12
+            let suffix = h < 12 ? "AM" : "PM"
+            return m == 0 ? "\(h12) \(suffix)" : "\(h12):" + String(format: "%02d", m) + " \(suffix)"
+        }
         return m == 0 ? "\(h)h" : "\(h)h" + String(format: "%02d", m)
     }
 
@@ -24,9 +29,14 @@ public enum Display {
         return tail.isEmpty ? room : tail
     }
 
-    static let weekdays = ["Dim.", "Lun.", "Mar.", "Mer.", "Jeu.", "Ven.", "Sam."]
+    static var weekdays: [String] {
+        L10n.current == .fr
+            ? ["Dim.", "Lun.", "Mar.", "Mer.", "Jeu.", "Ven.", "Sam."]
+            : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+    }
 
     /// « 14h » (aujourd'hui), « Demain 8h45 », « Lun. 8h45 » (< 7 jours), « Lun. 05/10 8h45 ».
+    /// En anglais : « Tomorrow 8:45 AM », « Mon 8:45 AM », « Mon 10/05 8:45 AM » (mois/jour).
     public static func dayLabel(_ date: Date, now: Date, calendar: Calendar) -> String {
         let t = time(date, calendar: calendar)
         let days = calendar.dateComponents(
@@ -34,12 +44,15 @@ public enum Display {
         ).day ?? 0
         switch days {
         case ...0: return t
-        case 1: return "Demain \(t)"
+        case 1: return L10n.tr("Demain \(t)", "Tomorrow \(t)")
         default:
             let wd = weekdays[calendar.component(.weekday, from: date) - 1]
             guard days >= 7 else { return "\(wd) \(t)" }
             let d = calendar.dateComponents([.day, .month], from: date)
-            return "\(wd) " + String(format: "%02d/%02d", d.day ?? 0, d.month ?? 0) + " \(t)"
+            let date = L10n.current == .fr
+                ? String(format: "%02d/%02d", d.day ?? 0, d.month ?? 0)
+                : String(format: "%02d/%02d", d.month ?? 0, d.day ?? 0)
+            return "\(wd) " + date + " \(t)"
         }
     }
 
@@ -64,11 +77,11 @@ public enum Display {
         }
         switch status {
         case let .beforeFirst(next), let .onBreak(_, next):
-            if next.isExam { return exam(next, jour: "dans \(until(next.start))") }
+            if next.isExam { return exam(next, jour: L10n.tr("dans \(until(next.start))", "in \(until(next.start))")) }
         case let .dayOver(next?), let .noClassToday(next?):
             if next.isExam, let tomorrow = calendar.date(byAdding: .day, value: 1, to: now),
                calendar.isDate(next.start, inSameDayAs: tomorrow) {
-                return exam(next, jour: "demain \(time(next.start, calendar: calendar))")
+                return exam(next, jour: L10n.tr("demain", "tomorrow") + " \(time(next.start, calendar: calendar))")
             }
             if weather == nil, companyToday, case .noClassToday = status {
                 return BarTemplates.render(

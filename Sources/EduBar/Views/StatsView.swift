@@ -23,20 +23,33 @@ struct StatsView: View {
             HStack {
                 Button { model.showingStats = false } label: { Image(systemName: "chevron.left") }
                     .buttonStyle(.borderless)
-                Text("Statistiques").font(.headline)
+                Text(L10n.tr("Statistiques", "Statistics")).font(.headline)
             }
             Divider()
 
             VStack(alignment: .leading, spacing: 4) {
-                row("Cette semaine", "\(DayView.hours(week.total)) · \(DayView.hours(week.done)) faites")
-                row("Semaine prochaine", DayView.hours(nextWeek.total))
-                row("Ce mois-ci", "\(DayView.hours(thisMonth?.total ?? 0)) faites")
+                row(
+                    L10n.tr("Cette semaine", "This week"),
+                    "\(DayView.hours(week.total)) · " + L10n.tr("\(DayView.hours(week.done)) faites", "\(DayView.hours(week.done)) done")
+                )
+                row(L10n.tr("Semaine prochaine", "Next week"), DayView.hours(nextWeek.total))
+                row(
+                    L10n.tr("Ce mois-ci", "This month"),
+                    L10n.tr("\(DayView.hours(thisMonth?.total ?? 0)) faites", "\(DayView.hours(thisMonth?.total ?? 0)) done")
+                )
                 HStack {
-                    Button(action: model.copyReport) { Label("Copier le relevé d'heures", systemImage: "tablecells") }
+                    Button(action: model.copyReport) {
+                        Label(L10n.tr("Copier le relevé d'heures", "Copy hours report"), systemImage: "tablecells")
+                    }
                         .buttonStyle(.borderless)
                         .disabled(months.isEmpty)
-                        .help("Heures faites par mois et par matière, à coller dans Excel ou Numbers (entreprise, OPCO).")
-                    if model.reportCopied { Text("Copié, colle-le dans un tableur.").foregroundStyle(.green) }
+                        .help(L10n.tr(
+                            "Heures faites par mois et par matière, à coller dans Excel ou Numbers (entreprise, OPCO).",
+                            "Hours done per month and subject, to paste into Excel or Numbers (employer, funding body)."
+                        ))
+                    if model.reportCopied {
+                        Text(L10n.tr("Copié, colle-le dans un tableur.", "Copied, paste it into a spreadsheet.")).foregroundStyle(.green)
+                    }
                 }
                 .font(.caption)
             }
@@ -44,7 +57,7 @@ struct StatsView: View {
             if !exams.isEmpty {
                 Divider()
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Prochains examens").font(.callout.weight(.semibold))
+                    Text(L10n.tr("Prochains examens", "Upcoming exams")).font(.callout.weight(.semibold))
                     ForEach(Array(exams), id: \.id) { e in
                         HStack(alignment: .firstTextBaseline) {
                             Image(systemName: "pencil.and.list.clipboard").foregroundStyle(.orange)
@@ -60,14 +73,15 @@ struct StatsView: View {
 
             Divider()
             VStack(alignment: .leading, spacing: 8) {
-                Text("Par matière").font(.callout.weight(.semibold))
+                Text(L10n.tr("Par matière", "By subject")).font(.callout.weight(.semibold))
                 ForEach(subjects.prefix(Self.maxSubjects), id: \.title) { s in
                     VStack(alignment: .leading, spacing: 2) {
                         HStack(alignment: .firstTextBaseline) {
                             Circle().fill(SubjectPalette.color(s.key, in: colors)).frame(width: 7, height: 7)
                             Text(s.title).lineLimit(1)
                             if s.exams > 0 {
-                                Text(s.exams > 1 ? "\(s.exams) examens" : "examen").foregroundStyle(.orange)
+                                Text(s.exams > 1 ? L10n.tr("\(s.exams) examens", "\(s.exams) exams") : L10n.tr("examen", "exam"))
+                                    .foregroundStyle(.orange)
                             }
                             Spacer()
                             Text("\(DayView.hours(s.done)) / \(DayView.hours(s.total))")
@@ -79,10 +93,16 @@ struct StatsView: View {
                     }
                 }
                 if subjects.count > Self.maxSubjects {
-                    Text("+ \(subjects.count - Self.maxSubjects) autres matières")
+                    Text(L10n.tr(
+                        "+ \(subjects.count - Self.maxSubjects) autres matières",
+                        "+ \(subjects.count - Self.maxSubjects) more subjects"
+                    ))
                         .font(.caption).foregroundStyle(.secondary)
                 }
-                Text("Faites / prévues. Les jours passés sont gardés sur ce Mac, même quand Edusign les retire.")
+                Text(L10n.tr(
+                    "Faites / prévues. Les jours passés sont gardés sur ce Mac, même quand Edusign les retire.",
+                    "Done / planned. Past days are kept on this Mac, even when Edusign removes them."
+                ))
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)

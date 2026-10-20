@@ -28,20 +28,68 @@ public struct BarTemplates: Codable, Equatable, Sendable {
     /// En cours, plus rien après cette semaine : le week-end commence dans `{temps}`.
     public var lastOfWeek: String
 
-    public static let defaults = BarTemplates(
-        roomChange: "⚠️ Salle {salle} · fin dans {temps}",
-        beforeBreak: "📚 Pause dans {temps}",
-        beforeLunch: "🍽️ Déjeuner dans {temps}",
-        lastClass: "📚 Fin dans {temps}",
-        onBreak: "☕ Cours dans {temps} · {salle}",
-        onLunch: "📚 Cours dans {temps} · {salle}",
-        beforeFirst: "Cours dans {temps} · {salle}",
-        dayOver: "{jour}",
-        examSoon: "📝 Examen {jour} · {salle}",
-        company: "🏢 Entreprise · école {jour}",
-        weather: "{meteo} {temp}",
-        lastOfWeek: "🎉 Week-end dans {temps}"
-    )
+    /// Modèles par défaut, dans la langue courante.
+    public static var defaults: BarTemplates { defaults(for: L10n.current) }
+
+    public static func defaults(for lang: Lang) -> BarTemplates {
+        switch lang {
+        case .fr:
+            BarTemplates(
+                roomChange: "⚠️ Salle {salle} · fin dans {temps}",
+                beforeBreak: "📚 Pause dans {temps}",
+                beforeLunch: "🍽️ Déjeuner dans {temps}",
+                lastClass: "📚 Fin dans {temps}",
+                onBreak: "☕ Cours dans {temps} · {salle}",
+                onLunch: "📚 Cours dans {temps} · {salle}",
+                beforeFirst: "Cours dans {temps} · {salle}",
+                dayOver: "{jour}",
+                examSoon: "📝 Examen {jour} · {salle}",
+                company: "🏢 Entreprise · école {jour}",
+                weather: "{meteo} {temp}",
+                lastOfWeek: "🎉 Week-end dans {temps}"
+            )
+        case .en:
+            BarTemplates(
+                roomChange: "⚠️ Room {salle} · ends in {temps}",
+                beforeBreak: "📚 Break in {temps}",
+                beforeLunch: "🍽️ Lunch in {temps}",
+                lastClass: "📚 Ends in {temps}",
+                onBreak: "☕ Class in {temps} · {salle}",
+                onLunch: "📚 Class in {temps} · {salle}",
+                beforeFirst: "Class in {temps} · {salle}",
+                dayOver: "{jour}",
+                examSoon: "📝 Exam {jour} · {salle}",
+                company: "🏢 Work · school {jour}",
+                weather: "{meteo} {temp}",
+                lastOfWeek: "🎉 Weekend in {temps}"
+            )
+        }
+    }
+
+    private static var fields: [WritableKeyPath<BarTemplates, String>] {
+        [
+            \.roomChange, \.beforeBreak, \.beforeLunch, \.lastClass, \.onBreak, \.onLunch,
+            \.beforeFirst, \.dayOver, \.examSoon, \.company, \.weather, \.lastOfWeek,
+        ]
+    }
+
+    /// Les champs encore au texte par défaut de l'autre langue passent à celui de `lang`
+    /// (un texte personnalisé n'est jamais touché).
+    public func localized(to lang: Lang) -> BarTemplates {
+        let other = Self.defaults(for: lang == .fr ? .en : .fr), target = Self.defaults(for: lang)
+        var copy = self
+        for f in Self.fields where copy[keyPath: f] == other[keyPath: f] { copy[keyPath: f] = target[keyPath: f] }
+        return copy
+    }
+
+    /// Aucun champ personnalisé (chaque champ est vide ou au texte par défaut, dans une langue ou l'autre).
+    public var isDefault: Bool {
+        let fr = Self.defaults(for: .fr), en = Self.defaults(for: .en)
+        return Self.fields.allSatisfy {
+            let t = self[keyPath: $0]
+            return t.trimmingCharacters(in: .whitespaces).isEmpty || t == fr[keyPath: $0] || t == en[keyPath: $0]
+        }
+    }
 
     public init(
         roomChange: String, beforeBreak: String, beforeLunch: String, lastClass: String,

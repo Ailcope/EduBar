@@ -11,12 +11,12 @@ enum MyGESError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .noCredentials: "Aucun identifiant myGES enregistré."
-        case .badCredentials: "Identifiant ou mot de passe refusé par myGES."
-        case .unexpectedResponse: "Réponse inattendue de myGES."
-        case let .unavailable(code): "myGES indisponible (\(code))."
-        case let .http(code): "myGES a répondu \(code)."
-        case let .network(text): "Connexion à myGES impossible : \(text)"
+        case .noCredentials: L10n.tr("Aucun identifiant myGES enregistré.", "No myGES credentials saved.")
+        case .badCredentials: L10n.tr("Identifiant ou mot de passe refusé par myGES.", "myGES rejected the username or password.")
+        case .unexpectedResponse: L10n.tr("Réponse inattendue de myGES.", "Unexpected response from myGES.")
+        case let .unavailable(code): L10n.tr("myGES indisponible (\(code)).", "myGES unavailable (\(code)).")
+        case let .http(code): L10n.tr("myGES a répondu \(code).", "myGES replied \(code).")
+        case let .network(text): L10n.tr("Connexion à myGES impossible : \(text)", "Cannot connect to myGES: \(text)")
         }
     }
 }

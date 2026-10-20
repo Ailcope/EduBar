@@ -8,7 +8,12 @@ struct WeekView: View {
 
     private static let hourHeight: CGFloat = 24
     private static let axisWidth: CGFloat = 24
-    private var fr: Locale { Locale(identifier: "fr_FR") }
+    private var fr: Locale { L10n.locale }
+
+    /// « 8h » ; en anglais « 8a », « 1p » (la colonne est étroite).
+    private func hourLabel(_ h: Int) -> String {
+        L10n.current == .fr ? "\(h)h" : "\(h % 12 == 0 ? 12 : h % 12)" + (h < 12 ? "a" : "p")
+    }
 
     var body: some View {
         let cal = model.calendar
@@ -32,7 +37,7 @@ struct WeekView: View {
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderless)
-                    .help("Voir la journée")
+                    .help(L10n.tr("Voir la journée", "View day"))
                 }
             }
             HStack(alignment: .top, spacing: 2) {
@@ -42,8 +47,10 @@ struct WeekView: View {
                 }
             }
             Text(hours.total > 0
-                ? "\(DayView.hours(hours.total)) de cours" + (hours.done > 0 && hours.done < hours.total ? " · \(DayView.hours(hours.done)) faites" : "")
-                : "Aucun cours cette semaine")
+                ? L10n.tr("\(DayView.hours(hours.total)) de cours", "\(DayView.hours(hours.total)) of classes")
+                    + (hours.done > 0 && hours.done < hours.total
+                        ? " · " + L10n.tr("\(DayView.hours(hours.done)) faites", "\(DayView.hours(hours.done)) done") : "")
+                : L10n.tr("Aucun cours cette semaine", "No classes this week"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -56,17 +63,22 @@ struct WeekView: View {
         let current = model.calendar.isDate(start, equalTo: model.now, toGranularity: .weekOfYear)
         return HStack(spacing: 6) {
             Button { model.showingWeek = false } label: { Image(systemName: "chevron.left") }
-                .help("Retour à la journée")
-            Text(current ? "Cette semaine" : "Semaine du \(start.formatted(.dateTime.day().month(.abbreviated).locale(fr)))")
+                .help(L10n.tr("Retour à la journée", "Back to the day"))
+            Text(current
+                ? L10n.tr("Cette semaine", "This week")
+                : L10n.tr(
+                    "Semaine du \(start.formatted(.dateTime.day().month(.abbreviated).locale(fr)))",
+                    "Week of \(start.formatted(.dateTime.day().month(.abbreviated).locale(fr)))"
+                ))
                 .font(.headline)
             Spacer()
             if model.weekOffset != 0 {
-                Button("Revenir") { model.weekOffset = 0 }.font(.caption)
+                Button(L10n.tr("Revenir", "Back")) { model.weekOffset = 0 }.font(.caption)
             }
             Button { model.weekOffset = max(-13, model.weekOffset - 1) } label: { Image(systemName: "arrow.left") }
-                .help("Semaine précédente")
+                .help(L10n.tr("Semaine précédente", "Previous week"))
             Button { model.weekOffset = min(13, model.weekOffset + 1) } label: { Image(systemName: "arrow.right") }
-                .help("Semaine suivante")
+                .help(L10n.tr("Semaine suivante", "Next week"))
         }
         .buttonStyle(.borderless)
     }
@@ -74,7 +86,7 @@ struct WeekView: View {
     private func axis(_ grid: WeekGrid, height: CGFloat) -> some View {
         ZStack(alignment: .topTrailing) {
             ForEach(grid.firstHour..<grid.lastHour, id: \.self) { h in
-                Text("\(h)h")
+                Text(hourLabel(h))
                     .font(.system(size: 9).monospacedDigit())
                     .foregroundStyle(.secondary)
                     .offset(y: CGFloat(h - grid.firstHour) * Self.hourHeight - 5)
@@ -138,8 +150,10 @@ struct WeekView: View {
     }
 
     private func emptyNote(_ day: Date) -> (text: String, icon: String)? {
-        if let holiday = Holidays.name(of: day, calendar: model.calendar) { return ("Férié · \(holiday)", "flag") }
-        if model.isCompanyDay(day) { return ("En entreprise", "building.2") }
+        if let holiday = Holidays.name(of: day, calendar: model.calendar) {
+            return (L10n.tr("Férié", "Holiday") + " · \(holiday)", "flag")
+        }
+        if model.isCompanyDay(day) { return (L10n.tr("En entreprise", "At the company"), "building.2") }
         return nil
     }
 }

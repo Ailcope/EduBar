@@ -9,9 +9,13 @@ enum FetchError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case let .http(code): "Le serveur a répondu \(code)."
-        case .notACalendar: "La réponse n'est pas un calendrier iCal."
-        case .emptyFeed: "La source a renvoyé un calendrier vide, les cours déjà connus sont gardés."
+        case let .http(code): L10n.tr("Le serveur a répondu \(code).", "The server replied \(code).")
+        case .notACalendar: L10n.tr("La réponse n'est pas un calendrier iCal.", "The response is not an iCal calendar.")
+        case .emptyFeed:
+            L10n.tr(
+                "La source a renvoyé un calendrier vide, les cours déjà connus sont gardés.",
+                "The source returned an empty calendar, known classes are kept."
+            )
         }
     }
 }

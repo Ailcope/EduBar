@@ -1,5 +1,6 @@
 import AppKit
 import Carbon.HIToolbox
+import EduBarCore
 
 /// Combinaisons proposées pour ouvrir le menu d'EduBar depuis n'importe quelle app.
 enum HotKeyChoice: String, CaseIterable {
@@ -10,7 +11,7 @@ enum HotKeyChoice: String, CaseIterable {
         case .optionCommandE: "⌥⌘E"
         case .controlOptionE: "⌃⌥E"
         case .controlOptionCommandE: "⌃⌥⌘E"
-        case .off: "Aucun"
+        case .off: L10n.tr("Aucun", "None")
         }
     }
 

@@ -6,42 +6,62 @@ struct DayView: View {
     let model: AppModel
     let openSettings: () -> Void
 
-    private var fr: Locale { Locale(identifier: "fr_FR") }
+    private var fr: Locale { L10n.locale }
+
+    /// Colonne des heures : « 9:45 AM » est plus large que « 9h45 ».
+    private static var timeWidth: CGFloat { L10n.current == .fr ? 40 : 58 }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             header
             if UpdateInstaller.diskImageVolume != nil || UpdateInstaller.isTranslocated {
                 banner(
-                    UpdateInstaller.isTranslocated ? "macOS isole EduBar (quarantaine)" : "EduBar tourne depuis le .dmg",
-                    icon: "externaldrive", button: "Installer", action: model.installInApplications
+                    UpdateInstaller.isTranslocated
+                        ? L10n.tr("macOS isole EduBar (quarantaine)", "macOS is isolating EduBar (quarantine)")
+                        : L10n.tr("EduBar tourne depuis le .dmg", "EduBar is running from the .dmg"),
+                    icon: "externaldrive", button: L10n.tr("Installer", "Install"), action: model.installInApplications
                 )
-                .help("Copie EduBar dans Applications, la relance de là et éjecte le .dmg. Nécessaire pour les mises à jour.")
+                .help(L10n.tr(
+                    "Copie EduBar dans Applications, la relance de là et éjecte le .dmg. Nécessaire pour les mises à jour.",
+                    "Copies EduBar to Applications, relaunches it from there and ejects the .dmg. Required for updates."
+                ))
                 if let message = model.installMessage {
                     Text(message).font(.caption).foregroundStyle(.orange).fixedSize(horizontal: false, vertical: true)
                 }
             } else if let update = model.updates.available {
                 banner(
-                    "EduBar \(update.version.description) disponible", icon: "arrow.down.circle",
-                    button: model.updates.canInstallInPlace ? "Mettre à jour" : "Télécharger", action: model.updates.install
+                    L10n.tr("EduBar \(update.version.description) disponible", "EduBar \(update.version.description) is available"),
+                    icon: "arrow.down.circle",
+                    button: model.updates.canInstallInPlace ? L10n.tr("Mettre à jour", "Update") : L10n.tr("Télécharger", "Download"),
+                    action: model.updates.install
                 )
                 .disabled(model.updates.installing)
             }
             Divider()
             if !model.feedLoaded {
                 emptyState(
-                    "Chargement…",
-                    detail: "Si macOS le demande, autorise EduBar à lire son ancien élément du Trousseau : c'est la dernière fois.",
+                    L10n.tr("Chargement…", "Loading…"),
+                    detail: L10n.tr(
+                        "Si macOS le demande, autorise EduBar à lire son ancien élément du Trousseau : c'est la dernière fois.",
+                        "If macOS asks, allow EduBar to read its old Keychain item: this is the last time."
+                    ),
                     button: nil
                 )
             } else if !model.hasSource {
                 emptyState(
-                    "Aucun calendrier configuré",
-                    detail: "Ajoute ton compte myGES ou l'URL de ton calendrier dans les réglages.",
-                    button: "Configurer"
+                    L10n.tr("Aucun calendrier configuré", "No calendar set up"),
+                    detail: L10n.tr(
+                        "Ajoute ton compte myGES ou l'URL de ton calendrier dans les réglages.",
+                        "Add your myGES account or your calendar URL in Settings."
+                    ),
+                    button: L10n.tr("Configurer", "Set up")
                 )
             } else if model.schedule.courses.isEmpty {
-                emptyState("Aucun cours", detail: "Le calendrier ne contient aucun cours.", button: nil)
+                emptyState(
+                    L10n.tr("Aucun cours", "No classes"),
+                    detail: L10n.tr("Le calendrier ne contient aucun cours.", "The calendar has no classes."),
+                    button: nil
+                )
             } else {
                 if let weather = model.dayWeather {
                     WeatherCard(model: model, forecast: weather.forecast, city: weather.city)
@@ -99,26 +119,26 @@ struct DayView: View {
         let isToday = model.calendar.isDate(day, inSameDayAs: model.now)
         let title: String
         if isToday {
-            title = "Aujourd'hui"
+            title = L10n.tr("Aujourd'hui", "Today")
         } else if model.calendar.isDateInTomorrow(day) {
-            title = "Demain · \(dayTitle(day))"
+            title = L10n.tr("Demain", "Tomorrow") + " · \(dayTitle(day))"
         } else {
             title = dayTitle(day).capitalized(with: fr)
         }
         return HStack(spacing: 6) {
             Button { model.step(-1) } label: { Image(systemName: "chevron.left") }
-                .help("Jour précédent")
-            Text(model.dayOffset == 0 && !isToday ? "Prochains cours · \(dayTitle(day))" : title)
+                .help(L10n.tr("Jour précédent", "Previous day"))
+            Text(model.dayOffset == 0 && !isToday ? L10n.tr("Prochains cours", "Next classes") + " · \(dayTitle(day))" : title)
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
             Spacer(minLength: 4)
             if model.dayOffset != 0 {
-                Button("Revenir") { model.dayOffset = 0 }
+                Button(L10n.tr("Revenir", "Back")) { model.dayOffset = 0 }
                     .font(.caption)
             }
             Button { model.step(1) } label: { Image(systemName: "chevron.right") }
-                .help("Jour suivant")
+                .help(L10n.tr("Jour suivant", "Next day"))
         }
         .buttonStyle(.borderless)
     }
@@ -126,13 +146,13 @@ struct DayView: View {
     private func emptyDay(_ day: Date) -> some View {
         let text: (title: String, icon: String)
         if let holiday = Holidays.name(of: day, calendar: model.calendar) {
-            text = ("Férié · \(holiday)", "flag")
+            text = (L10n.tr("Férié", "Holiday") + " · \(holiday)", "flag")
         } else if model.isCompanyDay(day) {
-            text = ("Journée en entreprise", "building.2")
+            text = (L10n.tr("Journée en entreprise", "Day at the company"), "building.2")
         } else if model.calendar.isDateInWeekend(day) {
-            text = ("Week-end", "sun.max")
+            text = (L10n.tr("Week-end", "Weekend"), "sun.max")
         } else {
-            text = ("Pas de cours", "calendar")
+            text = (L10n.tr("Pas de cours", "No classes"), "calendar")
         }
         return Label(text.title, systemImage: text.icon)
             .font(.callout)
@@ -149,15 +169,17 @@ struct DayView: View {
             ForEach(Array(model.friends.enumerated()), id: \.offset) { _, friend in
                 let shared = Together.day(day, mine: model.schedule, friend: friend.schedule, calendar: model.calendar)
                 let headline = shared.friendEnd.map {
-                    $0 <= model.now ? "\(friend.name) a fini à \(t($0))" : "\(friend.name) finit à \(t($0))"
-                } ?? "\(friend.name) n'a pas cours"
+                    $0 <= model.now
+                        ? L10n.tr("\(friend.name) a fini à \(t($0))", "\(friend.name) finished at \(t($0))")
+                        : L10n.tr("\(friend.name) finit à \(t($0))", "\(friend.name) finishes at \(t($0))")
+                } ?? L10n.tr("\(friend.name) n'a pas cours", "\(friend.name) has no classes")
                 VStack(alignment: .leading, spacing: 2) {
                     Label(headline, systemImage: "person.2")
                         .font(.caption.weight(.semibold))
                     if shared.friendEnd != nil {
                         Text(shared.breaks.isEmpty
-                            ? "Pas de pause commune"
-                            : "Pauses communes : " + shared.breaks.map { "\(t($0.start))-\(t($0.end))" }.joined(separator: " · "))
+                            ? L10n.tr("Pas de pause commune", "No shared break")
+                            : L10n.tr("Pauses communes : ", "Shared breaks: ") + shared.breaks.map { "\(t($0.start))-\(t($0.end))" }.joined(separator: " · "))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -188,7 +210,7 @@ struct DayView: View {
         if !holidays.isEmpty || vacation != nil {
             VStack(alignment: .leading, spacing: 2) {
                 ForEach(holidays, id: \.day) { h in
-                    Label("Férié \(h.day.formatted(.dateTime.weekday(.abbreviated).day().month(.twoDigits).locale(fr))) · \(h.name)",
+                    Label(L10n.tr("Férié", "Holiday") + " \(h.day.formatted(.dateTime.weekday(.abbreviated).day().month(.twoDigits).locale(fr))) · \(h.name)",
                           systemImage: "flag")
                 }
                 if let vacation { Label(vacation, systemImage: "beach.umbrella") }
@@ -201,8 +223,11 @@ struct DayView: View {
     private func weekSummary(_ day: Date) -> some View {
         let w = Stats.week(of: day, now: model.now, schedule: model.schedule, calendar: model.calendar)
         let thisWeek = model.calendar.isDate(day, equalTo: model.now, toGranularity: .weekOfYear)
-        var text = "\(thisWeek ? "Cette semaine" : "Semaine") : \(Self.hours(w.total)) de cours"
-        if w.done > 0, w.done < w.total { text += " · \(Self.hours(w.done)) faites" }
+        var text = L10n.tr(
+            "\(thisWeek ? "Cette semaine" : "Semaine") : \(Self.hours(w.total)) de cours",
+            "\(thisWeek ? "This week" : "Week"): \(Self.hours(w.total)) of classes"
+        )
+        if w.done > 0, w.done < w.total { text += " · " + L10n.tr("\(Self.hours(w.done)) faites", "\(Self.hours(w.done)) done") }
         return Button(action: { model.showingStats = true }) {
             HStack(spacing: 4) {
                 Image(systemName: "chart.bar")
@@ -212,7 +237,7 @@ struct DayView: View {
         .buttonStyle(.borderless)
         .font(.caption)
         .foregroundStyle(.secondary)
-        .help("Heures par matière")
+        .help(L10n.tr("Heures par matière", "Hours per subject"))
     }
 
     static func hours(_ t: TimeInterval) -> String { t <= 0 ? "0 h" : Display.duration(t) }
@@ -241,7 +266,7 @@ struct DayView: View {
                 Text(Display.time(c.end, calendar: model.calendar)).foregroundStyle(.secondary)
             }
             .font(.caption.monospacedDigit())
-            .frame(width: 40, alignment: .trailing)
+            .frame(width: Self.timeWidth, alignment: .trailing)
 
             VStack(alignment: .leading, spacing: 2) {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
@@ -249,7 +274,7 @@ struct DayView: View {
                         .font(.callout.weight(isCurrent || c.isExam ? .semibold : .regular))
                         .fixedSize(horizontal: false, vertical: true)
                     if c.isExam {
-                        Text("Examen")
+                        Text(L10n.tr("Examen", "Exam"))
                             .font(.caption2.weight(.bold))
                             .foregroundStyle(.white)
                             .padding(.horizontal, 5)
@@ -259,9 +284,9 @@ struct DayView: View {
                 }
                 HStack(spacing: 4) {
                     Image(systemName: "mappin.and.ellipse")
-                    Text(c.room ?? "Salle non indiquée")
+                    Text(c.room ?? L10n.tr("Salle non indiquée", "Room not set"))
                     if roomChanged {
-                        Text("· changement").foregroundStyle(.orange)
+                        Text("· " + L10n.tr("changement", "changed")).foregroundStyle(.orange)
                     }
                 }
                 .font(.caption)
@@ -286,12 +311,12 @@ struct DayView: View {
         let lunch = Display.isLunch(from: from, to: to, calendar: model.calendar)
         return HStack(spacing: 6) {
             Image(systemName: lunch ? "fork.knife" : "cup.and.saucer")
-            Text("\(lunch ? "Pause déjeuner" : "Pause") \(Display.duration(to.timeIntervalSince(from)))")
-            if isNow { Text("· maintenant").fontWeight(.semibold) }
+            Text("\(lunch ? L10n.tr("Pause déjeuner", "Lunch break") : L10n.tr("Pause", "Break")) \(Display.duration(to.timeIntervalSince(from)))")
+            if isNow { Text("· " + L10n.tr("maintenant", "now")).fontWeight(.semibold) }
         }
         .font(.caption)
         .foregroundStyle(isNow ? Color.accentColor : Color.secondary)
-        .padding(.leading, 63)
+        .padding(.leading, Self.timeWidth + 23)
     }
 
     private func emptyState(_ title: String, detail: String, button: String?) -> some View {
@@ -306,14 +331,17 @@ struct DayView: View {
         HStack {
             Group {
                 if let stale = model.staleSince {
-                    Label("Pas mis à jour depuis \(stale)" + (model.store.lastError.map { " · \($0)" } ?? ""),
+                    Label(L10n.tr("Pas mis à jour depuis \(stale)", "Not updated for \(stale)") + (model.store.lastError.map { " · \($0)" } ?? ""),
                           systemImage: "exclamationmark.triangle")
                         .foregroundStyle(.orange)
-                        .help("Le planning affiché peut être périmé : la source ne répond plus ou renvoie une erreur.")
+                        .help(L10n.tr(
+                            "Le planning affiché peut être périmé : la source ne répond plus ou renvoie une erreur.",
+                            "The schedule shown may be out of date: the source is not responding or returns an error."
+                        ))
                 } else if let error = model.store.lastError {
                     Label(error, systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
                 } else if let updated = model.store.lastUpdated {
-                    Text("Mis à jour à \(Display.time(updated, calendar: model.calendar))")
+                    Text(L10n.tr("Mis à jour à \(Display.time(updated, calendar: model.calendar))", "Updated at \(Display.time(updated, calendar: model.calendar))"))
                 }
             }
             .font(.caption)
@@ -326,20 +354,20 @@ struct DayView: View {
                 Image(systemName: "arrow.clockwise")
             }
             .disabled(model.store.isLoading || !model.hasSource)
-            .help("Rafraîchir")
+            .help(L10n.tr("Rafraîchir", "Refresh"))
             Button(action: model.openWeek) { Image(systemName: "calendar") }
                 .disabled(model.schedule.courses.isEmpty)
-                .help("Semaine")
+                .help(L10n.tr("Semaine", "Week"))
             Button(action: model.openGrades) { Image(systemName: "graduationcap") }
                 .disabled(!model.hasCredentials)
-                .help("Notes")
+                .help(L10n.tr("Notes", "Grades"))
             Button { model.showingStats = true } label: { Image(systemName: "chart.bar") }
                 .disabled(model.schedule.courses.isEmpty)
-                .help("Statistiques")
+                .help(L10n.tr("Statistiques", "Statistics"))
             Button(action: openSettings) { Image(systemName: "gearshape") }
-                .help("Réglages")
+                .help(L10n.tr("Réglages", "Settings"))
             Button { NSApp.terminate(nil) } label: { Image(systemName: "power") }
-                .help("Quitter")
+                .help(L10n.tr("Quitter", "Quit"))
         }
         .buttonStyle(.borderless)
     }

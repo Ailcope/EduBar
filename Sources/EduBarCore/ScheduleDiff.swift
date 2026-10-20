@@ -70,44 +70,50 @@ public enum ScheduleDiff {
         guard changes.count <= limit else {
             return [PendingNotification(
                 id: "changes-\(stamp)",
-                title: "🗓️ Emploi du temps modifié",
-                body: "\(changes.count) changements dans les deux prochaines semaines. Ouvre EduBar pour voir le planning."
+                title: L10n.tr("🗓️ Emploi du temps modifié", "🗓️ Schedule changed"),
+                body: L10n.tr(
+                    "\(changes.count) changements dans les deux prochaines semaines. Ouvre EduBar pour voir le planning.",
+                    "\(changes.count) changes in the next two weeks. Open EduBar to see the schedule."
+                )
             )]
         }
         func when(_ d: Date) -> String {
             calendar.isDate(d, inSameDayAs: now)
-                ? "aujourd'hui \(Display.time(d, calendar: calendar))"
+                ? L10n.tr("aujourd'hui", "today") + " \(Display.time(d, calendar: calendar))"
                 : Display.dayLabel(d, now: now, calendar: calendar)
         }
         func span(_ c: Course) -> String {
             "\(Display.time(c.start, calendar: calendar))-\(Display.time(c.end, calendar: calendar))"
         }
-        func room(_ c: Course) -> String { c.room.map(Display.shortRoom) ?? "salle non indiquée" }
+        func room(_ c: Course) -> String { c.room.map(Display.shortRoom) ?? L10n.tr("salle non indiquée", "room not set") }
 
         return changes.map { change in
             switch change {
             case let .cancelled(c):
                 PendingNotification(
                     id: "cancelled-\(c.id)-\(Int(c.start.timeIntervalSince1970))",
-                    title: "❌ Cours annulé · \(when(c.start))",
-                    body: "\(c.displayTitle) (\(span(c))) n'est plus au planning."
+                    title: L10n.tr("❌ Cours annulé · \(when(c.start))", "❌ Class cancelled · \(when(c.start))"),
+                    body: L10n.tr(
+                        "\(c.displayTitle) (\(span(c))) n'est plus au planning.",
+                        "\(c.displayTitle) (\(span(c))) is no longer on the schedule."
+                    )
                 )
             case let .added(c):
                 PendingNotification(
                     id: "added-\(c.id)-\(Int(c.start.timeIntervalSince1970))",
-                    title: "🆕 Nouveau cours · \(when(c.start))",
+                    title: L10n.tr("🆕 Nouveau cours · \(when(c.start))", "🆕 New class · \(when(c.start))"),
                     body: "\(c.displayTitle) (\(span(c))) · \(room(c))"
                 )
             case let .moved(o, n):
                 PendingNotification(
                     id: "moved-\(n.id)-\(Int(n.start.timeIntervalSince1970))",
-                    title: "🔁 Cours déplacé · \(when(n.start))",
+                    title: L10n.tr("🔁 Cours déplacé · \(when(n.start))", "🔁 Class moved · \(when(n.start))"),
                     body: "\(n.displayTitle) : \(when(o.start)) → \(when(n.start)) (\(span(n))) · \(room(n))"
                 )
             case let .roomChanged(o, n):
                 PendingNotification(
                     id: "room-\(n.id)-\(RoomChange.normalized(n.room ?? ""))",
-                    title: "📍 Salle changée · \(room(n))",
+                    title: L10n.tr("📍 Salle changée · \(room(n))", "📍 Room changed · \(room(n))"),
                     body: "\(n.displayTitle), \(when(n.start)) : \(room(o)) → \(room(n))"
                 )
             }

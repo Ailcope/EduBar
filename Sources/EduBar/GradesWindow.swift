@@ -1,4 +1,5 @@
 import AppKit
+import EduBarCore
 import SwiftUI
 
 /// La fenêtre « Notes » : tableau de notes façon myGES, une seule instance.
@@ -17,6 +18,11 @@ final class GradesWindow: NSObject, NSWindowDelegate {
         super.init()
     }
 
+    static var title: String { L10n.tr("Notes", "Grades") }
+
+    /// Titre dans la langue courante (changement de langue à chaud).
+    func retitle() { window?.title = Self.title }
+
     /// Ouvre la fenêtre, ou la ramène devant si elle l'est déjà.
     func show() {
         let w = window ?? make()
@@ -32,7 +38,7 @@ final class GradesWindow: NSObject, NSWindowDelegate {
             contentRect: NSRect(origin: .zero, size: Self.startSize),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered, defer: false)
-        w.title = "Notes"
+        w.title = Self.title
         w.isReleasedWhenClosed = false
         w.tabbingMode = .disallowed
         w.contentMinSize = Self.minSize

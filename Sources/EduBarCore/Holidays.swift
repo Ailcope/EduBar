@@ -10,9 +10,9 @@ public enum Holidays {
         guard let easter = easter(y, calendar: calendar) else { return nil }
         let offset = calendar.dateComponents([.day], from: easter, to: calendar.startOfDay(for: day)).day
         switch offset {
-        case 1: return "Lundi de Pâques"
-        case 39: return "Ascension"
-        case 50: return "Lundi de Pentecôte"
+        case 1: return L10n.tr("Lundi de Pâques", "Easter Monday")
+        case 39: return L10n.tr("Ascension", "Ascension Day")
+        case 50: return L10n.tr("Lundi de Pentecôte", "Whit Monday")
         default: return nil
         }
     }
@@ -28,10 +28,17 @@ public enum Holidays {
         return result
     }
 
-    static let fixed: [Int: String] = [
-        101: "Jour de l'an", 501: "Fête du travail", 508: "Victoire 1945", 714: "Fête nationale",
-        815: "Assomption", 1101: "Toussaint", 1111: "Armistice", 1225: "Noël",
-    ]
+    static var fixed: [Int: String] {
+        L10n.current == .fr
+            ? [
+                101: "Jour de l'an", 501: "Fête du travail", 508: "Victoire 1945", 714: "Fête nationale",
+                815: "Assomption", 1101: "Toussaint", 1111: "Armistice", 1225: "Noël",
+            ]
+            : [
+                101: "New Year's Day", 501: "Labour Day", 508: "Victory in Europe Day", 714: "Bastille Day",
+                815: "Assumption Day", 1101: "All Saints' Day", 1111: "Armistice Day", 1225: "Christmas Day",
+            ]
+    }
 
     /// Dimanche de Pâques (algorithme de Meeus, calendrier grégorien), à minuit.
     static func easter(_ y: Int, calendar: Calendar) -> Date? {
