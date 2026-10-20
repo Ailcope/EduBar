@@ -106,6 +106,7 @@ Screenshots show made-up subjects, rooms, names and weather (`EduBar --snapshot 
 
 - **Keyboard shortcut.** ⌥⌘E opens and closes the menu from any app, no Accessibility permission needed. Change or disable it in ⚙️.
 - **Copy diagnostics.** A button at the bottom of the settings copies the version, app location, quarantine and calendar state for a bug report. Never the URL.
+- **School events.** The myGES schedule mixes school events (talks, lunch sessions, sport) with classes. EduBar shows classes only by default; each event series can be added in ⚙️ > **Calendrier** > **Évènements de l'école**.
 - **Grades.** The 🎓 button opens a window that mirrors the myGES table, in the spirit of [MyPrettyGradES](https://github.com/Ailcope/MyPrettyGradES): colored marks (green above 10, yellow at 10, red below), average and letter per subject, stat tiles (weighted average, plain average, min, max, standard deviation, absences and lates) and a bar chart of the averages per subject with the weighted-average marker. A picker selects the school year and semester; by default, the one of the classes currently in the agenda, or the latest semester that has marks. New marks are highlighted, and as soon as a grade appears on myGES, a notification: `Nouvelle note : Sécurité des réseaux` · `CC2 : 15,5/20`. Can be turned off in ⚙️ > **Notifications**.
 
   <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/grades-dark.png"><img src="docs/screenshots/grades.png" width="680" alt="Grades window, table per semester"></picture>

@@ -66,8 +66,26 @@ struct SettingsView: View {
                 if !model.hasCredentials {
                     Button("Configurer le compte") { model.panel = .account }
                 }
+                schoolEventsEditor
             } else {
                 icalEditor
+            }
+        }
+    }
+
+    private var schoolEventsEditor: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Évènements de l'école").font(.callout.weight(.semibold))
+            if model.availableSchoolSeries.isEmpty {
+                caption("Aucun évènement de l'école sur la période chargée.")
+            } else {
+                caption("Conférences, sport et animations publiés dans le planning myGES. Masqués par défaut.")
+                ForEach(model.availableSchoolSeries, id: \.self) { name in
+                    Toggle(name, isOn: Binding(
+                        get: { model.acceptedSchoolSeries.contains(name) },
+                        set: { model.setSchoolSeries(name, accepted: $0) }
+                    ))
+                }
             }
         }
     }

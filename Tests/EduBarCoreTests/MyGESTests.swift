@@ -71,6 +71,46 @@ struct MyGESTests {
         #expect(courses.map(\.id) == ["ges-3", "ges-1", "ges-2"])
     }
 
+    // MARK: Agenda : évènements de l'école
+
+    private static let mixedAgenda = #"""
+    [{"reservation_id":1,"name":"Réseaux","type":"Cours","start_date":1000,"end_date":2000},
+     {"reservation_id":2,"name":"Atelier test B","type":"Autre","modality":"","start_date":3000,"end_date":4000,"discipline":{"name":null}},
+     {"reservation_id":3,"name":" Atelier test A ","type":"autre","start_date":5000,"end_date":6000},
+     {"reservation_id":4,"name":"Atelier test A","type":"Autre","start_date":7000,"end_date":8000},
+     {"reservation_id":5,"name":"Sans type","start_date":9000,"end_date":10000},
+     {"reservation_id":6,"name":"Type vide","type":"  ","start_date":11000,"end_date":12000},
+     {"reservation_id":7,"name":"Atelier 10","type":"Autre","start_date":13000,"end_date":14000},
+     {"reservation_id":8,"name":"Atelier 2","type":"Autre","start_date":15000,"end_date":16000}]
+    """#
+
+    @Test func schoolEventsHiddenByDefault() throws {
+        let events = try GESAgenda.events(from: Data(Self.mixedAgenda.utf8))
+        let ids = GESAgenda.courses(from: events, schoolSeries: []).map(\.id)
+        #expect(ids == ["ges-1", "ges-5", "ges-6"])
+    }
+
+    @Test func schoolEventKeptWhenSeriesAccepted() throws {
+        let events = try GESAgenda.events(from: Data(Self.mixedAgenda.utf8))
+        let ids = GESAgenda.courses(from: events, schoolSeries: ["Atelier test A"]).map(\.id)
+        #expect(ids == ["ges-1", "ges-3", "ges-4", "ges-5", "ges-6"])
+    }
+
+    @Test func missingOrBlankTypeIsCourse() throws {
+        let events = try GESAgenda.events(from: Data(Self.mixedAgenda.utf8))
+        #expect(events.filter(GESAgenda.isCourse).compactMap(\.reservationId) == [1, 5, 6])
+    }
+
+    @Test func schoolSeriesAreUniqueAndSorted() throws {
+        let events = try GESAgenda.events(from: Data(Self.mixedAgenda.utf8))
+        #expect(GESAgenda.schoolEventSeries(from: events) == ["Atelier 2", "Atelier 10", "Atelier test A", "Atelier test B"])
+    }
+
+    @Test func plainCoursesKeepsEverything() throws {
+        let events = try GESAgenda.events(from: Data(Self.mixedAgenda.utf8))
+        #expect(GESAgenda.courses(from: events).count == 8)
+    }
+
     // MARK: Notes
 
     @Test func gradesAreDecodedFromRealShape() throws {

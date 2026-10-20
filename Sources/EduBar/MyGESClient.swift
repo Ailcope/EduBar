@@ -99,9 +99,10 @@ actor MyGESClient {
         throw MyGESError.unexpectedResponse
     }
 
-    func agenda(from: Date, to: Date) async throws -> [Course] {
+    /// Évènements bruts de l'agenda (cours et évènements de l'école) ; le filtrage se fait côté appelant.
+    func agendaEvents(from: Date, to: Date) async throws -> [GESEvent] {
         let data = try await rawJSON(KordisAPI.agendaURL(from: from, to: to))
-        do { return GESAgenda.courses(from: try GESAgenda.events(from: data)) } catch { throw MyGESError.unexpectedResponse }
+        do { return try GESAgenda.events(from: data) } catch { throw MyGESError.unexpectedResponse }
     }
 
     /// Années scolaires de l'étudiant ; repli sur l'année scolaire courante si la liste est vide.

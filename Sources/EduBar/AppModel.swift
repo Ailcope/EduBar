@@ -104,6 +104,21 @@ final class AppModel {
         didSet { UserDefaults.standard.set(calendarSource.rawValue, forKey: "calendarSource") }
     }
 
+    /// Séries d'évènements de l'école (conférences, sport…) affichées en plus des cours. Vide par défaut :
+    /// une série jamais vue est masquée.
+    private(set) var acceptedSchoolSeries: Set<String> {
+        didSet { UserDefaults.standard.set(acceptedSchoolSeries.sorted(), forKey: "mygesSchoolEventSeries") }
+    }
+
+    /// Séries d'évènements de l'école présentes dans le dernier chargement de l'agenda.
+    private(set) var availableSchoolSeries: [String] = []
+
+    /// Coche ou décoche une série, puis recharge sans notification (simple changement de filtre).
+    func setSchoolSeries(_ name: String, accepted: Bool) {
+        if accepted { acceptedSchoolSeries.insert(name) } else { acceptedSchoolSeries.remove(name) }
+        Task { await refresh(announceChanges: false) }
+    }
+
     /// Identifiants myGES, lus sur disque au démarrage. Le mot de passe ne sort jamais du modèle.
     private(set) var credentials: MyGESCredentials?
     var hasCredentials: Bool { credentials != nil || snapshotHasCredentials }
@@ -219,6 +234,7 @@ final class AppModel {
         calendarSource = defaults.string(forKey: "calendarSource").flatMap(CalendarSource.init)
             ?? (MyGESCredentialsFile.standard.read() != nil ? .myges
                 : FeedFile.standard.read() != nil ? .ical : .myges)
+        acceptedSchoolSeries = Set(defaults.stringArray(forKey: "mygesSchoolEventSeries") ?? [])
         announceWeekend = defaults.object(forKey: "announceWeekend") as? Bool ?? true
         notifyScheduleChanges = defaults.object(forKey: "notifyScheduleChanges") as? Bool ?? true
         usageEnabled = defaults.object(forKey: UsageReporter.enabledKey) as? Bool ?? true
@@ -531,11 +547,15 @@ final class AppModel {
             await store.refresh(from: feedURL)
         case .myges:
             if credentials != nil {
-                let client = client, calendar = calendar
+                let client = client, calendar = calendar, accepted = acceptedSchoolSeries
+                let seen = SeriesBox()
                 await store.refresh(using: {
                     let range = KordisAPI.agendaRange(now: Date(), calendar: calendar)
-                    return try await client.agenda(from: range.from, to: range.to)
+                    let events = try await client.agendaEvents(from: range.from, to: range.to)
+                    seen.series = GESAgenda.schoolEventSeries(from: events)
+                    return GESAgenda.courses(from: events, schoolSeries: accepted)
                 })
+                if let series = seen.series { availableSchoolSeries = series }
             }
         }
         if frozenNow == nil {
@@ -854,6 +874,16 @@ final class CredentialBox: @unchecked Sendable {
     private let lock = NSLock()
     private var stored: MyGESCredentials?
     var value: MyGESCredentials? {
+        get { lock.withLock { stored } }
+        set { lock.withLock { stored = newValue } }
+    }
+}
+
+/// Récupère les séries vues pendant un chargement d'agenda (le closure du store est `@Sendable`).
+final class SeriesBox: @unchecked Sendable {
+    private let lock = NSLock()
+    private var stored: [String]?
+    var series: [String]? {
         get { lock.withLock { stored } }
         set { lock.withLock { stored = newValue } }
     }
