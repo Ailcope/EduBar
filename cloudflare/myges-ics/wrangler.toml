@@ -1,0 +1,24 @@
+# Worker myges-ics, servi sur https://edt.mathys.cc (compte Cloudflare de la zone mathys.cc).
+# Emploi du temps myGES en flux iCal. Déploiement : docs/deploiement.md, section « Worker myges-ics ».
+name = "myges-ics"
+main = "worker.js"
+account_id = "47dff828140a5a6a34df8c6ed0c23ede"
+compatibility_date = "2026-09-01"
+workers_dev = false
+
+# Aucun journal : ni observabilité, ni logpush.
+[observability]
+enabled = false
+
+[[routes]]
+pattern = "edt.mathys.cc"
+custom_domain = true
+
+# Dernier .ics correct (clé « ics »). Id à reporter après `npx wrangler kv namespace create myges-ics`.
+[[kv_namespaces]]
+binding = "ICS"
+id = "A_REMPLACER"
+
+# Relecture de myGES toutes les 30 min.
+[triggers]
+crons = ["*/30 * * * *"]
