@@ -132,7 +132,7 @@ final class CalendarStore {
     nonisolated static func fetch(_ url: URL) async throws -> (text: String, courses: [Course]) {
         var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 30)
         request.setValue("text/calendar", forHTTPHeaderField: "Accept")
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await Network.session.data(for: request)
         if let http = response as? HTTPURLResponse, http.statusCode != 200 { throw FetchError.http(http.statusCode) }
         guard let text = String(data: data, encoding: .utf8), text.contains("BEGIN:VCALENDAR") else {
             throw FetchError.notACalendar

@@ -73,7 +73,7 @@ final class WeatherStore {
 
     nonisolated private static func get(_ url: URL) async throws -> Data {
         let request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 20)
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await Network.session.data(for: request)
         if let http = response as? HTTPURLResponse, http.statusCode != 200 { throw FetchError.http(http.statusCode) }
         return data
     }
