@@ -154,15 +154,20 @@ public struct GradeBook: Codable, Sendable, Equatable {
 
         /// Moyenne affichée : celle de myGES quand elle existe, sinon calculée dès la première note.
         /// CC seul : moyenne de CC ; examen seul : l'examen ; les deux : moitié CC, moitié examen.
+        /// La pondération réelle CC/examen de l'école n'est pas connue : c'est une estimation, que la
+        /// moyenne de myGES remplace dès qu'elle est publiée.
         public var displayAverage: Double? {
-            if let average { return average }
+            // myGES renvoie parfois 0 en guise de « pas encore de moyenne » : on calcule quand même.
+            if let average, average != 0 { return average }
             let cc = ccAverage ?? (grades.isEmpty ? nil : grades.reduce(0, +) / Double(grades.count))
-            switch (cc, exam) {
-            case let (cc?, exam?): return (cc + exam) / 2
-            case let (cc?, nil): return cc
-            case let (nil, exam?): return exam
-            case (nil, nil): return nil
+            let computed: Double? = switch (cc, exam) {
+            case let (cc?, exam?): (cc + exam) / 2
+            case let (cc?, nil): cc
+            case let (nil, exam?): exam
+            case (nil, nil): nil
             }
+            // Arrondi au centième : sans ça 9.1, 10.2 et 10.7 donnent 9,999… et la pastille passe sous 10.
+            return computed.map { ($0 * 100).rounded() / 100 } ?? average
         }
 
         /// La période de la matière, ou `nil` si l'année ou le semestre manque.

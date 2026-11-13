@@ -173,6 +173,13 @@ struct MyGESTests {
         }
         // Une seule note suffit.
         #expect(s([18]).displayAverage == 18)
+        // Arrondi au centième : la somme flottante donne 9,999… sans ça.
+        #expect(s([9.1, 10.2, 10.7]).displayAverage == 10)
+        #expect(s([6.4, 9.8, 13.8]).displayAverage == 10)
+        // Un 0 de remplissage dans la moyenne de myGES ne masque pas les notes.
+        #expect(s([14, 16], average: 0).displayAverage == 15)
+        // Sans aucune note, le 0 de myGES reste tel quel.
+        #expect(s([], average: 0).displayAverage == 0)
         #expect(s([15, 11.5]).displayAverage == 13.25)
         // Examen seul.
         #expect(s([], exam: 12).displayAverage == 12)
