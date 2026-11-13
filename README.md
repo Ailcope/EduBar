@@ -216,7 +216,7 @@ Si `swift test` échoue avec `plugin for module 'TestingMacros' not found` (Comm
 swift test -Xswiftc -plugin-path -Xswiftc /Library/Developer/CommandLineTools/usr/lib/swift/host/plugins/testing
 ```
 
-- **Publier :** `scripts/bundle.sh x.y.z`, puis une release GitHub `vx.y.z` avec le `.dmg` et le `.zip` (le `.zip` sert à la mise à jour automatique). Les apps installées se mettent à jour dans la journée.
+- **Publier :** `scripts/bundle.sh x.y.z`, puis une release GitHub `vx.y.z` avec le `.dmg` et le `.zip` (le `.zip` sert à la mise à jour automatique). Garder `dist/EduBar-x.y.z.symbols` (binaire non strippé) pour symboliser les rapports de plantage. Les apps installées se mettent à jour dans la journée.
 - **Icône :** elle vient de `Resources/AppIcon.svg`. Après une modif, `scripts/make-icon.sh` régénère `Resources/AppIcon.icns`.
 - **Rendu :** `EduBar --snapshot <dossier> [--at "2026-09-22 13:10"] [--demo]` rend le popover en PNG à partir du cache. `--demo` remplace matières et salles par des noms fictifs (captures du README).
 
