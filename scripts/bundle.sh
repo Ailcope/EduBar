@@ -22,7 +22,7 @@ strip -x "$APP/Contents/MacOS/EduBar"
 sed "s/__VERSION__/$VERSION/g" Resources/Info.plist > "$APP/Contents/Info.plist"
 cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 
-codesign --force --sign - --timestamp=none "$APP"
+codesign --force --sign - --options runtime --timestamp=none "$APP"
 codesign --verify --verbose=1 "$APP"
 
 rm -f "$ROOT/dist/EduBar-$VERSION.zip"
