@@ -34,7 +34,7 @@ export async function cleLimiteur(ip, sel, jour) {
   return sha256hex(`${jour}|${sel || ''}|${reseauDe(ip)}`);
 }
 
-const ENTETES = { 'Cache-Control': 'no-store' };
+const ENTETES = { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' };
 
 const json = (corps, statut = 200) =>
   new Response(JSON.stringify(corps), { status: statut, headers: { ...ENTETES, 'Content-Type': 'application/json' } });
@@ -138,22 +138,21 @@ async function stats(request, env) {
   const debut7 = decaler(aujourdhui, -6);
   const db = env.DB;
 
-  const [inst, jour, semaine, mois, pres, nouv, agr, vers] = await Promise.all([
+  // Pas de lecture de jours_agreges : ses jours ont plus de 35 jours, au-delà de la fenêtre de 30 jours.
+  const [inst, jour, semaine, mois, pres, nouv, vers, ancienne] = await Promise.all([
     db.prepare('SELECT COUNT(*) AS n FROM installations').first(),
     db.prepare('SELECT COUNT(*) AS n FROM presences WHERE jour = ?').bind(aujourdhui).first(),
     db.prepare('SELECT COUNT(DISTINCT empreinte) AS n FROM presences WHERE jour >= ?').bind(debut7).first(),
     db.prepare('SELECT COUNT(DISTINCT empreinte) AS n FROM presences WHERE jour >= ?').bind(debut30).first(),
     db.prepare('SELECT jour, COUNT(*) AS n FROM presences WHERE jour >= ? GROUP BY jour').bind(debut30).all(),
     db.prepare('SELECT jour, COUNT(*) AS n FROM installations WHERE jour >= ? GROUP BY jour').bind(debut30).all(),
-    db.prepare('SELECT jour, actifs, nouvelles FROM jours_agreges WHERE jour >= ?').bind(debut30).all(),
     db.prepare('SELECT version, COUNT(DISTINCT empreinte) AS n FROM presences WHERE jour >= ? GROUP BY version ORDER BY n DESC, version DESC')
       .bind(debut7).all(),
+    db.prepare('SELECT MIN(jour) AS jour FROM presences').first(),
   ]);
 
-  const actifsParJour = new Map((agr.results || []).map((r) => [r.jour, r.actifs]));
-  const nouvellesParJour = new Map((agr.results || []).map((r) => [r.jour, r.nouvelles]));
-  for (const r of pres.results || []) actifsParJour.set(r.jour, r.n);
-  for (const r of nouv.results || []) nouvellesParJour.set(r.jour, r.n);
+  const actifsParJour = new Map((pres.results || []).map((r) => [r.jour, r.n]));
+  const nouvellesParJour = new Map((nouv.results || []).map((r) => [r.jour, r.n]));
 
   const jours = [];
   for (let i = 29; i >= 0; i--) {
@@ -166,6 +165,8 @@ async function stats(request, env) {
     actifs: { jour: jour?.n || 0, semaine: semaine?.n || 0, mois: mois?.n || 0 },
     jours,
     versions: (vers.results || []).map((r) => ({ version: r.version, actifs: r.n })),
+    // Surveillance de la purge : doit rester à moins de 36 jours, sinon le cron ne tourne plus.
+    presence_la_plus_ancienne: ancienne?.jour || null,
   });
 }
 

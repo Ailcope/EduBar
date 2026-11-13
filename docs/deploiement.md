@@ -47,6 +47,8 @@ Un limiteur dans le Worker ne protège que D1 : chaque requête compte quand mê
 - Plafond global de 500 créations d'installations par jour (`PLAFOND_CREATIONS_JOUR` dans `worker.js`), compté dans D1, sans IP. Au-delà : 429.
 - Limiteur de création : clé = SHA-256(jour, jeton, IPv4 entière ou préfixe IPv6 /64), calculée en mémoire.
 - `presences` : 35 jours (versions comprises). Le cron quotidien agrège les lignes plus anciennes dans `jours_agreges(jour, actifs, nouvelles)` puis les supprime.
+- Surveillance de la purge : `GET /v1/stats` expose `presence_la_plus_ancienne` (date, ou `null`). Si elle dépasse 35 jours, le cron ne tourne plus ou échoue : à contrôler avec `npx wrangler deployments list` et le tableau de bord (Triggers).
+- Toutes les réponses portent `X-Content-Type-Options: nosniff`.
 - Rien d'autre n'est stocké : ni IP, ni User-Agent, ni pays, ni heure. Observabilité et logpush désactivés.
 
 ### Retour arrière

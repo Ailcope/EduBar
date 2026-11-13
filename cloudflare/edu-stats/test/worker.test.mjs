@@ -234,6 +234,43 @@ test('signal : limiteur dédié => 429, sans accès D1', async () => {
   assert.equal(env.DB.sqlite.prepare('SELECT COUNT(*) n FROM presences').get().n, 0);
 });
 
+test('toutes les réponses portent X-Content-Type-Options: nosniff', async () => {
+  const env = creerEnv();
+  const { id } = await (await appeler(env, 'POST', '/v1/installation')).json();
+  const reponses = [
+    await appeler(env, 'POST', '/v1/installation'),
+    await signaler(env, id),
+    await appeler(env, 'POST', '/v1/signal', { corps: 'pas du json' }),
+    await appeler(env, 'GET', '/v1/stats'),
+    await appeler(env, 'GET', '/v1/stats', { jeton: 'secret-de-test' }),
+    await appeler(env, 'GET', '/'),
+  ];
+  for (const r of reponses) assert.equal(r.headers.get('X-Content-Type-Options'), 'nosniff', String(r.status));
+});
+
+test('stats : presence_la_plus_ancienne (null sans présence, sinon la plus vieille date)', async () => {
+  const env = creerEnv();
+  const lire = async () => (await (await appeler(env, 'GET', '/v1/stats', { jeton: 'secret-de-test' })).json());
+  assert.equal((await lire()).presence_la_plus_ancienne, null);
+  const sq = env.DB.sqlite;
+  const today = jourParis();
+  sq.prepare('INSERT INTO presences VALUES (?,?,?)').run(decaler(today, -12), 'e1', '0.9.0');
+  sq.prepare('INSERT INTO presences VALUES (?,?,?)').run(decaler(today, -2), 'e2', '0.9.0');
+  const s = await lire();
+  assert.equal(s.presence_la_plus_ancienne, decaler(today, -12));
+  assert.equal(s.installations, 0);
+});
+
+test('stats : ne lit plus jours_agreges (toujours vide sur 30 jours)', async () => {
+  const env = creerEnv();
+  const requetes = [];
+  const prepare = env.DB.prepare;
+  env.DB.prepare = (sql) => { requetes.push(sql); return prepare(sql); };
+  await appeler(env, 'GET', '/v1/stats', { jeton: 'secret-de-test' });
+  assert.ok(requetes.length > 0);
+  assert.ok(!requetes.some((q) => q.includes('jours_agreges')));
+});
+
 test('tout le reste : 404, sans CORS', async () => {
   const env = creerEnv();
   for (const [m, p] of [['GET', '/'], ['GET', '/v1/installation'], ['POST', '/v1/stats'], ['DELETE', '/v1/signal']]) {
