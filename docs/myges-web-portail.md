@@ -126,20 +126,20 @@ Réponse (200, text/xml, 2,3 Ko pour 9 événements) :
 Le contenu du CDATA est du JSON (non pretty-printed, ordre des événements NON chronologique). Un événement, format exact :
 
 ```json
-{"id": "<uuid>","title": "T1 - sécurité...\nQuai 12 - 506","start": "2026-10-16T15:45:00+0200","end": "2026-10-16T17:15:00+0200","allDay":false,"editable":true,"className":"reservation-REIMS"}
+{"id": "<uuid>","title": "T1 - sécurité...\nBâtiment 1 - 101","start": "2026-10-16T15:45:00+0200","end": "2026-10-16T17:15:00+0200","allDay":false,"editable":true,"className":"reservation-VILLE"}
 ```
 Deux exemples complets (anonymisés, ids remplacés) :
 
 ```json
-{"id": "e80cc9f3-xxxx","title": "T1 - sécurité...\nQuai 12 - 506","start": "2026-10-16T15:45:00+0200","end": "2026-10-16T17:15:00+0200","allDay":false,"editable":true,"className":"reservation-REIMS"}
-{"id": "512a1dac-xxxx","title": "T1 - gestion...\nQuai 12 - 301","start": "2026-10-15T11:30:00+0200","end": "2026-10-15T13:00:00+0200","allDay":false,"editable":true,"className":"reservation-REIMS"}
+{"id": "e80cc9f3-xxxx","title": "T1 - sécurité...\nBâtiment 1 - 101","start": "2026-10-16T15:45:00+0200","end": "2026-10-16T17:15:00+0200","allDay":false,"editable":true,"className":"reservation-VILLE"}
+{"id": "512a1dac-xxxx","title": "T1 - gestion...\nBâtiment 1 - 301","start": "2026-10-15T11:30:00+0200","end": "2026-10-15T13:00:00+0200","allDay":false,"editable":true,"className":"reservation-VILLE"}
 ```
 Champs :
 - `id` : UUID de la réservation (sert de clé pour `eventSelect`, voir plus bas).
-- `title` : DEUX lignes séparées par `\n` : ligne 1 = intitulé de la matière TRONQUÉ (13 premiers caractères environ + `...`, ex. "T1 - sécurité..."), ligne 2 = campus/bâtiment + salle (`Quai 12 - 506`). Le titre complet n'est donc PAS dans ce JSON.
+- `title` : DEUX lignes séparées par `\n` : ligne 1 = intitulé de la matière TRONQUÉ (13 premiers caractères environ + `...`, ex. "T1 - sécurité..."), ligne 2 = campus/bâtiment + salle (`Bâtiment 1 - 101`). Le titre complet n'est donc PAS dans ce JSON.
 - `start`, `end` : ISO 8601 avec décalage SANS deux-points : `yyyy-MM-dd'T'HH:mm:ssZ` (`+0200`, `+0100` en hiver). Formatter Swift : `yyyy-MM-dd'T'HH:mm:ssZ` (Z = `+0200`), locale `en_US_POSIX`.
 - `allDay` : false. `editable` : true (sans effet).
-- `className` : `reservation-<CAMPUS>` (ici `reservation-REIMS`) ; sert à la couleur de légende campus. La légende contient aussi "Hybride" (vert #2E9E4B) : probablement un autre className pour les cours hybrides/distanciel (non vu dans cette semaine).
+- `className` : `reservation-<CAMPUS>` (ici `reservation-VILLE`) ; sert à la couleur de légende campus. La légende contient aussi "Hybride" (vert #2E9E4B) : probablement un autre className pour les cours hybrides/distanciel (non vu dans cette semaine).
 - Pas de champ prof, modalité, type, commentaire dans le JSON.
 
 ### 3.3 Détail d'un cours (NON capturé)
@@ -159,20 +159,21 @@ Le JS de la page définit `behaviors:{eventSelect: PrimeFaces.ab({s:'calendar:my
 Form : `<form id="marksForm" action="/student/marks">` avec `<input type="hidden" name="marksForm" value="marksForm">` + ViewState.
 
 Sélecteur de période (liste des semestres disponibles, à parser pour connaître les ids) :
+Les valeurs ci-dessous sont fictives (identifiants 1001 à 1005, libellés ECOLE-VILLE et codes BCH_XX), sans lien avec un compte réel.
 ```html
 <select id="marksForm:j_idt174:periodSelect_input" name="marksForm:j_idt174:periodSelect_input" ...>
- <option value="3369497" selected="selected">2026-2027 - ESGI-REIMS - BCH_SE2_000_ALT  - Semestre 2</option>
- <option value="3314314">2026-2027 - ESGI-REIMS - BCH_SE2_000_ALT  - Semestre 1</option>
- <option value="3262967">2025-2026 - ESGI-REIMS - BCH_SE1_000_INI  - Semestre 3</option>
- <option value="3191221">2025-2026 - ESGI-REIMS - BCH_SE1_000_INI  - Semestre 2</option>
- <option value="3162432">2025-2026 - ESGI-REIMS - BCH_SE1_000_INI  - Semestre 1</option>
+ <option value="1001" selected="selected">2026-2027 - ECOLE-VILLE - BCH_XX2_000_ALT  - Semestre 2</option>
+ <option value="1002">2026-2027 - ECOLE-VILLE - BCH_XX2_000_ALT  - Semestre 1</option>
+ <option value="1003">2025-2026 - ECOLE-VILLE - BCH_XX1_000_INI  - Semestre 3</option>
+ <option value="1004">2025-2026 - ECOLE-VILLE - BCH_XX1_000_INI  - Semestre 2</option>
+ <option value="1005">2025-2026 - ECOLE-VILLE - BCH_XX1_000_INI  - Semestre 1</option>
 </select>
 ```
 Valeur = identifiant numérique interne de période (pas de lien évident entre les ids, il faut lire les `<option>`). Le libellé contient année, école-campus, code classe, "Semestre N".
 
 ### 4.2 Les 4 POST (changement de semestre)
 
-Les 4 POST (57620ec9, d241ad92, dd3447ba, cdaf0fea) sont strictement le même appel avec une valeur `_input` différente : changement du `<select>` de période (événement `valueChange`). Ordre : 3314314 (S1 2026-27), 3262967 (S3 2025-26), 3191221 (S2 2025-26), 3162432 (S1 2025-26).
+Les 4 POST (57620ec9, d241ad92, dd3447ba, cdaf0fea) sont strictement le même appel avec une valeur `_input` différente : changement du `<select>` de période (événement `valueChange`). Ordre : 1002 (S1 2026-27), 1003 (S3 2025-26), 1004 (S2 2025-26), 1005 (S1 2025-26).
 
 Corps (décodé), 539 octets :
 ```
@@ -184,7 +185,7 @@ javax.faces.behavior.event=valueChange
 javax.faces.partial.event=change
 marksForm=marksForm
 marksForm:j_idt174:periodSelect_focus=
-marksForm:j_idt174:periodSelect_input=<id période, ex. 3191221>
+marksForm:j_idt174:periodSelect_input=<id période, ex. 1004>
 javax.faces.ViewState=<ViewState de la page marks>
 ```
 (le séparateur dans `partial.render` est `+` = espace encodé.) En-têtes : voir 2.1, Referer `https://myges.fr/student/marks`.
