@@ -31,8 +31,22 @@ public struct FeedFile: Sendable {
         FeedFile(directory: standard.url.deletingLastPathComponent(), name: slot == 0 ? "friend-url" : "friend-url-\(slot + 1)")
     }
 
+    /// Pose l'exclusion de Time Machine sur un fichier sensible déjà présent (écrit par une ancienne version).
+    /// Sans effet s'il est déjà exclu, absent, ou non sensible.
+    public func protectExisting() {
+        guard excludedFromBackup,
+              let current = try? url.resourceValues(forKeys: [.isExcludedFromBackupKey]).isExcludedFromBackup,
+              !current
+        else { return }
+        var values = URLResourceValues()
+        values.isExcludedFromBackup = true
+        var target = url
+        try? target.setResourceValues(values)
+    }
+
     public func read() -> String? {
         guard let raw = try? String(contentsOf: url, encoding: .utf8) else { return nil }
+        protectExisting()
         let value = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         return value.isEmpty ? nil : value
     }

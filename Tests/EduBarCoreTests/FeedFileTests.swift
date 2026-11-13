@@ -72,6 +72,29 @@ import Testing
         }
     }
 
+    /// Fichier écrit par une ancienne version (sans exclusion) : la lecture suffit à le protéger.
+    @Test func readingAnOldSensitiveFileExcludesIt() throws {
+        let dir = FileManager.default.temporaryDirectory.appending(path: "edubar-old-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let creds = FeedFile(directory: dir, name: "myges-credentials")
+        try Data("moi\nsecret".utf8).write(to: creds.url)
+        #expect(try !excluded(creds.url))
+        #expect(MyGESCredentialsFile.read(creds) == MyGESCredentials(login: "moi", password: "secret"))
+        #expect(try excluded(creds.url))
+
+        let feed = FeedFile(directory: dir, name: "feed-url")
+        try Data("https://exemple.test/a.ics".utf8).write(to: feed.url)
+        #expect(feed.read() == "https://exemple.test/a.ics")
+        #expect(try excluded(feed.url))
+
+        let grades = FeedFile(directory: dir, name: "grades.json")
+        try Data("[]".utf8).write(to: grades.url)
+        _ = grades.read()
+        #expect(try !excluded(grades.url))
+    }
+
     @Test func gradesAndHistoryStayInBackups() throws {
         defer { try? FileManager.default.removeItem(at: dir) }
         for name in ["grades.json", "history-calendar.json"] {
