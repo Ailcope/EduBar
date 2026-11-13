@@ -51,8 +51,28 @@ Un limiteur dans le Worker ne protège que D1 : chaque requête compte quand mê
 - Toutes les réponses portent `X-Content-Type-Options: nosniff`.
 - Rien d'autre n'est stocké : ni IP, ni User-Agent, ni pays, ni heure. Observabilité et logpush désactivés.
 
+### Réserves d'anonymat (l'engagement ne change pas)
+
+Aucune IP, aucun User-Agent, aucun pays, aucune heure n'est stocké ni journalisé. Trois réserves à connaître :
+
+1. L'empreinte (SHA-256 de l'identifiant) est un pseudonyme stable : la table `presences` la relie aux jours d'usage et à la version pendant 35 jours. Sans IP, elle n'identifie personne.
+2. L'IP sert de clé au limiteur, en mémoire seulement. Elle est salée par le jour et le jeton `EDU_STATS_TOKEN` avant le SHA-256 : l'empreinte ne s'inverse pas par énumération des adresses IPv4 et change chaque jour. Rien n'est persisté côté D1. (Cloudflare traite l'IP pour le limiteur et le WAF, comme pour toute requête.)
+3. La version est déclarable librement (`999.999.999` passe la validation) et une installation n'est pas une personne : réinstaller, ou plusieurs postes, comptent plusieurs fois. Les chiffres sont des ordres de grandeur, pas des audiences.
+
+### Mise en production de ce lot (dans l'ordre)
+
+Aucun changement de schéma : pas de migration D1. Depuis `cloudflare/edu-stats/` :
+
+1. `node --test test/` (doit être vert).
+2. `npx wrangler deploy` : crée aussi le binding `LIMITER_SIGNAL` déclaré dans `wrangler.toml`.
+3. Contrôle : `POST /v1/installation` renvoie 201, `POST /v1/signal` avec un corps de plus de 1024 octets renvoie 413, `GET /v1/stats` avec le jeton contient `presence_la_plus_ancienne`, toute réponse porte `X-Content-Type-Options: nosniff`.
+4. Créer la règle WAF de zone ci-dessus.
+
+Premier passage du cron après déploiement : il purge les installations sans présence depuis plus de 35 jours (y compris les anciennes jamais revenues). Le compteur `installations` de `/v1/stats` baissera d'autant, c'est voulu.
+
 ### Retour arrière
 
+- Ce lot : `npx wrangler rollback` (version précédente du Worker). Le binding `LIMITER_SIGNAL` inutilisé est inoffensif. Les installations déjà purgées ne reviennent pas : les apps concernées reçoivent 404 et se réinscrivent seules. Pas de migration à défaire.
 - Code : `git revert` du commit puis `npx wrangler deploy`. Les versions précédentes sont listées par `npx wrangler deployments list` et rétablies par `npx wrangler rollback`.
 - Arrêt complet : `npx wrangler delete` supprime le Worker et son domaine. La base D1 reste (`npx wrangler d1 delete edu-stats` pour l'effacer).
 - Rotation du jeton : régénérer le fichier et refaire l'étape 3.
