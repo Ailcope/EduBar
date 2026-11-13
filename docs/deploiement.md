@@ -83,3 +83,36 @@ Premier passage du cron après déploiement : il purge les installations sans pr
 - Arrêt complet : `npx wrangler delete` supprime le Worker et son domaine. La base D1 reste (`npx wrangler d1 delete edu-stats` pour l'effacer).
 - Rotation du jeton : régénérer le fichier et refaire l'étape 3.
 - Purge des données : `npx wrangler d1 execute edu-stats --remote --command "DELETE FROM presences; DELETE FROM installations; DELETE FROM jours_agreges;"`.
+
+## Publication d'une release
+
+Les apps installées n'acceptent une mise à jour que si son `.zip` est signé (Ed25519) par la clé de publication dont la clé publique est épinglée dans `Sources/EduBarCore/Update.swift` (`releasePublicKey`). Outil : `scripts/sign-release.swift` (CryptoKit, hors de l'app). La clé privée ne va jamais dans le dépôt, la CI ou GitHub.
+
+### 1. Créer la clé (une seule fois)
+
+1. Lancer `swift scripts/sign-release.swift keygen` depuis la racine du dépôt. Il crée `~/.config/edubar/release-signing.key` (dossier 0700, fichier 0600), refuse d'écraser une clé existante et affiche seulement la clé publique.
+2. Coller cette clé publique dans `releasePublicKey`, puis committer. C'est fait depuis le 13/11/2026 : cette étape ne sert plus que pour une rotation.
+3. Sauvegarder le fichier de clé hors du Mac (gestionnaire de mots de passe ou support chiffré).
+
+`swift scripts/sign-release.swift pubkey` réaffiche la clé publique. `EDUBAR_SIGNING_KEY=<chemin>` sert une autre clé (tests, rotation).
+
+### 2. Publier, dans l'ordre
+
+1. Lancer `scripts/bundle.sh x.y.z` : app, `.zip`, `.zip.sig`, `.dmg`. Il sort en erreur, fichiers produits quand même, si le zip n'est pas signé (pas de clé) ou si la clé qui signe n'est pas celle épinglée : ne pas publier dans ce cas.
+2. Créer la release GitHub `vx.y.z` avec `EduBar-x.y.z.dmg`, `EduBar-x.y.z.zip` et `EduBar-x.y.z.zip.sig` (nom exact : nom du zip + `.sig`).
+3. Pour signer un zip à part : `swift scripts/sign-release.swift sign dist/EduBar-x.y.z.zip` (écrit et vérifie le `.sig`).
+
+Une release sans `.zip.sig`, ou avec une signature invalide, n'est ni installée ni proposée par les apps signées : elles restent sur leur version, sans notification. Pour corriger, ajouter le bon `.sig` à la release : il est pris à la vérification suivante (6 h au plus).
+
+### 3. Clé perdue ou compromise
+
+1. Rotation, ancienne clé encore en main. Un `.sig` peut porter plusieurs signatures (une par ligne) et une app accepte la release si l'une d'elles vient de sa clé épinglée.
+   1. Mettre l'ancienne clé de côté (`mv ~/.config/edubar/release-signing.key ~/.config/edubar/ancienne.key`), créer la nouvelle (`keygen`) et l'épingler dans `releasePublicKey`.
+   2. À chaque release : `scripts/bundle.sh x.y.z` (signe avec la nouvelle), puis `EDUBAR_SIGNING_KEY=~/.config/edubar/ancienne.key swift scripts/sign-release.swift sign --add dist/EduBar-x.y.z.zip` (ajoute la signature de l'ancienne).
+   3. Garder la double signature tant que des apps épinglant l'ancienne clé peuvent encore exister : une app qui saute la version de transition doit pouvoir installer la suivante.
+   4. Clé compromise : même procédure, mais arrêter la double signature le plus tôt possible. Tant qu'elle dure, et tant que des apps n'ont pas pris la nouvelle clé, la clé fuitée reste acceptée chez elles.
+2. Clé perdue : les apps installées ne peuvent plus se mettre à jour seules. Créer et épingler une nouvelle clé, publier, et demander aux utilisateurs de réinstaller à la main depuis le `.dmg`.
+
+### 4. Transition
+
+Les versions 1.1.1 et antérieures ne vérifient aucune signature : elles installent la première version signée comme avant (empreinte GitHub seulement). La protection vaut à partir de la première version signée installée.

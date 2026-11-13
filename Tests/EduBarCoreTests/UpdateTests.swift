@@ -33,6 +33,7 @@ import Testing
     {"tag_name":"v0.2.0","html_url":"https://github.com/Ailcope/EduBar/releases/tag/v0.2.0",
      "draft":false,"prerelease":false,
      "assets":[{"name":"EduBar-0.2.0.zip","browser_download_url":"https://x/EduBar-0.2.0.zip"},
+               {"name":"EduBar-0.2.0.zip.sig","browser_download_url":"https://x/EduBar-0.2.0.zip.sig"},
                {"name":"EduBar-0.2.0.dmg","browser_download_url":"https://x/EduBar-0.2.0.dmg"}]}
     """
 
@@ -41,6 +42,7 @@ import Testing
         #expect(r.version == Version("0.2.0"))
         #expect(r.page.absoluteString == "https://github.com/Ailcope/EduBar/releases/tag/v0.2.0")
         #expect(r.dmg?.absoluteString == "https://x/EduBar-0.2.0.dmg")
+        #expect(r.zipSignature?.absoluteString == "https://x/EduBar-0.2.0.zip.sig")
     }
 
     @Test func availableOnlyWhenNewer() throws {

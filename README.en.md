@@ -123,7 +123,7 @@ Screenshots show made-up subjects, rooms, names and weather (`EduBar --snapshot 
   <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/bar-stale-dark.png"><img src="docs/screenshots/bar-stale.png" width="136" alt="Timetable may be stale"></picture>
 
 - **Past days kept.** myGES is only read a few weeks around today and Edusign drops yesterday from the feed: EduBar archives every past day locally (400 days, 0600), so browsing back and stats stay complete.
-- **Updates.** Checks GitHub every 6 hours and installs new releases by itself: verified download (GitHub's SHA-256 digest, bundle id, version and signature), in-place replacement, relaunch. Settings are kept. Clicking the "updated" notification opens the release notes. When run from the `.dmg`, it offers **Installer**: copy, relaunch from Applications and eject the disk image. If it cannot replace itself, a notification announces the new version and links to the download.
+- **Updates.** Checks GitHub every 6 hours and installs new releases by itself: verified download (the author's Ed25519 signature, checked against the public key built into the app, then GitHub's SHA-256 digest, bundle id, version and code signature), in-place replacement, relaunch. A release without a valid signature is neither installed nor offered: a compromised GitHub account is not enough to run code. Settings are kept. Clicking the "updated" notification opens the release notes. When run from the `.dmg`, it offers **Installer**: copy, relaunch from Applications and eject the disk image. If it cannot replace itself, a notification announces the new version and links to the download.
 
 ## Install
 
@@ -197,8 +197,10 @@ Command Line Tools only (`xcode-select --install`), no Xcode.
 
 ```sh
 swift test                 # tests
-scripts/bundle.sh 0.1.0    # dist/EduBar.app + .zip + .dmg (universal, ad-hoc signed)
+scripts/bundle.sh 0.1.0    # dist/EduBar.app + .zip + .zip.sig + .dmg (universal, ad-hoc signed)
 ```
+
+Releases are signed with the publishing key (`scripts/sign-release.swift`); see [docs/deploiement.md](docs/deploiement.md#publication-dune-release) (French).
 
 ## License
 

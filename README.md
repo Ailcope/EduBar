@@ -123,7 +123,7 @@ Les captures montrent des matières, des salles, des prénoms et une météo fic
   <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/bar-stale-dark.png"><img src="docs/screenshots/bar-stale.png" width="136" alt="Planning peut-être périmé"></picture>
 
 - **Journées passées gardées.** myGES n'est relu que sur quelques semaines et Edusign retire la veille du flux : EduBar archive chaque journée passée (400 jours, `~/Library/Application Support/EduBar/`, 0600), la navigation et les stats restent complètes.
-- **Mises à jour.** EduBar regarde toutes les 6 h s'il existe une nouvelle release et l'installe toute seule : téléchargement vérifié (empreinte SHA-256 publiée par GitHub, identifiant, version et signature), remplacement de l'app, relance. Les réglages sont conservés. Un clic sur la notification « EduBar mis à jour » ouvre les nouveautés. Lancée depuis le `.dmg`, elle propose **Installer** : copie, relance depuis Applications et éjection de l'image disque. Si elle ne peut pas se remplacer, une notification annonce la nouvelle version et mène au téléchargement.
+- **Mises à jour.** EduBar regarde toutes les 6 h s'il existe une nouvelle release et l'installe toute seule : téléchargement vérifié (signature Ed25519 de l'auteur, contrôlée avec la clé publique intégrée à l'app, puis empreinte SHA-256 publiée par GitHub, identifiant, version et signature de code), remplacement de l'app, relance. Une release sans signature valide n'est ni installée ni proposée : un compte GitHub compromis ne suffit pas à faire exécuter du code. Les réglages sont conservés. Un clic sur la notification « EduBar mis à jour » ouvre les nouveautés. Lancée depuis le `.dmg`, elle propose **Installer** : copie, relance depuis Applications et éjection de l'image disque. Si elle ne peut pas se remplacer, une notification annonce la nouvelle version et mène au téléchargement.
 
 ## Installation
 
@@ -207,7 +207,7 @@ Pas besoin de Xcode, les Command Line Tools suffisent (`xcode-select --install`)
 
 ```sh
 swift test                 # tests
-scripts/bundle.sh 0.1.0    # dist/EduBar.app + .zip + .dmg (universel, signature ad-hoc)
+scripts/bundle.sh 0.1.0    # dist/EduBar.app + .zip + .zip.sig + .dmg (universel, signature ad-hoc)
 ```
 
 Si `swift test` échoue avec `plugin for module 'TestingMacros' not found` (Command Line Tools récents), donne le chemin du plugin :
@@ -216,7 +216,7 @@ Si `swift test` échoue avec `plugin for module 'TestingMacros' not found` (Comm
 swift test -Xswiftc -plugin-path -Xswiftc /Library/Developer/CommandLineTools/usr/lib/swift/host/plugins/testing
 ```
 
-- **Publier :** `scripts/bundle.sh x.y.z`, puis une release GitHub `vx.y.z` avec le `.dmg` et le `.zip` (le `.zip` sert à la mise à jour automatique). Garder `dist/EduBar-x.y.z.symbols` (binaire non strippé) pour symboliser les rapports de plantage. Les apps installées se mettent à jour dans la journée.
+- **Publier :** `scripts/bundle.sh x.y.z` (signe le `.zip` avec la clé de publication, voir [docs/deploiement.md](docs/deploiement.md#publication-dune-release) ; code de sortie non nul si le zip n'est pas signé), puis une release GitHub `vx.y.z` avec le `.dmg`, le `.zip` et le `.zip.sig` (les deux derniers servent à la mise à jour automatique ; sans `.zip.sig` valide, les apps installées ignorent la release). Garder `dist/EduBar-x.y.z.symbols` (binaire non strippé) pour symboliser les rapports de plantage. Les apps installées se mettent à jour dans la journée.
 - **Icône :** elle vient de `Resources/AppIcon.svg`. Après une modif, `scripts/make-icon.sh` régénère `Resources/AppIcon.icns`.
 - **Rendu :** `EduBar --snapshot <dossier> [--at "2026-09-22 13:10"] [--demo]` rend le popover en PNG à partir du cache. `--demo` remplace matières et salles par des noms fictifs (captures du README).
 
