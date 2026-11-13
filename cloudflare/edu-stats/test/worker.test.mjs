@@ -12,7 +12,7 @@ function creerEnv(extra = {}) {
     let args = [];
     const o = {
       bind(...a) { args = a; return o; },
-      async run() { sqlite.prepare(sql).run(...args); return { success: true }; },
+      async run() { const r = sqlite.prepare(sql).run(...args); return { success: true, meta: { changes: Number(r.changes) } }; },
       async first() { return sqlite.prepare(sql).get(...args) ?? null; },
       async all() { return { results: sqlite.prepare(sql).all(...args) }; },
     };
@@ -175,6 +175,16 @@ test('installation : plafond global quotidien => 429 sans stocker', async () => 
   assert.equal((await appeler(env, 'POST', '/v1/installation')).status, 201);
 });
 
+test('installation : plafond atomique, une seule instruction D1 (pas de SELECT COUNT séparé)', async () => {
+  const env = creerEnv();
+  const requetes = [];
+  const prepare = env.DB.prepare;
+  env.DB.prepare = (sql) => { requetes.push(sql); return prepare(sql); };
+  assert.equal((await appeler(env, 'POST', '/v1/installation')).status, 201);
+  assert.equal(requetes.length, 1);
+  assert.match(requetes[0], /^\s*INSERT INTO installations/i);
+});
+
 test('cron : purge les installations sans présence depuis plus de 35 jours', async () => {
   const env = creerEnv();
   const sq = env.DB.sqlite;
@@ -227,10 +237,14 @@ test('corps : exactement 1024 octets accepté (puis 400 car pas du JSON valide)'
 
 test('signal : limiteur dédié => 429, sans accès D1', async () => {
   const env = creerEnv({ LIMITER_SIGNAL: { limit: async () => ({ success: false }) } });
-  const { id } = await (await appeler(creerEnv(), 'POST', '/v1/installation')).json();
+  const { id } = await (await appeler(env, 'POST', '/v1/installation')).json();
+  const requetes = [];
+  const prepare = env.DB.prepare;
+  env.DB.prepare = (sql) => { requetes.push(sql); return prepare(sql); };
   const r = await signaler(env, id);
   assert.equal(r.status, 429);
   assert.deepEqual(await r.json(), { erreur: 'limite' });
+  assert.equal(requetes.length, 0);
   assert.equal(env.DB.sqlite.prepare('SELECT COUNT(*) n FROM presences').get().n, 0);
 });
 

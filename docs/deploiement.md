@@ -14,7 +14,7 @@ Comptage anonyme des installations d'EduBar. Code dans `cloudflare/edu-stats/`.
 ### Bindings et secrets (noms seulement)
 
 - `DB` : base D1 `edu-stats`.
-- `LIMITER` : rate limiting Cloudflare (`[[unsafe.bindings]]`, 5 requêtes par 60 s, utilisé par `POST /v1/installation`).
+- `LIMITER` : rate limiting Cloudflare (`[[unsafe.bindings]]`, 5 requêtes par 60 s, utilisé par `POST /v1/installation`). Plafond global de 500 créations par jour (Europe/Paris), appliqué dans D1 par une seule instruction INSERT conditionnelle.
 - `LIMITER_SIGNAL` : second limiteur (`[[unsafe.bindings]]`, namespace 4202, 30 requêtes par 60 s), utilisé par `POST /v1/signal` avant tout accès à D1. Absent, le Worker fonctionne sans cette limite.
 - Corps des requêtes : refus (413) au-delà de 1024 octets d'après `Content-Length`, puis lecture bornée par blocs.
 - Secret `EDU_STATS_TOKEN` : jeton Bearer de `GET /v1/stats`.
@@ -41,13 +41,19 @@ Un limiteur dans le Worker ne protège que D1 : chaque requête compte quand mê
 2. Caractéristique de comptage : IP. Seuil conseillé : 60 requêtes par 10 secondes. Action : bloquer 10 minutes.
 3. Contrôle : après création, une rafale de requêtes de test depuis un poste doit finir en 429.
 
+### Limites connues du Worker
+
+1. Le plafond de 500 créations par jour échoue fermé : s'il est atteint (abus), les nouvelles installations ne sont pas comptées ce jour-là, sans effet pour l'utilisateur.
+2. Après une coupure de plus de 35 jours (vacances d'été), les installations purgées se réinscrivent et sont comptées comme « nouvelles ».
+3. L'étape de règle WAF ci-dessus (blocage 10 minutes sur une période de 10 secondes) peut ne pas être disponible sur l'offre gratuite de Cloudflare : vérifier les valeurs proposées par le tableau de bord et prendre la durée de blocage la plus longue disponible.
+
 ### Rétention
 
 - `installations` : empreinte SHA-256 et jour de création. Le cron supprime celles sans aucune présence depuis plus de 35 jours (une installation neuve reste au moins 35 jours). Une app purgée reçoit 404 au prochain signal et se réinscrit seule.
 - Plafond global de 500 créations d'installations par jour (`PLAFOND_CREATIONS_JOUR` dans `worker.js`), compté dans D1, sans IP. Au-delà : 429.
 - Limiteur de création : clé = SHA-256(jour, jeton, IPv4 entière ou préfixe IPv6 /64), calculée en mémoire.
 - `presences` : 35 jours (versions comprises). Le cron quotidien agrège les lignes plus anciennes dans `jours_agreges(jour, actifs, nouvelles)` puis les supprime.
-- Surveillance de la purge : `GET /v1/stats` expose `presence_la_plus_ancienne` (date, ou `null`). Si elle dépasse 35 jours, le cron ne tourne plus ou échoue : à contrôler avec `npx wrangler deployments list` et le tableau de bord (Triggers).
+- Surveillance de la purge : `GET /v1/stats` expose `presence_la_plus_ancienne` (date, ou `null`). Elle doit rester sous 37 jours (elle vaut 36 chaque nuit entre minuit Paris et le cron de 03:17 UTC, donc 36 est normal). À 37 jours ou plus, le cron ne tourne plus ou échoue : à contrôler avec `npx wrangler deployments list` et le tableau de bord (Triggers).
 - Toutes les réponses portent `X-Content-Type-Options: nosniff`.
 - Rien d'autre n'est stocké : ni IP, ni User-Agent, ni pays, ni heure. Observabilité et logpush désactivés.
 

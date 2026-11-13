@@ -47,8 +47,9 @@ async function sha256hex(texte) {
 }
 
 // Date AAAA-MM-JJ en Europe/Paris.
+const FORMAT_JOUR = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' });
 export function jourParis(date = new Date()) {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
+  return FORMAT_JOUR.format(date);
 }
 
 export function decaler(jour, n) {
@@ -89,30 +90,33 @@ async function lireCorps(request) {
 }
 
 // Limiteur par réseau (voir cleLimiteur). Sans binding (tests, local), aucune limite.
-async function autorise(limiteur, request, env) {
+async function autorise(limiteur, request, env, jour) {
   if (!limiteur) return true;
   const ip = request.headers.get('CF-Connecting-IP') || 'inconnue';
-  const { success } = await limiteur.limit({ key: await cleLimiteur(ip, env.EDU_STATS_TOKEN, jourParis()) });
+  const { success } = await limiteur.limit({ key: await cleLimiteur(ip, env.EDU_STATS_TOKEN, jour) });
   return success;
 }
 
-async function installation(request, env) {
+async function installation(request, env, jour) {
   const { trop } = await lireCorps(request);
   if (trop) return json({ erreur: 'taille' }, 413);
-  if (!(await autorise(env.LIMITER, request, env))) return json({ erreur: 'limite' }, 429);
-  const creees = await env.DB.prepare('SELECT COUNT(*) AS n FROM installations WHERE jour = ?').bind(jourParis()).first();
-  if ((creees?.n || 0) >= PLAFOND_CREATIONS_JOUR) return json({ erreur: 'limite' }, 429);
+  if (!(await autorise(env.LIMITER, request, env, jour))) return json({ erreur: 'limite' }, 429);
   const id = crypto.randomUUID();
-  await env.DB.prepare('INSERT INTO installations (empreinte, jour) VALUES (?, ?)')
-    .bind(await sha256hex(id), jourParis()).run();
+  // Plafond atomique : comptage et insertion en une seule instruction, donc pas de dépassement
+  // possible en concurrence. Aucune ligne insérée (changes = 0) : plafond atteint.
+  const r = await env.DB.prepare(
+    `INSERT INTO installations (empreinte, jour)
+     SELECT ?, ? WHERE (SELECT COUNT(*) FROM installations WHERE jour = ?) < ?`)
+    .bind(await sha256hex(id), jour, jour, PLAFOND_CREATIONS_JOUR).run();
+  if (!r?.meta?.changes) return json({ erreur: 'limite' }, 429);
   return json({ id }, 201);
 }
 
-async function signal(request, env) {
+async function signal(request, env, jour) {
   const { trop, texte } = await lireCorps(request);
   if (trop) return json({ erreur: 'taille' }, 413);
   // Limiteur dédié (binding LIMITER_SIGNAL), avant tout accès à D1.
-  if (!(await autorise(env.LIMITER_SIGNAL, request, env))) return json({ erreur: 'limite' }, 429);
+  if (!(await autorise(env.LIMITER_SIGNAL, request, env, jour))) return json({ erreur: 'limite' }, 429);
   let c;
   try { c = JSON.parse(texte); } catch { return json({ erreur: 'requete' }, 400); }
   if (!c || typeof c !== 'object' || typeof c.id !== 'string' || typeof c.version !== 'string'
@@ -123,17 +127,16 @@ async function signal(request, env) {
   const connue = await env.DB.prepare('SELECT 1 AS ok FROM installations WHERE empreinte = ?').bind(empreinte).first();
   if (!connue) return json({ erreur: 'inconnue' }, 404);
   await env.DB.prepare('INSERT OR IGNORE INTO presences (jour, empreinte, version) VALUES (?, ?, ?)')
-    .bind(jourParis(), empreinte, c.version).run();
+    .bind(jour, empreinte, c.version).run();
   return vide(204);
 }
 
-async function stats(request, env) {
+async function stats(request, env, aujourdhui) {
   const auth = request.headers.get('Authorization') || '';
   const jeton = auth.startsWith('Bearer ') ? auth.slice(7) : '';
   if (!env.EDU_STATS_TOKEN || !jeton || !(await egalTempsConstant(jeton, env.EDU_STATS_TOKEN))) {
     return json({ erreur: 'jeton' }, 401);
   }
-  const aujourdhui = jourParis();
   const debut30 = decaler(aujourdhui, -29);
   const debut7 = decaler(aujourdhui, -6);
   const db = env.DB;
@@ -165,7 +168,7 @@ async function stats(request, env) {
     actifs: { jour: jour?.n || 0, semaine: semaine?.n || 0, mois: mois?.n || 0 },
     jours,
     versions: (vers.results || []).map((r) => ({ version: r.version, actifs: r.n })),
-    // Surveillance de la purge : doit rester à moins de 36 jours, sinon le cron ne tourne plus.
+    // Surveillance de la purge : doit rester sous 37 jours (elle vaut 36 chaque nuit entre minuit Paris et le cron de 03:17 UTC), sinon le cron ne tourne plus.
     presence_la_plus_ancienne: ancienne?.jour || null,
   });
 }
@@ -180,10 +183,11 @@ export async function agreger(env, maintenant = new Date()) {
     env.DB.prepare('DELETE FROM presences WHERE jour < ?').bind(limite),
     // Installations sans présence depuis plus de 35 jours : les présences plus anciennes viennent
     // d'être supprimées, donc il ne reste que les récentes. Une installation neuve (jour >= limite)
-    // n'est jamais purgée avant ce délai.
+    // n'est jamais purgée avant ce délai. Sous-requête non corrélée : un seul parcours de presences
+    // (pas d'index sur empreinte, la clé primaire est (jour, empreinte)).
     env.DB.prepare(
       `DELETE FROM installations WHERE jour < ?
-       AND NOT EXISTS (SELECT 1 FROM presences p WHERE p.empreinte = installations.empreinte)`).bind(limite),
+       AND empreinte NOT IN (SELECT empreinte FROM presences)`).bind(limite),
   ]);
 }
 
@@ -191,10 +195,12 @@ export default {
   async fetch(request, env) {
     const { pathname } = new URL(request.url);
     const m = request.method;
+    // Un seul jour par requête : limiteur et SQL ne peuvent plus diverger autour de minuit.
+    const jour = jourParis();
     try {
-      if (m === 'POST' && pathname === '/v1/installation') return await installation(request, env);
-      if (m === 'POST' && pathname === '/v1/signal') return await signal(request, env);
-      if (m === 'GET' && pathname === '/v1/stats') return await stats(request, env);
+      if (m === 'POST' && pathname === '/v1/installation') return await installation(request, env, jour);
+      if (m === 'POST' && pathname === '/v1/signal') return await signal(request, env, jour);
+      if (m === 'GET' && pathname === '/v1/stats') return await stats(request, env, jour);
     } catch {
       return json({ erreur: 'serveur' }, 500);
     }
