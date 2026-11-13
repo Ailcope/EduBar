@@ -13,7 +13,12 @@ BIN="$(swift build -c release --arch arm64 --arch x86_64 --show-bin-path)/EduBar
 
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+mkdir -p "$ROOT/dist"
+# Copie non strippée gardée hors de l'app, du zip et du dmg (pour symboliser les rapports de plantage).
+cp "$BIN" "$ROOT/dist/EduBar-$VERSION.symbols"
 cp "$BIN" "$APP/Contents/MacOS/EduBar"
+# Strip avant la signature (le faire après la casserait).
+strip -x "$APP/Contents/MacOS/EduBar"
 sed "s/__VERSION__/$VERSION/g" Resources/Info.plist > "$APP/Contents/Info.plist"
 cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 
