@@ -6,8 +6,15 @@ import Foundation
 public struct FeedFile: Sendable {
     public let url: URL
 
-    public init(directory: URL, name: String = "feed-url") {
+    /// Exclu de Time Machine : le mot de passe myGES et les URL privées ne doivent pas partir sur un disque de
+    /// sauvegarde. Grades et historique restent sauvegardés (l'utilisateur veut pouvoir les restaurer).
+    public let excludedFromBackup: Bool
+
+    /// Par défaut, l'exclusion est décidée d'après le nom : `feed-url`, `friend-url*`, `myges-credentials`.
+    public init(directory: URL, name: String = "feed-url", excludedFromBackup: Bool? = nil) {
         url = directory.appending(path: name)
+        self.excludedFromBackup = excludedFromBackup
+            ?? (name == "feed-url" || name == "myges-credentials" || name.hasPrefix("friend-url"))
     }
 
     /// `~/Library/Application Support/EduBar/feed-url`
@@ -52,6 +59,13 @@ public struct FeedFile: Sendable {
             defer { try? handle.close() }
             try handle.write(contentsOf: Data(value.utf8))
             try handle.synchronize()
+            // Posé sur le temporaire avant le rename : l'attribut suit le nouvel inode, sans fenêtre non exclue.
+            if excludedFromBackup {
+                var values = URLResourceValues()
+                values.isExcludedFromBackup = true
+                var target = tmp
+                try target.setResourceValues(values)
+            }
             if rename(tmp.path, url.path) != 0 {
                 throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
             }

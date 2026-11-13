@@ -57,6 +57,30 @@ import Testing
         #expect(try FileManager.default.contentsOfDirectory(atPath: dir.path) == ["myges-credentials"])
     }
 
+    private func excluded(_ url: URL) throws -> Bool {
+        try url.resourceValues(forKeys: [.isExcludedFromBackupKey]).isExcludedFromBackup ?? false
+    }
+
+    @Test func sensitiveFilesAreExcludedFromBackupAfterEachWrite() throws {
+        defer { try? FileManager.default.removeItem(at: dir) }
+        for name in ["myges-credentials", "feed-url", "friend-url", "friend-url-2", "friend-url-3"] {
+            let file = FeedFile(directory: dir, name: name)
+            try file.write("a")
+            #expect(try excluded(file.url), "\(name)")
+            try file.write("b")
+            #expect(try excluded(file.url), "\(name) après réécriture")
+        }
+    }
+
+    @Test func gradesAndHistoryStayInBackups() throws {
+        defer { try? FileManager.default.removeItem(at: dir) }
+        for name in ["grades.json", "history-calendar.json"] {
+            let file = FeedFile(directory: dir, name: name)
+            try file.writeExact("{}")
+            #expect(try !excluded(file.url), "\(name)")
+        }
+    }
+
     @Test func failedWriteLeavesOriginalAndNoTemp() throws {
         defer { try? FileManager.default.removeItem(at: dir) }
         let file = FeedFile(directory: dir)
