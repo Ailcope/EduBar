@@ -90,7 +90,7 @@ public enum ScheduleDiff {
         return changes.map { change in
             switch change {
             case let .cancelled(c):
-                PendingNotification(
+                return PendingNotification(
                     id: "cancelled-\(c.id)-\(Int(c.start.timeIntervalSince1970))",
                     title: L10n.tr("❌ Cours annulé · \(when(c.start))", "❌ Class cancelled · \(when(c.start))"),
                     body: L10n.tr(
@@ -99,20 +99,37 @@ public enum ScheduleDiff {
                     )
                 )
             case let .added(c):
-                PendingNotification(
+                return PendingNotification(
                     id: "added-\(c.id)-\(Int(c.start.timeIntervalSince1970))",
                     title: L10n.tr("🆕 Nouveau cours · \(when(c.start))", "🆕 New class · \(when(c.start))"),
                     body: "\(c.displayTitle) (\(span(c))) · \(room(c))"
                 )
             case let .moved(o, n):
-                PendingNotification(
+                return PendingNotification(
                     id: "moved-\(n.id)-\(Int(n.start.timeIntervalSince1970))",
                     title: L10n.tr("🔁 Cours déplacé · \(when(n.start))", "🔁 Class moved · \(when(n.start))"),
                     body: "\(n.displayTitle) : \(when(o.start)) → \(when(n.start)) (\(span(n))) · \(room(n))"
                 )
             case let .roomChanged(o, n):
-                PendingNotification(
-                    id: "room-\(n.id)-\(RoomChange.normalized(n.room ?? ""))",
+                let id = "room-\(n.id)-\(RoomChange.normalized(n.room ?? ""))"
+                // Salle absente avant : elle vient d'être attribuée, ce n'est pas un changement.
+                if RoomChange.normalized(o.room ?? "").isEmpty {
+                    return PendingNotification(
+                        id: id,
+                        title: L10n.tr("📍 Salle attribuée · \(room(n))", "📍 Room assigned · \(room(n))"),
+                        body: "\(n.displayTitle), \(when(n.start)) · \(room(n))"
+                    )
+                }
+                if RoomChange.normalized(n.room ?? "").isEmpty {
+                    let none = L10n.tr("salle non indiquée", "room not set")
+                    return PendingNotification(
+                        id: id,
+                        title: L10n.tr("📍 Salle retirée · \(when(n.start))", "📍 Room removed · \(when(n.start))"),
+                        body: "\(n.displayTitle) : \(room(o)) → \(none)"
+                    )
+                }
+                return PendingNotification(
+                    id: id,
                     title: L10n.tr("📍 Salle changée · \(room(n))", "📍 Room changed · \(room(n))"),
                     body: "\(n.displayTitle), \(when(n.start)) : \(room(o)) → \(room(n))"
                 )

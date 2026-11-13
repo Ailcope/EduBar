@@ -70,8 +70,25 @@ import Testing
         #expect(n[0].body == "Cours c2 (14h-15h30) n'est plus au planning.")
         let room = course("c4", "2026-09-23 09:45", "2026-09-23 11:15", room: "Quai 12 - 501")
         let r = ScheduleDiff.notifications([.roomChanged(from: c4, to: room)], now: at("2026-09-22 08:00"), calendar: cal)
-        #expect(r[0].title == "📍 Salle changée · 501")
-        #expect(r[0].body == "Cours c4, Demain 9h45 : salle non indiquée → 501")
+        #expect(r[0].title == "📍 Salle attribuée · 501")
+        #expect(r[0].body == "Cours c4, Demain 9h45 · 501")
+    }
+
+    @Test func roomNotificationDependsOnWhatChanged() {
+        let t = at("2026-09-22 08:00")
+        let swapped = course("c2", "2026-09-22 14:00", "2026-09-22 15:30", room: "Quai 12 - 402")
+        let changed = ScheduleDiff.notifications([.roomChanged(from: c2, to: swapped)], now: t, calendar: cal)
+        #expect(changed[0].title == "📍 Salle changée · 402")
+        #expect(changed[0].body == "Cours c2, aujourd'hui 14h : 501 → 402")
+
+        // Salle vide ou faite d'espaces : c'est une salle attribuée, pas un changement.
+        let blank = course("c2", "2026-09-22 14:00", "2026-09-22 15:30", room: "  ")
+        let assigned = ScheduleDiff.notifications([.roomChanged(from: blank, to: c2)], now: t, calendar: cal)
+        #expect(assigned[0].title == "📍 Salle attribuée · 501")
+
+        let removed = ScheduleDiff.notifications([.roomChanged(from: c2, to: blank)], now: t, calendar: cal)
+        #expect(removed[0].title == "📍 Salle retirée · aujourd'hui 14h")
+        #expect(removed[0].body == "Cours c2 : 501 → salle non indiquée")
     }
 
     @Test func manyChangesAreSummed() {
