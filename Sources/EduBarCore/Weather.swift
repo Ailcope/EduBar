@@ -184,7 +184,7 @@ public enum Weather {
         let risk = hours.filter { $0.time > end && $0.time < end.addingTimeInterval(2 * 3600) }.map(\.probability).max()
         guard let risk, risk >= settings.rainThreshold else { return nil }
         return rainNotification(risk: risk, end: end, city: settings.rainPlace?.name, calendar: calendar,
-                                id: "rain-\(Int(end.timeIntervalSince1970))")
+                                id: "rain-\(safeInt(end.timeIntervalSince1970, min: 0, max: 4_102_444_800))")
     }
 
     /// Exemple pour le bouton « Tester ».
@@ -354,7 +354,20 @@ public enum Weather {
 
     /// « 23° ».
     public static func degrees(_ value: Double) -> String {
-        "\(Int(value.rounded()))°"
+        "\(safeInt(value, min: -100, max: 100))°"
+    }
+
+    /// Vent en km/h arrondi, borné à 0...500 (valeur aberrante sans plantage).
+    public static func windKmh(_ value: Double) -> Int {
+        safeInt(value, min: 0, max: 500)
+    }
+
+    /// Arrondi vers un entier après clamp ; NaN devient 0. Évite le trap de `Int(Double)`
+    /// sur une valeur infinie ou hors plage venue du réseau ou du cache.
+    public static func safeInt(_ value: Double, min lo: Int, max hi: Int) -> Int {
+        guard !value.isNaN else { return 0 }
+        let clamped = Swift.min(Swift.max(value.rounded(), Double(lo)), Double(hi))
+        return Int(clamped)
     }
 
     /// « 2026-10-03 » : le jour de `date`, comparable aux jours de la prévision.
