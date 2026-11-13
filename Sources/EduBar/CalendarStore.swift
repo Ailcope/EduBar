@@ -81,7 +81,10 @@ final class CalendarStore {
         await refresh {
             let parsed = try await fetch()
             return (parsed, { [cacheURL, jsonCacheURL] in
-                guard let jsonCacheURL, let data = try? JSONEncoder().encode(parsed) else { return }
+                // Clés triées : sans ça l'ordre varie d'un encodage à l'autre et le contenu ne se compare pas.
+                let encoder = JSONEncoder()
+                encoder.outputFormatting = .sortedKeys
+                guard let jsonCacheURL, let data = try? encoder.encode(parsed) else { return }
                 try? SkipIdenticalWrite.perform(data, at: jsonCacheURL) {
                     try data.write(to: jsonCacheURL, options: .atomic)
                 }
@@ -141,6 +144,7 @@ final class CalendarStore {
         // Plafond : au-delà, ce n'est pas un calendrier d'étudiant (message existant réutilisé).
         if FeedLimit.declaredTooLarge(expected: response.expectedContentLength) { throw FetchError.notACalendar }
         var data = Data()
+        if response.expectedContentLength > 0 { data.reserveCapacity(Int(response.expectedContentLength)) }
         for try await byte in stream {
             data.append(byte)
             if FeedLimit.exceeded(received: data.count) { throw FetchError.notACalendar }

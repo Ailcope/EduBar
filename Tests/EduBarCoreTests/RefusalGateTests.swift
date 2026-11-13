@@ -35,6 +35,18 @@ import Testing
         #expect(gate.allows(MyGESCredentials(login: "a.b", password: "neuf")))
     }
 
+    /// Un refus passager (pare-feu, maintenance) ne bloque pas l'app pour toujours.
+    @Test func refusalExpiresAfterDelay() {
+        var gate = RefusalGate()
+        let t0 = Date(timeIntervalSince1970: 1_800_000_000)
+        gate.recordRefusal(of: creds, at: t0)
+        #expect(!gate.allows(creds, now: t0.addingTimeInterval(15 * 60)))
+        #expect(!gate.allows(creds, now: t0.addingTimeInterval(RefusalGate.retryAfter - 1)))
+        #expect(gate.allows(creds, now: t0.addingTimeInterval(RefusalGate.retryAfter)))
+        // Horloge reculée : on retente.
+        #expect(gate.allows(creds, now: t0.addingTimeInterval(-60)))
+    }
+
     @Test func manualRetryUnblocks() {
         var gate = RefusalGate()
         gate.recordRefusal(of: creds)

@@ -11,7 +11,12 @@ public final class ScheduleCache {
 
     public func schedule(for courses: [Course]) -> Schedule {
         // `==` sur deux tableaux de même tampon est immédiat.
-        if let source, source == courses { return schedule }
+        if let source, source == courses {
+            // Contenu égal mais nouveau tampon (après un rafraîchissement) : on garde le nouveau,
+            // sinon chaque lecture suivante recomparerait tous les cours.
+            self.source = courses
+            return schedule
+        }
         schedule = Schedule(courses: courses)
         source = courses
         return schedule

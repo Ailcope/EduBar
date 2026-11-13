@@ -57,6 +57,21 @@ import Testing
         #expect(try FileManager.default.contentsOfDirectory(atPath: dir.path) == ["myges-credentials"])
     }
 
+    /// Un temporaire resté après un arrêt brutal porte un secret : l'écriture suivante le retire,
+    /// sans toucher aux temporaires d'un autre fichier.
+    @Test func orphanTempFilesAreSweptOnNextWrite() throws {
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let file = FeedFile(directory: dir, name: "myges-credentials")
+        try file.writeExact("un")
+        let orphan = dir.appending(path: ".myges-credentials.tmp-ABANDON")
+        let other = dir.appending(path: ".feed-url.tmp-AUTRE")
+        try Data("vieux secret".utf8).write(to: orphan)
+        try Data("autre".utf8).write(to: other)
+        try file.writeExact("deux")
+        let names = try FileManager.default.contentsOfDirectory(atPath: dir.path).sorted()
+        #expect(names == [".feed-url.tmp-AUTRE", "myges-credentials"])
+    }
+
     private func excluded(_ url: URL) throws -> Bool {
         try url.resourceValues(forKeys: [.isExcludedFromBackupKey]).isExcludedFromBackup ?? false
     }

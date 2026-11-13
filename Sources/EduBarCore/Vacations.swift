@@ -9,7 +9,7 @@ public struct Vacation: Equatable, Sendable {
 }
 
 public enum Vacations {
-    /// Fenêtre de recherche autour d'aujourd'hui, en jours (la rétention du flux).
+    /// Écart maximal entre deux jours de cours pour parler de vacances, en jours (la rétention du flux).
     static let searchDays = 400
 
     /// Les prochaines vacances (ou celles en cours) : `minDays` jours d'affilée ou plus sans cours,
@@ -25,22 +25,13 @@ public enum Vacations {
             let d = calendar.startOfDay(for: c.start)
             if days.last != d { days.append(d) }
         }
-        // Recherche bornée : un évènement égaré (an 9999) ne doit pas faire boucler des millions de jours.
-        let lower = calendar.date(byAdding: .day, value: -searchDays, to: today)!
-        let upper = calendar.date(byAdding: .day, value: searchDays, to: today)!
         for (a, b) in zip(days, days.dropFirst()) where b > today {
-            if a > upper { break }
+            // Un trou plus long que la rétention n'est pas des vacances : c'est un évènement égaré
+            // (an 9999) ou un flux qui s'arrête. Sans ce garde-fou, la boucle parcourt des millions de jours.
+            if (calendar.dateComponents([.day], from: a, to: b).day ?? 0) > searchDays { continue }
             var runStart: Date?
-            var day = max(calendar.date(byAdding: .day, value: 1, to: a)!, lower)
+            var day = calendar.date(byAdding: .day, value: 1, to: a)!
             while day <= b {
-                if day > upper {
-                    // Horizon atteint au milieu d'un trou : on le suppose libre jusqu'au prochain cours.
-                    if let s = runStart, b > today,
-                       (calendar.dateComponents([.day], from: s, to: b).day ?? 0) >= minDays {
-                        return Vacation(start: s, end: b)
-                    }
-                    break
-                }
                 let free = day < b && !isCompanyDay(day)
                 if free {
                     if runStart == nil { runStart = day }

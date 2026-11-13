@@ -63,23 +63,29 @@ public struct FeedFile: Sendable {
         try fm.setAttributes([.posixPermissions: 0o700], ofItemAtPath: dir.path)
         // Fichier temporaire du même dossier, créé en 0600 avant d'y écrire : le contenu n'est jamais lisible
         // par les autres comptes. Puis rename atomique : le fichier final n'est jamais vide ni tronqué.
-        let tmp = dir.appending(path: ".\(url.lastPathComponent).tmp-\(UUID().uuidString)")
+        let prefix = ".\(url.lastPathComponent).tmp-"
+        // Un temporaire laissé par un arrêt brutal (coupure entre la création et le rename) porte un secret : on le retire.
+        for name in (try? fm.contentsOfDirectory(atPath: dir.path)) ?? [] where name.hasPrefix(prefix) {
+            try? fm.removeItem(at: dir.appending(path: name))
+        }
+        let tmp = dir.appending(path: prefix + UUID().uuidString)
         guard fm.createFile(atPath: tmp.path, contents: nil, attributes: [.posixPermissions: 0o600]) else {
             throw CocoaError(.fileWriteUnknown, userInfo: [NSFilePathErrorKey: tmp.path])
         }
         do {
             try fm.setAttributes([.posixPermissions: 0o600], ofItemAtPath: tmp.path)
-            let handle = try FileHandle(forWritingTo: tmp)
-            defer { try? handle.close() }
-            try handle.write(contentsOf: Data(value.utf8))
-            try handle.synchronize()
-            // Posé sur le temporaire avant le rename : l'attribut suit le nouvel inode, sans fenêtre non exclue.
+            // Posé sur le temporaire encore vide, avant d'y écrire : l'attribut suit l'inode au rename,
+            // sans fenêtre non exclue. Au mieux : un refus du système ne doit pas faire échouer l'écriture.
             if excludedFromBackup {
                 var values = URLResourceValues()
                 values.isExcludedFromBackup = true
                 var target = tmp
-                try target.setResourceValues(values)
+                try? target.setResourceValues(values)
             }
+            let handle = try FileHandle(forWritingTo: tmp)
+            defer { try? handle.close() }
+            try handle.write(contentsOf: Data(value.utf8))
+            try handle.synchronize()
             if rename(tmp.path, url.path) != 0 {
                 throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
             }
