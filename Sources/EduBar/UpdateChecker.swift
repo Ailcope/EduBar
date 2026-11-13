@@ -6,6 +6,7 @@ import Observation
 /// Regarde sur GitHub si une version plus récente est publiée (au lancement, puis une fois par jour)
 /// et l'installe toute seule : téléchargement vérifié, remplacement de l'app, relance.
 /// Si l'app ne peut pas se remplacer (lancée depuis le .dmg, par exemple), propose le .dmg.
+/// Une release sans signature de publication (asset .sig) n'est ni installée ni proposée.
 @MainActor @Observable
 final class UpdateChecker {
     /// Version plus récente disponible, s'il y en a une.
@@ -66,9 +67,17 @@ final class UpdateChecker {
             UpdateInstaller.relaunch()
         } catch {
             NSLog("EduBar: mise à jour impossible : \(error.localizedDescription)")
-            message = L10n.tr("Mise à jour impossible : \(error.localizedDescription)", "Update failed: \(error.localizedDescription)")
+            message = Self.failed(error)
             installing = false
+            // Signature de publication refusée : la release n'est plus proposée (ni bannière, ni bouton,
+            // ni notification), pour ne pas pousser vers ce binaire non authentifié. Réessayée à la
+            // prochaine vérification automatique, au cas où le bon .sig aurait été ajouté entre-temps.
+            if error as? UpdateInstaller.Failure == .badSignature { available = nil }
         }
+    }
+
+    private static func failed(_ error: any Error) -> String {
+        L10n.tr("Mise à jour impossible : \(error.localizedDescription)", "Update failed: \(error.localizedDescription)")
     }
 
     private func check() async -> String {
@@ -81,8 +90,15 @@ final class UpdateChecker {
             let release = try await Self.fetchLatest(current: current)
             lastCheck = Date()
             available = Update.available(release, current: current)
-            let result = available.map { L10n.tr("Version \($0.version) disponible.", "Version \($0.version) available.") }
-                ?? L10n.tr("EduBar est à jour.", "EduBar is up to date.")
+            let result: String
+            if let a = available {
+                result = L10n.tr("Version \(a.version) disponible.", "Version \(a.version) available.")
+            } else if Update.isNewer(release, than: current) {
+                // Plus récente mais sans signature : ni installée ni proposée (message existant réutilisé).
+                result = Self.failed(UpdateInstaller.Failure.badSignature)
+            } else {
+                result = L10n.tr("EduBar est à jour.", "EduBar is up to date.")
+            }
             NSLog("EduBar: mises à jour (\(current ?? "?") installée, \(release.version) publiée) : \(result)")
             return result
         } catch {
