@@ -300,7 +300,10 @@ final class AppModel {
 
     // MARK: - État dérivé
 
-    var schedule: Schedule { Schedule(courses: snapshotCourses ?? store.courses) }
+    /// Mémorisé tant que la liste de cours source ne change pas (comparée par valeur : tout changement
+    /// de cours, de filtre, de mode démo ou de `snapshotCourses` reconstruit).
+    @ObservationIgnored private let scheduleCache = ScheduleCache()
+    var schedule: Schedule { scheduleCache.schedule(for: snapshotCourses ?? store.courses) }
     var status: Status { schedule.status(at: now, calendar: calendar) }
     var alert: RoomAlert? {
         RoomChange.alert(for: status, at: now, lead: TimeInterval(max(0, notifications.roomChange.minutes) * 60))
