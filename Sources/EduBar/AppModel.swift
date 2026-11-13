@@ -387,6 +387,7 @@ final class AppModel {
     /// Bouton ↻ du menu : le calendrier, et la météo même hors délai.
     func refreshNow() async {
         refreshWeatherIfWanted(force: true)
+        await client.resetRefusal()
         await refresh()
     }
 
@@ -698,6 +699,7 @@ final class AppModel {
         defer { accountSaving = false }
         do {
             _ = try await client.authenticate(creds)
+            await client.resetRefusal()
             try MyGESCredentialsFile.write(creds)
             let changed = creds.login != credentials?.login || calendarSource != .myges
             setCredentials(creds)
