@@ -3,7 +3,8 @@
 // POST /v1/installation        → 201 {"id": uuid v4}. Seule l'empreinte SHA-256 de l'id est stockée.
 // POST /v1/signal {id,version} → 204 ; un seul compte par jour (Europe/Paris) et par installation.
 // GET  /v1/stats (Bearer)      → agrégats. Secret : EDU_STATS_TOKEN.
-// Cron quotidien               → agrège les présences de plus de 35 jours puis les supprime.
+// Cron quotidien               → agrège les présences de plus de 35 jours puis les supprime, puis purge
+//                                les installations sans présence depuis plus de 35 jours.
 //
 // Non-identifiabilité : ni IP, ni User-Agent, ni pays, ni heure, ni en-tête ne sont stockés ou
 // journalisés. L'IP ne sert qu'à une clé de limitation de débit, hachée en mémoire.
@@ -12,6 +13,26 @@ const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f
 const VERSION = /^\d{1,3}\.\d{1,3}\.\d{1,3}$/;
 const CORPS_MAX = 1024;
 const RETENTION_JOURS = 35;
+// Plafond global de créations d'installations par jour (Europe/Paris), compté dans D1 sans aucune IP.
+export const PLAFOND_CREATIONS_JOUR = 500;
+
+// Clé de limiteur : IPv4 entière, IPv6 réduite à son préfixe /64 (un abonné reçoit au moins un /64).
+// Salée par le jour et un secret existant puis hachée : l'empreinte ne s'inverse pas par énumération
+// et change chaque jour. Calculée en mémoire, jamais stockée ni journalisée.
+function reseauDe(ip) {
+  const m4 = /^(?:::ffff:)?(\d{1,3}(?:\.\d{1,3}){3})$/i.exec(ip);
+  if (m4) return m4[1];
+  if (!ip.includes(':')) return ip;
+  const [tete, queue = null] = ip.split('::');
+  const a = tete ? tete.split(':') : [];
+  const b = queue ? queue.split(':') : [];
+  const groupes = queue === null ? a : [...a, ...Array(Math.max(0, 8 - a.length - b.length)).fill('0'), ...b];
+  return groupes.slice(0, 4).map((g) => g.toLowerCase().padStart(4, '0')).join(':') + '::/64';
+}
+
+export async function cleLimiteur(ip, sel, jour) {
+  return sha256hex(`${jour}|${sel || ''}|${reseauDe(ip)}`);
+}
 
 const ENTETES = { 'Cache-Control': 'no-store' };
 
@@ -53,9 +74,11 @@ async function installation(request, env) {
   if (trop) return json({ erreur: 'taille' }, 413);
   if (env.LIMITER) {
     const ip = request.headers.get('CF-Connecting-IP') || 'inconnue';
-    const { success } = await env.LIMITER.limit({ key: await sha256hex(ip) });
+    const { success } = await env.LIMITER.limit({ key: await cleLimiteur(ip, env.EDU_STATS_TOKEN, jourParis()) });
     if (!success) return json({ erreur: 'limite' }, 429);
   }
+  const creees = await env.DB.prepare('SELECT COUNT(*) AS n FROM installations WHERE jour = ?').bind(jourParis()).first();
+  if ((creees?.n || 0) >= PLAFOND_CREATIONS_JOUR) return json({ erreur: 'limite' }, 429);
   const id = crypto.randomUUID();
   await env.DB.prepare('INSERT INTO installations (empreinte, jour) VALUES (?, ?)')
     .bind(await sha256hex(id), jourParis()).run();
@@ -129,6 +152,12 @@ export async function agreger(env, maintenant = new Date()) {
        SELECT p.jour, COUNT(*), (SELECT COUNT(*) FROM installations i WHERE i.jour = p.jour)
        FROM presences p WHERE p.jour < ? GROUP BY p.jour`).bind(limite),
     env.DB.prepare('DELETE FROM presences WHERE jour < ?').bind(limite),
+    // Installations sans présence depuis plus de 35 jours : les présences plus anciennes viennent
+    // d'être supprimées, donc il ne reste que les récentes. Une installation neuve (jour >= limite)
+    // n'est jamais purgée avant ce délai.
+    env.DB.prepare(
+      `DELETE FROM installations WHERE jour < ?
+       AND NOT EXISTS (SELECT 1 FROM presences p WHERE p.empreinte = installations.empreinte)`).bind(limite),
   ]);
 }
 

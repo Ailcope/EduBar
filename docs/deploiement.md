@@ -33,7 +33,9 @@ Tests avant déploiement : `node --test cloudflare/edu-stats/test/`.
 
 ### Rétention
 
-- `installations` : empreinte SHA-256 et jour de création, conservés.
+- `installations` : empreinte SHA-256 et jour de création. Le cron supprime celles sans aucune présence depuis plus de 35 jours (une installation neuve reste au moins 35 jours). Une app purgée reçoit 404 au prochain signal et se réinscrit seule.
+- Plafond global de 500 créations d'installations par jour (`PLAFOND_CREATIONS_JOUR` dans `worker.js`), compté dans D1, sans IP. Au-delà : 429.
+- Limiteur de création : clé = SHA-256(jour, jeton, IPv4 entière ou préfixe IPv6 /64), calculée en mémoire.
 - `presences` : 35 jours (versions comprises). Le cron quotidien agrège les lignes plus anciennes dans `jours_agreges(jour, actifs, nouvelles)` puis les supprime.
 - Rien d'autre n'est stocké : ni IP, ni User-Agent, ni pays, ni heure. Observabilité et logpush désactivés.
 
