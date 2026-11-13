@@ -68,7 +68,9 @@ final class CalendarStore {
         await refresh {
             let (text, parsed) = try await Self.fetch(url)
             return (parsed, { [cacheURL, jsonCacheURL] in
-                try? text.write(to: cacheURL, atomically: true, encoding: .utf8)
+                try? SkipIdenticalWrite.perform(Data(text.utf8), at: cacheURL) {
+                    try text.write(to: cacheURL, atomically: true, encoding: .utf8)
+                }
                 if let jsonCacheURL { try? FileManager.default.removeItem(at: jsonCacheURL) }
             })
         }
@@ -80,7 +82,9 @@ final class CalendarStore {
             let parsed = try await fetch()
             return (parsed, { [cacheURL, jsonCacheURL] in
                 guard let jsonCacheURL, let data = try? JSONEncoder().encode(parsed) else { return }
-                try? data.write(to: jsonCacheURL, options: .atomic)
+                try? SkipIdenticalWrite.perform(data, at: jsonCacheURL) {
+                    try data.write(to: jsonCacheURL, options: .atomic)
+                }
                 // Le cache iCal d'une ancienne source ne doit plus l'emporter au prochain lancement.
                 try? FileManager.default.removeItem(at: cacheURL)
             })

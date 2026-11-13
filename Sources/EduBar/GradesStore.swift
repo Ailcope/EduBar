@@ -35,7 +35,10 @@ final class GradesStore {
             newGrades = added
             lastUpdated = Date()
             lastError = nil
-            if let data = try? JSONEncoder().encode(fresh) { try? file.writeExact(String(decoding: data, as: UTF8.self)) }
+            if let data = try? JSONEncoder().encode(fresh) {
+                let text = String(decoding: data, as: UTF8.self)
+                try? SkipIdenticalWrite.perform(Data(text.utf8), at: file.url) { try file.writeExact(text) }
+            }
             return added
         } catch {
             lastError = error.localizedDescription
