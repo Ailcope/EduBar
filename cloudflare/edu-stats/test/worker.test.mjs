@@ -193,6 +193,47 @@ test('cron : purge les installations sans présence depuis plus de 35 jours', as
   assert.deepEqual(restantes, ['limite', 'neuve', 'vivante']);
 });
 
+test('corps : Content-Length > 1024 refusé sans lire le corps', async () => {
+  const env = creerEnv();
+  let lu = false;
+  for (const chemin of ['/v1/signal', '/v1/installation']) {
+    // highWaterMark 0 : aucune lecture anticipée, seul un reader du Worker déclencherait pull().
+    const requete = new Request('https://edu.mathys.cc' + chemin, {
+      method: 'POST',
+      body: new ReadableStream({ pull(c) { lu = true; c.close(); } }, { highWaterMark: 0 }),
+      duplex: 'half', headers: { 'Content-Length': '1025' },
+    });
+    lu = false;
+    const r = await worker.fetch(requete, env);
+    assert.equal(r.status, 413);
+    assert.equal(lu, false);
+  }
+});
+
+test('corps : lecture bornée sans Content-Length (flux de blocs)', async () => {
+  const env = creerEnv();
+  let blocs = 0;
+  const flux = new ReadableStream({ pull(c) { blocs++; c.enqueue(new Uint8Array(600)); if (blocs >= 50) c.close(); } });
+  const r = await worker.fetch(new Request('https://edu.mathys.cc/v1/signal', { method: 'POST', body: flux, duplex: 'half' }), env);
+  assert.equal(r.status, 413);
+  assert.ok(blocs <= 4, `blocs lus : ${blocs}`);
+});
+
+test('corps : exactement 1024 octets accepté (puis 400 car pas du JSON valide)', async () => {
+  const env = creerEnv();
+  const r = await appeler(env, 'POST', '/v1/signal', { corps: 'x'.repeat(1024) });
+  assert.equal(r.status, 400);
+});
+
+test('signal : limiteur dédié => 429, sans accès D1', async () => {
+  const env = creerEnv({ LIMITER_SIGNAL: { limit: async () => ({ success: false }) } });
+  const { id } = await (await appeler(creerEnv(), 'POST', '/v1/installation')).json();
+  const r = await signaler(env, id);
+  assert.equal(r.status, 429);
+  assert.deepEqual(await r.json(), { erreur: 'limite' });
+  assert.equal(env.DB.sqlite.prepare('SELECT COUNT(*) n FROM presences').get().n, 0);
+});
+
 test('tout le reste : 404, sans CORS', async () => {
   const env = creerEnv();
   for (const [m, p] of [['GET', '/'], ['GET', '/v1/installation'], ['POST', '/v1/stats'], ['DELETE', '/v1/signal']]) {

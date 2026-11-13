@@ -15,6 +15,8 @@ Comptage anonyme des installations d'EduBar. Code dans `cloudflare/edu-stats/`.
 
 - `DB` : base D1 `edu-stats`.
 - `LIMITER` : rate limiting Cloudflare (`[[unsafe.bindings]]`, 5 requêtes par 60 s, utilisé par `POST /v1/installation`).
+- `LIMITER_SIGNAL` : second limiteur (`[[unsafe.bindings]]`, namespace 4202, 30 requêtes par 60 s), utilisé par `POST /v1/signal` avant tout accès à D1. Absent, le Worker fonctionne sans cette limite.
+- Corps des requêtes : refus (413) au-delà de 1024 octets d'après `Content-Length`, puis lecture bornée par blocs.
 - Secret `EDU_STATS_TOKEN` : jeton Bearer de `GET /v1/stats`.
 - Cron : `17 3 * * *` (UTC), agrégation et purge.
 
@@ -30,6 +32,14 @@ Depuis `cloudflare/edu-stats/` :
 6. Contrôle : `POST /v1/installation` doit renvoyer 201, `GET /v1/stats` sans jeton 401.
 
 Tests avant déploiement : `node --test cloudflare/edu-stats/test/`.
+
+### Règle WAF de zone (étape manuelle, non créée par le code)
+
+Un limiteur dans le Worker ne protège que D1 : chaque requête compte quand même dans le quota du Worker. À créer à la main dans le tableau de bord Cloudflare (zone mathys.cc, Sécurité, Règles de limitation de débit) :
+
+1. Expression : `http.host eq "edu.mathys.cc" and starts_with(http.request.uri.path, "/v1/")`.
+2. Caractéristique de comptage : IP. Seuil conseillé : 60 requêtes par 10 secondes. Action : bloquer 10 minutes.
+3. Contrôle : après création, une rafale de requêtes de test depuis un poste doit finir en 429.
 
 ### Rétention
 

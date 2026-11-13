@@ -63,20 +63,43 @@ async function egalTempsConstant(a, b) {
   return d === 0;
 }
 
+// Lecture bornée : refus d'après Content-Length avant toute lecture, puis lecture par blocs
+// interrompue dès que CORPS_MAX est dépassé (Content-Length absent ou menteur).
 async function lireCorps(request) {
-  const buf = await request.arrayBuffer();
-  if (buf.byteLength > CORPS_MAX) return { trop: true };
+  const annonce = request.headers.get('Content-Length');
+  if (annonce !== null && Number(annonce) > CORPS_MAX) return { trop: true };
+  if (!request.body) return { texte: '' };
+  const lecteur = request.body.getReader();
+  const blocs = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await lecteur.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > CORPS_MAX) {
+      await lecteur.cancel().catch(() => {});
+      return { trop: true };
+    }
+    blocs.push(value);
+  }
+  const buf = new Uint8Array(total);
+  let pos = 0;
+  for (const b of blocs) { buf.set(b, pos); pos += b.byteLength; }
   return { texte: new TextDecoder().decode(buf) };
+}
+
+// Limiteur par réseau (voir cleLimiteur). Sans binding (tests, local), aucune limite.
+async function autorise(limiteur, request, env) {
+  if (!limiteur) return true;
+  const ip = request.headers.get('CF-Connecting-IP') || 'inconnue';
+  const { success } = await limiteur.limit({ key: await cleLimiteur(ip, env.EDU_STATS_TOKEN, jourParis()) });
+  return success;
 }
 
 async function installation(request, env) {
   const { trop } = await lireCorps(request);
   if (trop) return json({ erreur: 'taille' }, 413);
-  if (env.LIMITER) {
-    const ip = request.headers.get('CF-Connecting-IP') || 'inconnue';
-    const { success } = await env.LIMITER.limit({ key: await cleLimiteur(ip, env.EDU_STATS_TOKEN, jourParis()) });
-    if (!success) return json({ erreur: 'limite' }, 429);
-  }
+  if (!(await autorise(env.LIMITER, request, env))) return json({ erreur: 'limite' }, 429);
   const creees = await env.DB.prepare('SELECT COUNT(*) AS n FROM installations WHERE jour = ?').bind(jourParis()).first();
   if ((creees?.n || 0) >= PLAFOND_CREATIONS_JOUR) return json({ erreur: 'limite' }, 429);
   const id = crypto.randomUUID();
@@ -88,6 +111,8 @@ async function installation(request, env) {
 async function signal(request, env) {
   const { trop, texte } = await lireCorps(request);
   if (trop) return json({ erreur: 'taille' }, 413);
+  // Limiteur dédié (binding LIMITER_SIGNAL), avant tout accès à D1.
+  if (!(await autorise(env.LIMITER_SIGNAL, request, env))) return json({ erreur: 'limite' }, 429);
   let c;
   try { c = JSON.parse(texte); } catch { return json({ erreur: 'requete' }, 400); }
   if (!c || typeof c !== 'object' || typeof c.id !== 'string' || typeof c.version !== 'string'
