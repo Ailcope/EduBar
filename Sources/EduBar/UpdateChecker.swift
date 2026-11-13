@@ -104,7 +104,7 @@ final class UpdateChecker {
         var request = URLRequest(url: Update.latestURL, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 30)
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
         request.setValue("EduBar/\(current ?? "dev")", forHTTPHeaderField: "User-Agent")
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await Network.session.data(for: request)
         let code = (response as? HTTPURLResponse)?.statusCode ?? 0
         guard code == 200 else { throw HTTPStatus(code: code) }
         return try Update.decode(data)

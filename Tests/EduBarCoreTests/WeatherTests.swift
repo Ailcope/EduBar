@@ -394,3 +394,38 @@ import Testing
         #expect(try JSONDecoder().decode(WeatherSettings.self, from: Data("{}".utf8)).campus == nil)
     }
 }
+
+/// Conversions Double vers Int sûres : un weather.json corrompu ne doit jamais faire planter l'app.
+@Suite struct WeatherSafeIntTests {
+    @Test func degresNormaux() {
+        #expect(Weather.degrees(22.9) == "23°")
+        #expect(Weather.degrees(23.0) == "23°")
+        #expect(Weather.degrees(-3.4) == "-3°")
+        #expect(Weather.degrees(-0.4) == "0°")
+        #expect(Weather.degrees(0.5) == "1°")
+    }
+
+    @Test func degresHorsPlageSansPlantage() {
+        #expect(Weather.degrees(1e30) == "100°")
+        #expect(Weather.degrees(-1e30) == "-100°")
+        #expect(Weather.degrees(.infinity) == "100°")
+        #expect(Weather.degrees(-.infinity) == "-100°")
+        #expect(Weather.degrees(.nan) == "0°")
+    }
+
+    @Test func ventNormalEtAberrant() {
+        #expect(Weather.windKmh(4.1) == 4)
+        #expect(Weather.windKmh(4.5) == 5)
+        #expect(Weather.windKmh(-2) == 0)
+        #expect(Weather.windKmh(1e30) == 500)
+        #expect(Weather.windKmh(.infinity) == 500)
+        #expect(Weather.windKmh(.nan) == 0)
+    }
+
+    @Test func entierSurClampe() {
+        #expect(Weather.safeInt(1e30, min: -10, max: 10) == 10)
+        #expect(Weather.safeInt(-1e30, min: -10, max: 10) == -10)
+        #expect(Weather.safeInt(.nan, min: -10, max: 10) == 0)
+        #expect(Weather.safeInt(3.6, min: -10, max: 10) == 4)
+    }
+}

@@ -6,8 +6,15 @@ import Foundation
 public struct FeedFile: Sendable {
     public let url: URL
 
-    public init(directory: URL, name: String = "feed-url") {
+    /// Exclu de Time Machine : le mot de passe myGES et les URL privées ne doivent pas partir sur un disque de
+    /// sauvegarde. Grades et historique restent sauvegardés (l'utilisateur veut pouvoir les restaurer).
+    public let excludedFromBackup: Bool
+
+    /// Par défaut, l'exclusion est décidée d'après le nom : `feed-url`, `friend-url*`, `myges-credentials`.
+    public init(directory: URL, name: String = "feed-url", excludedFromBackup: Bool? = nil) {
         url = directory.appending(path: name)
+        self.excludedFromBackup = excludedFromBackup
+            ?? (name == "feed-url" || name == "myges-credentials" || name.hasPrefix("friend-url"))
     }
 
     /// `~/Library/Application Support/EduBar/feed-url`
@@ -24,8 +31,27 @@ public struct FeedFile: Sendable {
         FeedFile(directory: standard.url.deletingLastPathComponent(), name: slot == 0 ? "friend-url" : "friend-url-\(slot + 1)")
     }
 
+    /// Pose l'exclusion de Time Machine sur un fichier sensible déjà présent (écrit par une ancienne version).
+    /// Sans effet s'il est déjà exclu, absent, ou non sensible.
+    public func protectExisting() {
+        guard excludedFromBackup,
+              let current = try? url.resourceValues(forKeys: [.isExcludedFromBackupKey]).isExcludedFromBackup,
+              !current
+        else { return }
+        Self.exclude(url)
+    }
+
+    /// Au mieux : un refus du système ne doit faire échouer ni la lecture ni l'écriture.
+    private static func exclude(_ url: URL) {
+        var values = URLResourceValues()
+        values.isExcludedFromBackup = true
+        var target = url
+        try? target.setResourceValues(values)
+    }
+
     public func read() -> String? {
         guard let raw = try? String(contentsOf: url, encoding: .utf8) else { return nil }
+        protectExisting()
         let value = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         return value.isEmpty ? nil : value
     }
@@ -40,15 +66,32 @@ public struct FeedFile: Sendable {
         let dir = url.deletingLastPathComponent()
         try fm.createDirectory(at: dir, withIntermediateDirectories: true)
         try fm.setAttributes([.posixPermissions: 0o700], ofItemAtPath: dir.path)
-        // Créé vide en 0600 avant d'y écrire : l'URL n'est jamais lisible par les autres comptes.
-        if !fm.fileExists(atPath: url.path) {
-            fm.createFile(atPath: url.path, contents: nil, attributes: [.posixPermissions: 0o600])
+        // Fichier temporaire du même dossier, créé en 0600 avant d'y écrire : le contenu n'est jamais lisible
+        // par les autres comptes. Puis rename atomique : le fichier final n'est jamais vide ni tronqué.
+        let prefix = ".\(url.lastPathComponent).tmp-"
+        // Un temporaire laissé par un arrêt brutal (coupure entre la création et le rename) porte un secret : on le retire.
+        for name in (try? fm.contentsOfDirectory(atPath: dir.path)) ?? [] where name.hasPrefix(prefix) {
+            try? fm.removeItem(at: dir.appending(path: name))
         }
-        try fm.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
-        let handle = try FileHandle(forWritingTo: url)
-        defer { try? handle.close() }
-        try handle.truncate(atOffset: 0)
-        try handle.write(contentsOf: Data(value.utf8))
+        let tmp = dir.appending(path: prefix + UUID().uuidString)
+        guard fm.createFile(atPath: tmp.path, contents: nil, attributes: [.posixPermissions: 0o600]) else {
+            throw CocoaError(.fileWriteUnknown, userInfo: [NSFilePathErrorKey: tmp.path])
+        }
+        do {
+            // Posé sur le temporaire encore vide, avant d'y écrire : l'attribut suit l'inode au rename,
+            // sans fenêtre non exclue.
+            if excludedFromBackup { Self.exclude(tmp) }
+            let handle = try FileHandle(forWritingTo: tmp)
+            defer { try? handle.close() }
+            try handle.write(contentsOf: Data(value.utf8))
+            try handle.synchronize()
+            if rename(tmp.path, url.path) != 0 {
+                throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
+            }
+        } catch {
+            try? fm.removeItem(at: tmp)
+            throw error
+        }
     }
 
     public func remove() {

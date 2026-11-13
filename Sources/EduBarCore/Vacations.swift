@@ -9,6 +9,9 @@ public struct Vacation: Equatable, Sendable {
 }
 
 public enum Vacations {
+    /// Écart maximal entre deux jours de cours pour parler de vacances, en jours (la rétention du flux).
+    static let searchDays = 400
+
     /// Les prochaines vacances (ou celles en cours) : `minDays` jours d'affilée ou plus sans cours,
     /// week-ends compris, entre deux jours de cours. `isCompanyDay` : un jour en entreprise coupe la période.
     /// Après le dernier cours du flux, rien : le flux s'arrête, ce ne sont pas forcément des vacances.
@@ -23,6 +26,9 @@ public enum Vacations {
             if days.last != d { days.append(d) }
         }
         for (a, b) in zip(days, days.dropFirst()) where b > today {
+            // Un trou plus long que la rétention n'est pas des vacances : c'est un évènement égaré
+            // (an 9999) ou un flux qui s'arrête. Sans ce garde-fou, la boucle parcourt des millions de jours.
+            if (calendar.dateComponents([.day], from: a, to: b).day ?? 0) > searchDays { continue }
             var runStart: Date?
             var day = calendar.date(byAdding: .day, value: 1, to: a)!
             while day <= b {

@@ -15,6 +15,8 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     private var anchorWindow: NSWindow?
     private let settingsWindow: SettingsWindow
     private let gradesWindow: GradesWindow
+    /// Dernier titre appliqué au bouton (`""` = icône seule), `nil` tant que rien n'a été posé.
+    private var appliedLabel: String?
 
     init(model: AppModel) {
         self.model = model
@@ -126,6 +128,10 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
             Task { @MainActor in self?.observeLabel() }
         }
         guard let button = item.button else { return }
+        // `now` change à chaque tick : ne rien réaffecter si le rendu serait identique.
+        // L'icône est un symbole modèle, teinté par le système : aucun rendu ne dépend du thème ici.
+        guard text != appliedLabel else { return }
+        appliedLabel = text
         if text.isEmpty {
             button.title = ""
             button.image = NSImage(systemSymbolName: "graduationcap", accessibilityDescription: "EduBar")

@@ -68,7 +68,9 @@ final class CalendarStore {
         await refresh {
             let (text, parsed) = try await Self.fetch(url)
             return (parsed, { [cacheURL, jsonCacheURL] in
-                try? text.write(to: cacheURL, atomically: true, encoding: .utf8)
+                try? SkipIdenticalWrite.perform(Data(text.utf8), at: cacheURL) {
+                    try text.write(to: cacheURL, atomically: true, encoding: .utf8)
+                }
                 if let jsonCacheURL { try? FileManager.default.removeItem(at: jsonCacheURL) }
             })
         }
@@ -79,8 +81,10 @@ final class CalendarStore {
         await refresh {
             let parsed = try await fetch()
             return (parsed, { [cacheURL, jsonCacheURL] in
-                guard let jsonCacheURL, let data = try? JSONEncoder().encode(parsed) else { return }
-                try? data.write(to: jsonCacheURL, options: .atomic)
+                guard let jsonCacheURL, let data = try? SkipIdenticalWrite.stableJSON(parsed) else { return }
+                try? SkipIdenticalWrite.perform(data, at: jsonCacheURL) {
+                    try data.write(to: jsonCacheURL, options: .atomic)
+                }
                 // Le cache iCal d'une ancienne source ne doit plus l'emporter au prochain lancement.
                 try? FileManager.default.removeItem(at: cacheURL)
             })
@@ -132,8 +136,16 @@ final class CalendarStore {
     nonisolated static func fetch(_ url: URL) async throws -> (text: String, courses: [Course]) {
         var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 30)
         request.setValue("text/calendar", forHTTPHeaderField: "Accept")
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (stream, response) = try await Network.session.bytes(for: request)
         if let http = response as? HTTPURLResponse, http.statusCode != 200 { throw FetchError.http(http.statusCode) }
+        // Plafond : au-delà, ce n'est pas un calendrier d'étudiant (message existant réutilisé).
+        if FeedLimit.declaredTooLarge(expected: response.expectedContentLength) { throw FetchError.notACalendar }
+        var data = Data()
+        if response.expectedContentLength > 0 { data.reserveCapacity(Int(response.expectedContentLength)) }
+        for try await byte in stream {
+            data.append(byte)
+            if FeedLimit.exceeded(received: data.count) { throw FetchError.notACalendar }
+        }
         guard let text = String(data: data, encoding: .utf8), text.contains("BEGIN:VCALENDAR") else {
             throw FetchError.notACalendar
         }

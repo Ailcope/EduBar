@@ -51,7 +51,7 @@ enum UpdateInstaller {
         let work = try fm.url(for: .itemReplacementDirectory, in: .userDomainMask, appropriateFor: current, create: true)
         defer { try? fm.removeItem(at: work) }
 
-        let (downloaded, response) = try await URLSession.shared.download(from: zip)
+        let (downloaded, response) = try await Network.session.download(from: zip)
         let code = (response as? HTTPURLResponse)?.statusCode ?? 0
         guard code == 200 else { throw Failure.http(code) }
         let archive = work.appending(path: "update.zip")

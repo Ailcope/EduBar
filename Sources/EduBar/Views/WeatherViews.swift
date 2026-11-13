@@ -36,8 +36,8 @@ struct WeatherCard: View {
                         .font(.caption.weight(.semibold))
                         .lineLimit(1)
                     Text(L10n.tr(
-                        "Ressenti \(Weather.degrees(forecast.apparent)) · vent \(Int(forecast.wind.rounded())) km/h",
-                        "Feels like \(Weather.degrees(forecast.apparent)) · wind \(Int(forecast.wind.rounded())) km/h"
+                        "Ressenti \(Weather.degrees(forecast.apparent)) · vent \(Weather.windKmh(forecast.wind)) km/h",
+                        "Feels like \(Weather.degrees(forecast.apparent)) · wind \(Weather.windKmh(forecast.wind)) km/h"
                     ))
                         .font(.caption)
                         .foregroundStyle(.secondary)

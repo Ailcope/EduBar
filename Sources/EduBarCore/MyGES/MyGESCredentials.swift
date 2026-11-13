@@ -31,6 +31,7 @@ public enum MyGESCredentialsFile {
 
     public static func read(_ file: FeedFile = MyGESCredentialsFile.standard) -> MyGESCredentials? {
         guard let raw = try? String(contentsOf: file.url, encoding: .utf8) else { return nil }
+        file.protectExisting()
         let lines = raw.split(separator: "\n", maxSplits: 1, omittingEmptySubsequences: false)
         guard lines.count == 2 else { return nil }
         let login = lines[0].trimmingCharacters(in: .whitespacesAndNewlines)

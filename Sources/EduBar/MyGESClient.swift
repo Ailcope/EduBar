@@ -43,8 +43,15 @@ actor MyGESClient {
         let config = URLSessionConfiguration.ephemeral
         config.timeoutIntervalForRequest = 30
         config.httpCookieStorage = nil
+        config.urlCache = nil
         session = URLSession(configuration: config, delegate: NoRedirect(), delegateQueue: nil)
     }
+
+    /// Identifiants refusés (401/403) : plus de connexion automatique avec les mêmes. Garde en mémoire seulement.
+    private var refusal = RefusalGate()
+
+    /// Relance à la main (bouton de rafraîchissement, identifiants enregistrés) : on retente.
+    func resetRefusal() { refusal.reset() }
 
     // MARK: - Authentification
 
@@ -67,7 +74,15 @@ actor MyGESClient {
     private func validToken(forceRefresh: Bool = false) async throws -> (value: String, type: String) {
         if !forceRefresh, let token, token.expires > Date() { return (token.value, token.type) }
         guard let creds = credentialsProvider() else { throw MyGESError.noCredentials }
-        let fresh = try await authenticate(creds)
+        // Mêmes identifiants déjà refusés : même message, sans refrapper le serveur.
+        guard refusal.allows(creds) else { throw MyGESError.badCredentials }
+        let fresh: KordisToken
+        do {
+            fresh = try await authenticate(creds)
+        } catch MyGESError.badCredentials {
+            refusal.recordRefusal(of: creds)
+            throw MyGESError.badCredentials
+        }
         // Marge de 60 s ; repli à 1 h si le serveur n'annonce pas de durée.
         let ttl = max(0, (fresh.expiresIn ?? 3600) - 60)
         token = (fresh.accessToken, fresh.tokenType, Date().addingTimeInterval(ttl))
