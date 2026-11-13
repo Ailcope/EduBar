@@ -8,8 +8,8 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 APP="$ROOT/dist/EduBar.app"
 
 cd "$ROOT"
-swift build -c release --arch arm64 --arch x86_64
-BIN="$(swift build -c release --arch arm64 --arch x86_64 --show-bin-path)/EduBar"
+swift build -c release -Xswiftc -Osize --arch arm64 --arch x86_64
+BIN="$(swift build -c release -Xswiftc -Osize --arch arm64 --arch x86_64 --show-bin-path)/EduBar"
 
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
