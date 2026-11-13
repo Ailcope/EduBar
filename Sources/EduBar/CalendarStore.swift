@@ -81,10 +81,7 @@ final class CalendarStore {
         await refresh {
             let parsed = try await fetch()
             return (parsed, { [cacheURL, jsonCacheURL] in
-                // Clés triées : sans ça l'ordre varie d'un encodage à l'autre et le contenu ne se compare pas.
-                let encoder = JSONEncoder()
-                encoder.outputFormatting = .sortedKeys
-                guard let jsonCacheURL, let data = try? encoder.encode(parsed) else { return }
+                guard let jsonCacheURL, let data = try? SkipIdenticalWrite.stableJSON(parsed) else { return }
                 try? SkipIdenticalWrite.perform(data, at: jsonCacheURL) {
                     try data.write(to: jsonCacheURL, options: .atomic)
                 }

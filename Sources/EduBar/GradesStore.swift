@@ -35,10 +35,7 @@ final class GradesStore {
             newGrades = added
             lastUpdated = Date()
             lastError = nil
-            // Clés triées : sans ça l'ordre varie d'un encodage à l'autre et le contenu ne se compare pas.
-            let encoder = JSONEncoder()
-            encoder.outputFormatting = .sortedKeys
-            if let data = try? encoder.encode(fresh) {
+            if let data = try? SkipIdenticalWrite.stableJSON(fresh) {
                 try? SkipIdenticalWrite.perform(data, at: file.url) {
                     try file.writeExact(String(decoding: data, as: UTF8.self))
                 }

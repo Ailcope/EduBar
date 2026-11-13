@@ -38,6 +38,11 @@ public struct FeedFile: Sendable {
               let current = try? url.resourceValues(forKeys: [.isExcludedFromBackupKey]).isExcludedFromBackup,
               !current
         else { return }
+        Self.exclude(url)
+    }
+
+    /// Au mieux : un refus du système ne doit faire échouer ni la lecture ni l'écriture.
+    private static func exclude(_ url: URL) {
         var values = URLResourceValues()
         values.isExcludedFromBackup = true
         var target = url
@@ -73,15 +78,9 @@ public struct FeedFile: Sendable {
             throw CocoaError(.fileWriteUnknown, userInfo: [NSFilePathErrorKey: tmp.path])
         }
         do {
-            try fm.setAttributes([.posixPermissions: 0o600], ofItemAtPath: tmp.path)
             // Posé sur le temporaire encore vide, avant d'y écrire : l'attribut suit l'inode au rename,
-            // sans fenêtre non exclue. Au mieux : un refus du système ne doit pas faire échouer l'écriture.
-            if excludedFromBackup {
-                var values = URLResourceValues()
-                values.isExcludedFromBackup = true
-                var target = tmp
-                try? target.setResourceValues(values)
-            }
+            // sans fenêtre non exclue.
+            if excludedFromBackup { Self.exclude(tmp) }
             let handle = try FileHandle(forWritingTo: tmp)
             defer { try? handle.close() }
             try handle.write(contentsOf: Data(value.utf8))
