@@ -43,6 +43,7 @@ actor MyGESClient {
         let config = URLSessionConfiguration.ephemeral
         config.timeoutIntervalForRequest = 30
         config.httpCookieStorage = nil
+        config.urlCache = nil
         session = URLSession(configuration: config, delegate: NoRedirect(), delegateQueue: nil)
     }
 
