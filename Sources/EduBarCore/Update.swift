@@ -137,9 +137,8 @@ public enum Update {
 
     /// Clé publique Ed25519 de publication (32 octets bruts, en base64). La clé privée reste hors du
     /// dépôt, de la CI et de GitHub (scripts/sign-release.swift, docs/deploiement.md).
-    /// CLE_PUBLIQUE_A_REMPLACER : valeur provisoire (32 octets à zéro), refusée par `publicKey(base64:)`.
-    /// Tant qu'elle est là, aucune mise à jour automatique ne s'installe.
-    public static let releasePublicKey = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=" // CLE_PUBLIQUE_A_REMPLACER
+    /// Une clé nulle (32 octets à zéro) est refusée par `publicKey(base64:)`.
+    public static let releasePublicKey = "xNtMNNpK58dmggfrK/M6p7Fhmr1EogW9iGBFuXBIBNE="
 
     /// Taille maximale d'un fichier .sig : 88 caractères base64 attendus, le reste est de la marge.
     public static let maxSignatureBytes = 512
