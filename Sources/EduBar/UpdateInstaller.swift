@@ -57,7 +57,7 @@ enum UpdateInstaller {
 
         // La signature d'abord (quelques octets) : inutile de télécharger l'archive si elle est illisible.
         let signatureFile = try await downloadSignature(from: signatureURL)
-        guard Update.signature(fromFile: signatureFile) != nil else { throw rejected("signature mal formée") }
+        guard !Update.signatures(fromFile: signatureFile).isEmpty else { throw rejected("signature mal formée") }
 
         let (downloaded, response) = try await Network.session.download(from: zip)
         let code = (response as? HTTPURLResponse)?.statusCode ?? 0

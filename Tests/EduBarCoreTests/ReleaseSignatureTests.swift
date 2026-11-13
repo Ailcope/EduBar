@@ -63,16 +63,31 @@ import Testing
         for file in bad {
             #expect(!Update.verifySignature(file, of: archive, publicKey: publicKey))
         }
-        #expect(Update.signature(fromFile: Data()) == nil)
-        #expect(Update.signature(fromFile: Data(b64.dropLast(4).utf8)) == nil)
-        #expect(Update.signature(fromFile: Data(b64.utf8))?.count == 64)
+        #expect(Update.signatures(fromFile: Data()).isEmpty)
+        #expect(Update.signatures(fromFile: Data(b64.dropLast(4).utf8)).isEmpty)
+        #expect(Update.signatures(fromFile: Data(b64.utf8)).map(\.count) == [64])
+    }
+
+    /// Rotation de clé : le .sig porte une signature par ligne (ancienne et nouvelle clé) ; une app
+    /// qui n'épingle que l'une des deux accepte, quel que soit l'ordre.
+    @Test func plusieursSignaturesUneSeuleSuffit() throws {
+        let other = Curve25519.Signing.PrivateKey()
+        let mine = try key.signature(for: archive).base64EncodedString()
+        let theirs = try other.signature(for: archive).base64EncodedString()
+        for text in ["\(mine)\n\(theirs)\n", "\(theirs)\n\(mine)\n", "\(theirs)\r\n\r\n\(mine)"] {
+            #expect(Update.verifySignature(Data(text.utf8), of: archive, publicKey: publicKey))
+        }
+        // Aucune ligne de la bonne clé : refusé.
+        #expect(!Update.verifySignature(Data("\(theirs)\n\(theirs)\n".utf8), of: archive, publicKey: publicKey))
+        // Une ligne mal formée invalide tout le fichier, même à côté d'une bonne signature.
+        #expect(!Update.verifySignature(Data("\(mine)\nn'importe quoi\n".utf8), of: archive, publicKey: publicKey))
     }
 
     @Test func fichierSigTropGrosRefuse() throws {
         // Signature valide noyée dans des blancs : au-delà du plafond, refusée sans être lue.
         let b64 = try key.signature(for: archive).base64EncodedString()
         let padded = b64 + String(repeating: "\n", count: Update.maxSignatureBytes)
-        #expect(Update.signature(fromFile: Data(padded.utf8)) == nil)
+        #expect(Update.signatures(fromFile: Data(padded.utf8)).isEmpty)
         #expect(!Update.verifySignature(Data(padded.utf8), of: archive, publicKey: publicKey))
         #expect(Update.maxSignatureBytes <= 1024)
     }
@@ -92,11 +107,9 @@ import Testing
         #expect(!Update.verifySignature(sig, of: archive, publicKey: Data(count: 32).base64EncodedString()))
     }
 
-    @Test func cleEpingleeProvisoireOuValide() {
-        // Tant que la valeur provisoire (32 octets à zéro) est en place, toute signature est refusée ;
-        // une fois remplacée, ce doit être une vraie clé Ed25519.
-        let placeholder = Data(count: 32).base64EncodedString()
-        #expect(Update.releasePublicKey == placeholder || Update.publicKey(base64: Update.releasePublicKey) != nil)
+    /// Une clé épinglée nulle ou mal formée bloquerait toutes les mises à jour.
+    @Test func cleEpingleeValide() {
+        #expect(Update.publicKey(base64: Update.releasePublicKey) != nil)
     }
 
     @Test func cleEpingleeParDefautRefuseLaCleDeTest() throws {

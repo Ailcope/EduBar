@@ -76,12 +76,12 @@ public enum Update {
     public static func decode(_ data: Data) throws -> Release {
         let p = try JSONDecoder().decode(Payload.self, from: data)
         guard let version = Version(p.tag_name) else { throw BadTag() }
-        let asset = { (ext: String) in p.assets?.first { $0.name.lowercased().hasSuffix(ext) } }
-        // Archive de mise à jour et sa signature (`<nom du zip>.sig`, nom exact) : en HTTPS seulement.
-        let zip = p.assets?.first { $0.name.lowercased().hasSuffix(".zip") && isHTTPS($0.browser_download_url) }
-        let signature = zip.flatMap { zip in
-            p.assets?.first { $0.name == zip.name + ".sig" && isHTTPS($0.browser_download_url) }
-        }
+        // Tout ce qui se télécharge ou s'ouvre (zip, signature, dmg) : en HTTPS seulement.
+        let assets = (p.assets ?? []).filter { isHTTPS($0.browser_download_url) }
+        let asset = { (ext: String) in assets.first { $0.name.lowercased().hasSuffix(ext) } }
+        let zip = asset(".zip")
+        // Signature du zip : asset `<nom du zip>.sig`, nom exact.
+        let signature = zip.flatMap { zip in assets.first { $0.name == zip.name + ".sig" } }
         return Release(
             version: version, page: p.html_url, dmg: asset(".dmg")?.browser_download_url,
             zip: zip?.browser_download_url, zipSHA256: zip?.digest.flatMap(sha256Hex),
@@ -140,10 +140,11 @@ public enum Update {
     /// Une clé nulle (32 octets à zéro) est refusée par `publicKey(base64:)`.
     public static let releasePublicKey = "xNtMNNpK58dmggfrK/M6p7Fhmr1EogW9iGBFuXBIBNE="
 
-    /// Taille maximale d'un fichier .sig : 88 caractères base64 attendus, le reste est de la marge.
+    /// Taille maximale d'un fichier .sig : 89 octets par signature, de quoi en porter plusieurs
+    /// pendant une rotation de clé.
     public static let maxSignatureBytes = 512
 
-    /// Clé publique Ed25519 depuis son base64 (32 octets). Nil si mal formée ou nulle (valeur provisoire).
+    /// Clé publique Ed25519 depuis son base64 (32 octets). Nil si mal formée ou nulle.
     public static func publicKey(base64: String) -> Curve25519.Signing.PublicKey? {
         guard let raw = Data(base64Encoded: base64.trimmingCharacters(in: .whitespacesAndNewlines)),
               raw.count == 32, raw.contains(where: { $0 != 0 })
@@ -151,20 +152,25 @@ public enum Update {
         return try? Curve25519.Signing.PublicKey(rawRepresentation: raw)
     }
 
-    /// Contenu d'un fichier .sig (base64 d'une signature brute de 64 octets, blancs de début et de fin
-    /// tolérés) → les 64 octets. Nil si vide, trop gros, pas en base64 ou d'une autre longueur.
-    public static func signature(fromFile data: Data) -> Data? {
-        guard data.count <= maxSignatureBytes, let text = String(data: data, encoding: .utf8),
-              let raw = Data(base64Encoded: text.trimmingCharacters(in: .whitespacesAndNewlines)),
-              raw.count == 64
-        else { return nil }
-        return raw
+    /// Contenu d'un fichier .sig : une signature par ligne (base64 de 64 octets bruts, blancs tolérés).
+    /// Plusieurs lignes servent à la rotation de clé : la release est signée par l'ancienne et la
+    /// nouvelle. Vide si le fichier est vide, trop gros, ou si une seule ligne est mal formée.
+    public static func signatures(fromFile data: Data) -> [Data] {
+        guard data.count <= maxSignatureBytes, let text = String(data: data, encoding: .utf8) else { return [] }
+        var result: [Data] = []
+        for line in text.split(whereSeparator: \.isNewline) {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            if trimmed.isEmpty { continue }
+            guard let raw = Data(base64Encoded: trimmed), raw.count == 64 else { return [] }
+            result.append(raw)
+        }
+        return result
     }
 
-    /// Vrai seulement si `signatureFile` (contenu du .sig) est une signature Ed25519 valide des octets
+    /// Vrai seulement si `signatureFile` (contenu du .sig) porte une signature Ed25519 valide des octets
     /// exacts de `archive` par `publicKey` (par défaut la clé épinglée). Tout le reste est refusé.
     public static func verifySignature(_ signatureFile: Data, of archive: Data, publicKey: String = releasePublicKey) -> Bool {
-        guard let key = Self.publicKey(base64: publicKey), let signature = signature(fromFile: signatureFile) else { return false }
-        return key.isValidSignature(signature, for: archive)
+        guard let key = Self.publicKey(base64: publicKey) else { return false }
+        return signatures(fromFile: signatureFile).contains { key.isValidSignature($0, for: archive) }
     }
 }

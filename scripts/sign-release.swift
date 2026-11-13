@@ -5,6 +5,7 @@
 //   swift scripts/sign-release.swift keygen       crée la clé privée (une seule fois), affiche la clé publique
 //   swift scripts/sign-release.swift pubkey       réaffiche la clé publique
 //   swift scripts/sign-release.swift sign <zip>   écrit <zip>.sig (base64 de 64 octets) et le vérifie
+//   swift scripts/sign-release.swift sign --add <zip>   ajoute une signature au .sig (rotation de clé)
 //
 // Clé privée : ~/.config/edubar/release-signing.key (dossier 0700, fichier 0600),
 // ou le chemin donné par la variable d'environnement EDUBAR_SIGNING_KEY.
@@ -30,12 +31,18 @@ func publicKeyBase64(_ key: Curve25519.Signing.PrivateKey) -> String {
     key.publicKey.rawRepresentation.base64EncodedString()
 }
 
-/// Contenu d'un .sig → 64 octets (même règle que Update.signature(fromFile:) dans l'app).
-func decodeSignature(_ data: Data) -> Data? {
-    guard data.count <= 512, let text = String(data: data, encoding: .utf8),
-          let raw = Data(base64Encoded: text.trimmingCharacters(in: .whitespacesAndNewlines)), raw.count == 64
-    else { return nil }
-    return raw
+/// Contenu d'un .sig → une signature de 64 octets par ligne (même règle que Update.signatures(fromFile:)
+/// dans l'app : 512 octets au plus, une ligne mal formée invalide tout).
+func decodeSignatures(_ data: Data) -> [Data] {
+    guard data.count <= 512, let text = String(data: data, encoding: .utf8) else { return [] }
+    var result: [Data] = []
+    for line in text.split(whereSeparator: \.isNewline) {
+        let trimmed = line.trimmingCharacters(in: .whitespaces)
+        if trimmed.isEmpty { continue }
+        guard let raw = Data(base64Encoded: trimmed), raw.count == 64 else { return [] }
+        result.append(raw)
+    }
+    return result
 }
 
 func keygen() {
@@ -86,21 +93,28 @@ func readKey() -> Curve25519.Signing.PrivateKey {
     return key
 }
 
-func sign(_ zipPath: String) {
+/// `add` : ajoute une ligne au .sig existant au lieu de le remplacer (rotation : deux clés signent).
+func sign(_ zipPath: String, add: Bool = false) {
     let key = readKey()
     let fm = FileManager.default
     guard let archive = fm.contents(atPath: zipPath), !archive.isEmpty else { fail("archive illisible ou vide : \(zipPath)") }
     let sigPath = zipPath + ".sig"
     do {
-        let signature = try key.signature(for: archive)
-        try Data((signature.base64EncodedString() + "\n").utf8).write(to: URL(fileURLWithPath: sigPath), options: .atomic)
+        var lines: [String] = []
+        if add {
+            guard let existing = fm.contents(atPath: sigPath), !decodeSignatures(existing).isEmpty else {
+                fail("pas de \(sigPath) valide à compléter (signer d'abord sans --add).")
+            }
+            lines = decodeSignatures(existing).map { $0.base64EncodedString() }
+        }
+        lines.append(try key.signature(for: archive).base64EncodedString())
+        try Data((lines.joined(separator: "\n") + "\n").utf8).write(to: URL(fileURLWithPath: sigPath), options: .atomic)
     } catch {
         fail("signature impossible : \(error.localizedDescription)")
     }
     // Contrôle : relit l'archive et le .sig sur disque et vérifie avec la clé publique.
-    guard let written = fm.contents(atPath: sigPath), let signature = decodeSignature(written),
-          let reread = fm.contents(atPath: zipPath),
-          key.publicKey.isValidSignature(signature, for: reread)
+    guard let written = fm.contents(atPath: sigPath), let reread = fm.contents(atPath: zipPath),
+          decodeSignatures(written).contains(where: { key.publicKey.isValidSignature($0, for: reread) })
     else {
         try? fm.removeItem(atPath: sigPath)
         fail("la signature écrite ne se vérifie pas, \(sigPath) supprimé.")
@@ -113,9 +127,10 @@ switch (arguments.first, arguments.count) {
 case ("keygen", 1): keygen()
 case ("pubkey", 1): print(publicKeyBase64(readKey()))
 case ("sign", 2): sign(arguments[1])
+case ("sign", 3) where arguments[1] == "--add": sign(arguments[2], add: true)
 default:
     note("""
-    Usage : swift scripts/sign-release.swift keygen | pubkey | sign <zip>
+    Usage : swift scripts/sign-release.swift keygen | pubkey | sign [--add] <zip>
     Clé : \(keyPath) (variable EDUBAR_SIGNING_KEY pour un autre chemin)
     """)
     exit(2)
