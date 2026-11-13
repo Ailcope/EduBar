@@ -19,13 +19,23 @@ binding = "DB"
 database_name = "edu-stats"
 database_id = "bddfcf9b-8158-40c8-8b7c-13b04d021c1f"
 
-# Anti-abus de POST /v1/installation : 5 par 60 s et par clé (empreinte de l'IP calculée en mémoire).
+# Anti-abus de POST /v1/installation : 5 par 60 s et par clé (empreinte salée par jour de l'IPv4 ou du
+# préfixe /64, calculée en mémoire, jamais stockée ni journalisée).
 [[unsafe.bindings]]
 name = "LIMITER"
 type = "ratelimit"
 namespace_id = "4201"
 simple = { limit = 5, period = 60 }
 
-# Rétention : agrège puis supprime les présences de plus de 35 jours.
+# Anti-abus de POST /v1/signal : 30 par 60 s et par clé (large, car plusieurs postes peuvent partager
+# une IP d'école ; une app légitime n'envoie qu'un signal par jour). Protège D1 des UUID forgés.
+[[unsafe.bindings]]
+name = "LIMITER_SIGNAL"
+type = "ratelimit"
+namespace_id = "4202"
+simple = { limit = 30, period = 60 }
+
+# Rétention : agrège puis supprime les présences de plus de 35 jours, puis purge les installations
+# sans présence depuis plus de 35 jours.
 [triggers]
 crons = ["17 3 * * *"]
