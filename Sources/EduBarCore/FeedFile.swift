@@ -40,15 +40,25 @@ public struct FeedFile: Sendable {
         let dir = url.deletingLastPathComponent()
         try fm.createDirectory(at: dir, withIntermediateDirectories: true)
         try fm.setAttributes([.posixPermissions: 0o700], ofItemAtPath: dir.path)
-        // Créé vide en 0600 avant d'y écrire : l'URL n'est jamais lisible par les autres comptes.
-        if !fm.fileExists(atPath: url.path) {
-            fm.createFile(atPath: url.path, contents: nil, attributes: [.posixPermissions: 0o600])
+        // Fichier temporaire du même dossier, créé en 0600 avant d'y écrire : le contenu n'est jamais lisible
+        // par les autres comptes. Puis rename atomique : le fichier final n'est jamais vide ni tronqué.
+        let tmp = dir.appending(path: ".\(url.lastPathComponent).tmp-\(UUID().uuidString)")
+        guard fm.createFile(atPath: tmp.path, contents: nil, attributes: [.posixPermissions: 0o600]) else {
+            throw CocoaError(.fileWriteUnknown, userInfo: [NSFilePathErrorKey: tmp.path])
         }
-        try fm.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
-        let handle = try FileHandle(forWritingTo: url)
-        defer { try? handle.close() }
-        try handle.truncate(atOffset: 0)
-        try handle.write(contentsOf: Data(value.utf8))
+        do {
+            try fm.setAttributes([.posixPermissions: 0o600], ofItemAtPath: tmp.path)
+            let handle = try FileHandle(forWritingTo: tmp)
+            defer { try? handle.close() }
+            try handle.write(contentsOf: Data(value.utf8))
+            try handle.synchronize()
+            if rename(tmp.path, url.path) != 0 {
+                throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
+            }
+        } catch {
+            try? fm.removeItem(at: tmp)
+            throw error
+        }
     }
 
     public func remove() {

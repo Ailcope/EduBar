@@ -34,3 +34,40 @@ import Testing
         try? FileManager.default.removeItem(at: dir)
     }
 }
+
+@Suite struct FeedFileAtomicTests {
+    let dir = FileManager.default.temporaryDirectory.appending(path: "edubar-atomic-\(UUID().uuidString)")
+
+    private func inode(_ url: URL) throws -> UInt64 {
+        (try FileManager.default.attributesOfItem(atPath: url.path)[.systemFileNumber] as? UInt64) ?? 0
+    }
+
+    @Test func rewriteReplacesInodeKeepsPermissionsAndLeavesNoTemp() throws {
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let file = FeedFile(directory: dir, name: "myges-credentials")
+        try file.writeExact("  secret  ")
+        let first = try inode(file.url)
+        try file.writeExact("  autre ")
+        #expect(try inode(file.url) != first)
+        #expect(try String(contentsOf: file.url, encoding: .utf8) == "  autre ")
+        let attrs = try FileManager.default.attributesOfItem(atPath: file.url.path)
+        #expect((attrs[.posixPermissions] as? Int) == 0o600)
+        let dirAttrs = try FileManager.default.attributesOfItem(atPath: dir.path)
+        #expect((dirAttrs[.posixPermissions] as? Int) == 0o700)
+        #expect(try FileManager.default.contentsOfDirectory(atPath: dir.path) == ["myges-credentials"])
+    }
+
+    @Test func failedWriteLeavesOriginalAndNoTemp() throws {
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let file = FeedFile(directory: dir)
+        try file.write("avant")
+        // Une cible qui est un dossier non vide fait échouer le rename : pas de fichier temporaire orphelin.
+        let blocked = FeedFile(directory: dir, name: "bloque")
+        try FileManager.default.createDirectory(at: blocked.url, withIntermediateDirectories: false)
+        try Data("x".utf8).write(to: blocked.url.appending(path: "f"))
+        #expect(throws: (any Error).self) { try blocked.writeExact("y") }
+        let names = try FileManager.default.contentsOfDirectory(atPath: dir.path).sorted()
+        #expect(names == ["bloque", "feed-url"])
+        #expect(file.read() == "avant")
+    }
+}
