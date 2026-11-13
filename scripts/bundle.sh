@@ -1,6 +1,10 @@
 #!/bin/sh
-# Construit dist/EduBar.app (signature ad-hoc), dist/EduBar-<version>.zip et dist/EduBar-<version>.dmg.
+# Construit dist/EduBar.app (signature ad-hoc), dist/EduBar-<version>.zip, sa signature de publication
+# dist/EduBar-<version>.zip.sig (si la clé existe) et dist/EduBar-<version>.dmg.
 # Usage : scripts/bundle.sh [version]   (défaut : 0.1.0)
+# Clé de signature : ~/.config/edubar/release-signing.key, ou EDUBAR_SIGNING_KEY (scripts/sign-release.swift).
+# Code de sortie non nul, fichiers produits quand même, si le zip n'est pas signé ou si la clé publique
+# épinglée dans Update.swift est encore la valeur provisoire : une telle version ne doit pas être publiée.
 set -eu
 
 VERSION="${1:-0.1.0}"
@@ -25,8 +29,18 @@ cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 codesign --force --sign - --options runtime --timestamp=none "$APP"
 codesign --verify --verbose=1 "$APP"
 
-rm -f "$ROOT/dist/EduBar-$VERSION.zip"
-ditto -c -k --keepParent "$APP" "$ROOT/dist/EduBar-$VERSION.zip"
+ZIP="$ROOT/dist/EduBar-$VERSION.zip"
+SIG="$ZIP.sig"
+rm -f "$ZIP" "$SIG"
+ditto -c -k --keepParent "$APP" "$ZIP"
+
+# Signature de publication du zip : sans elle, les apps installées refusent la mise à jour.
+KEY="${EDUBAR_SIGNING_KEY:-$HOME/.config/edubar/release-signing.key}"
+SIGNED=0
+if [ -f "$KEY" ]; then
+  EDUBAR_SIGNING_KEY="$KEY" swift scripts/sign-release.swift sign "$ZIP" > /dev/null
+  SIGNED=1
+fi
 
 # DMG : l'app + un raccourci vers /Applications pour le glisser-déposer.
 DMG="$ROOT/dist/EduBar-$VERSION.dmg"
@@ -38,5 +52,26 @@ hdiutil create -quiet -volname "EduBar $VERSION" -srcfolder "$STAGE" -fs HFS+ -f
 rm -rf "$STAGE"
 
 echo "OK : $APP"
-echo "OK : $ROOT/dist/EduBar-$VERSION.zip"
+echo "OK : $ZIP"
+if [ "$SIGNED" = 1 ]; then echo "OK : $SIG"; fi
 echo "OK : $DMG"
+
+STATUS=0
+PINNED="$(sed -n 's/.*releasePublicKey = "\([^"]*\)".*/\1/p' Sources/EduBarCore/Update.swift)"
+if [ "$PINNED" = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=" ]; then
+  echo "" >&2
+  echo "!!! ATTENTION : clé publique provisoire dans Sources/EduBarCore/Update.swift (CLE_PUBLIQUE_A_REMPLACER)." >&2
+  echo "!!! Cette version ne pourrait plus jamais se mettre à jour toute seule : ne pas la publier." >&2
+  STATUS=1
+fi
+if [ "$SIGNED" != 1 ]; then
+  echo "" >&2
+  echo "!!! ATTENTION : zip NON signé : les apps installées refuseront cette mise à jour." >&2
+  echo "!!! Aucune clé dans $KEY (docs/deploiement.md, « Publication d'une release »)." >&2
+  STATUS=1
+elif [ "$(EDUBAR_SIGNING_KEY="$KEY" swift scripts/sign-release.swift pubkey)" != "$PINNED" ]; then
+  echo "" >&2
+  echo "Note : la clé qui signe n'est pas celle épinglée dans Update.swift. Normal seulement pour une" >&2
+  echo "version de transition (docs/deploiement.md) ; sinon les apps installées refuseront la mise à jour." >&2
+fi
+exit "$STATUS"
