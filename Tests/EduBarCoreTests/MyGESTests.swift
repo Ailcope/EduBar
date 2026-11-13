@@ -165,6 +165,44 @@ struct MyGESTests {
         #expect(try JSONDecoder().decode(GradeBook.Subject.self, from: JSONEncoder().encode(s)) == s)
     }
 
+    // MARK: Moyenne calculée
+
+    @Test func averageIsComputedWhenMyGESGivesNone() {
+        func s(_ grades: [Double], exam: Double? = nil, average: Double? = nil, cc: Double? = nil) -> GradeBook.Subject {
+            GradeBook.Subject(course: "M", grades: grades, exam: exam, average: average, ccAverage: cc)
+        }
+        // Une seule note suffit.
+        #expect(s([18]).displayAverage == 18)
+        // Arrondi au centième : la somme flottante donne 9,999… sans ça.
+        #expect(s([9.1, 10.2, 10.7]).displayAverage == 10)
+        #expect(s([6.4, 9.8, 13.8]).displayAverage == 10)
+        // Un 0 de remplissage dans la moyenne de myGES ne masque pas les notes.
+        #expect(s([14, 16], average: 0).displayAverage == 15)
+        // Sans aucune note, le 0 de myGES reste tel quel.
+        #expect(s([], average: 0).displayAverage == 0)
+        #expect(s([15, 11.5]).displayAverage == 13.25)
+        // Examen seul.
+        #expect(s([], exam: 12).displayAverage == 12)
+        // CC et examen : moitié-moitié.
+        #expect(s([10, 14], exam: 16).displayAverage == 14)
+        // La moyenne de CC de myGES l'emporte sur la moyenne simple des notes.
+        #expect(s([10, 14], cc: 13).displayAverage == 13)
+        // La moyenne définitive de myGES reste prioritaire.
+        #expect(s([10, 14], exam: 16, average: 15.2).displayAverage == 15.2)
+        // Aucune note : pas de moyenne.
+        #expect(s([]).displayAverage == nil)
+    }
+
+    @Test func weightedAverageCountsComputedAverages() {
+        let book = GradeBook(subjects: [
+            .init(course: "A", grades: [10], coef: 1, trimester: 1, year: 2026),
+            .init(course: "B", grades: [12, 16], exam: 18, coef: 3, trimester: 1, year: 2026),
+            .init(course: "C", coef: 5, trimester: 1, year: 2026),
+        ])
+        // (10 × 1 + 16 × 3) / 4
+        #expect(book.weightedAverage(in: .init(year: 2026, trimester: 1, name: "S1")) == 14.5)
+    }
+
     // MARK: Périodes
 
     @Test func periodsSortedAndUnique() throws {
@@ -399,7 +437,8 @@ struct GradeStatsTests {
     @Test func marksAndStats() {
         #expect(book.marks(in: s1) == [12, 16, 14, 8])
         let st = book.stats(in: s1)
-        #expect(st.weighted == 14)
+        // « b » n'a pas de moyenne myGES : sa seule note (8) compte, (14 × 2 + 8 × 1) / 3.
+        #expect(st.weighted == 12)
         #expect(st.simple == 12.5)
         #expect(st.min == 8)
         #expect(st.max == 16)
