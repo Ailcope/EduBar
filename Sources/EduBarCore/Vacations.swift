@@ -9,6 +9,9 @@ public struct Vacation: Equatable, Sendable {
 }
 
 public enum Vacations {
+    /// Fenêtre de recherche autour d'aujourd'hui, en jours (la rétention du flux).
+    static let searchDays = 400
+
     /// Les prochaines vacances (ou celles en cours) : `minDays` jours d'affilée ou plus sans cours,
     /// week-ends compris, entre deux jours de cours. `isCompanyDay` : un jour en entreprise coupe la période.
     /// Après le dernier cours du flux, rien : le flux s'arrête, ce ne sont pas forcément des vacances.
@@ -22,10 +25,22 @@ public enum Vacations {
             let d = calendar.startOfDay(for: c.start)
             if days.last != d { days.append(d) }
         }
+        // Recherche bornée : un évènement égaré (an 9999) ne doit pas faire boucler des millions de jours.
+        let lower = calendar.date(byAdding: .day, value: -searchDays, to: today)!
+        let upper = calendar.date(byAdding: .day, value: searchDays, to: today)!
         for (a, b) in zip(days, days.dropFirst()) where b > today {
+            if a > upper { break }
             var runStart: Date?
-            var day = calendar.date(byAdding: .day, value: 1, to: a)!
+            var day = max(calendar.date(byAdding: .day, value: 1, to: a)!, lower)
             while day <= b {
+                if day > upper {
+                    // Horizon atteint au milieu d'un trou : on le suppose libre jusqu'au prochain cours.
+                    if let s = runStart, b > today,
+                       (calendar.dateComponents([.day], from: s, to: b).day ?? 0) >= minDays {
+                        return Vacation(start: s, end: b)
+                    }
+                    break
+                }
                 let free = day < b && !isCompanyDay(day)
                 if free {
                     if runStart == nil { runStart = day }
