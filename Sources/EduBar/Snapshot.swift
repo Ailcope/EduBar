@@ -202,7 +202,8 @@ enum Snapshot {
               coef: 2, ects: 3, teacher: "M. MOREAU", trimester: 120, year: 2026, trimesterName: "Semestre 1", letterMark: "A"),
         .init(course: "S1 - Mathématiques", grades: [10, 12], exam: 10, average: 10.5, ccAverage: 11,
               coef: 2, ects: 3, teacher: "Mme GARCIA", trimester: 120, year: 2026, trimesterName: "Semestre 1", letterMark: "D"),
-        .init(course: "S1 - Cloud et virtualisation", grades: [10], exam: nil, average: 10, ccAverage: 10,
+        // Sans moyenne myGES : celle affichée est calculée depuis la seule note.
+        .init(course: "S1 - Cloud et virtualisation", grades: [10], exam: nil, average: nil, ccAverage: nil,
               coef: 1, ects: 2, teacher: "M. ROBERT", trimester: 120, year: 2026, trimesterName: "Semestre 1", letterMark: "D"),
         .init(course: "S1 - Cybersécurité", grades: [], exam: nil, average: nil, ccAverage: nil,
               coef: 2, ects: 3, teacher: "M. BERNARD", trimester: 120, year: 2026, trimesterName: "Semestre 1",

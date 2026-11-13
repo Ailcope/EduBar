@@ -152,6 +152,19 @@ public struct GradeBook: Codable, Sendable, Equatable {
             return String(course[range.upperBound...])
         }
 
+        /// Moyenne affichée : celle de myGES quand elle existe, sinon calculée dès la première note.
+        /// CC seul : moyenne de CC ; examen seul : l'examen ; les deux : moitié CC, moitié examen.
+        public var displayAverage: Double? {
+            if let average { return average }
+            let cc = ccAverage ?? (grades.isEmpty ? nil : grades.reduce(0, +) / Double(grades.count))
+            switch (cc, exam) {
+            case let (cc?, exam?): return (cc + exam) / 2
+            case let (cc?, nil): return cc
+            case let (nil, exam?): return exam
+            case (nil, nil): return nil
+            }
+        }
+
         /// La période de la matière, ou `nil` si l'année ou le semestre manque.
         public var period: Period? {
             guard let year, let trimester else { return nil }
@@ -219,7 +232,7 @@ public struct GradeBook: Codable, Sendable, Equatable {
     public func weightedAverage(in period: Period) -> Double? {
         var sum = 0.0, weight = 0.0
         for s in subjects(in: period) {
-            guard let a = s.average, let c = s.coef, c > 0 else { continue }
+            guard let a = s.displayAverage, let c = s.coef, c > 0 else { continue }
             sum += a * c
             weight += c
         }

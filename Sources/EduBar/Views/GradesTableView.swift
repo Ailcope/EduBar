@@ -219,7 +219,6 @@ struct GradesTableView: View {
                         ForEach(0..<ccCount, id: \.self) { headerCell("CC\($0 + 1)", fill: Self.headerDark) }
                         headerCell("Exam", fill: Self.headerDark)
                         headerCell(L10n.tr("Moyenne", "Average"), fill: Self.headerDark, width: Self.averageWidth)
-                        headerCell(L10n.tr("Lettre", "Letter"), fill: Self.headerDark)
                     }
                     ForEach(Array(subjects.enumerated()), id: \.element.id) { index, s in
                         let fill = index % 2 == 0 ? Color.clear : Color.primary.opacity(0.045)
@@ -240,9 +239,8 @@ struct GradesTableView: View {
                                 pill(value, fresh: fresh.contains("\(s.course)|CC\(i + 1)")).cell(fill: fill)
                             }
                             pill(s.exam, fresh: fresh.contains("\(s.course)|Examen")).cell(fill: fill)
-                            pill(s.average, fresh: fresh.contains("\(s.course)|Moyenne"), wide: true)
+                            pill(s.displayAverage, fresh: fresh.contains("\(s.course)|Moyenne"), wide: true)
                                 .cell(fill: fill, width: Self.averageWidth)
-                            letter(s.average != nil ? s.letterMark : nil).cell(fill: fill)
                         }
                     }
                 }
@@ -282,19 +280,6 @@ struct GradesTableView: View {
         }
     }
 
-    @ViewBuilder
-    private func letter(_ value: String?) -> some View {
-        if let value, !value.isEmpty {
-            Text(value)
-                .font(.system(size: 12, weight: .semibold))
-                .padding(.horizontal, 9)
-                .padding(.vertical, 2)
-                .background(Capsule().fill(Color.primary.opacity(0.12)))
-        } else {
-            Text("")
-        }
-    }
-
     private func title(_ s: GradeBook.Subject) -> String {
         s.shortCourse.prefix(1).uppercased() + s.shortCourse.dropFirst()
     }
@@ -302,7 +287,7 @@ struct GradesTableView: View {
     // MARK: - Graphique
 
     private func chart(book: GradeBook, period: GradeBook.Period) -> some View {
-        let items = book.subjects(in: period).compactMap { s in s.average.map { (s, $0) } }
+        let items = book.subjects(in: period).compactMap { s in s.displayAverage.map { (s, $0) } }
         let weighted = book.weightedAverage(in: period)
         return VStack(alignment: .leading, spacing: 6) {
             Text(L10n.tr("Moyennes par matière", "Averages by subject")).font(.system(size: 13, weight: .semibold))
